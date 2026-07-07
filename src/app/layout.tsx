@@ -1,21 +1,22 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import ThemeRegistry from "@/providers/theme-provider";
+import type { Metadata } from 'next';
+import { Poppins } from 'next/font/google';
+import './globals.css';
+import ThemeRegistry from '@/providers/theme-provider';
+import { AuthProvider } from '@/providers/auth-provider';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const poppins = Poppins({
+  variable: '--font-poppins',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: "Assinae Front",
-  description: "Frontend organizado com Next.js, Tailwind e Material UI",
+  title: 'Assinaê - UEFS',
+  description: 'Frontend organizado com Next.js, Tailwind e Material UI',
+  icons: {
+    icon: '/images/logos/logo1.png',
+    apple: '/images/logos/logo1.png',
+  },
 };
 
 export default function RootLayout({
@@ -24,14 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="pt-BR" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full" suppressHydrationWarning>
-        <ThemeRegistry>
-          {children}
-        </ThemeRegistry>
+        <ThemeRegistry><AuthProvider>{children}</AuthProvider></ThemeRegistry>
       </body>
     </html>
   );
