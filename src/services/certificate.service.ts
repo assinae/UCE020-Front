@@ -114,7 +114,7 @@ class CertificateService {
       payload = (payload as { data?: unknown }).data;
     }
     // Assinatura concluída no backend, mas sem corpo reconhecível: não quebra a UI.
-    return { assinados: 0, semArquivo: 0, assinante: '', certificados: [] };
+    return { assinados: 0, assinante: '', certificados: [] };
   }
 
   // Emite os certificados de participante/monitor/organizador do evento (evento precisa

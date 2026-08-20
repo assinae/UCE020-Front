@@ -41,7 +41,6 @@ export interface SignedCertificateSummary {
 
 export interface CertificateBatchSignResult {
   assinados: number;
-  semArquivo: number;
   assinante: string;
   certificados: SignedCertificateSummary[];
 }
