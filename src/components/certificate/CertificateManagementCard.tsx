@@ -156,11 +156,10 @@ export function CertificateManagementCard({
             <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
-        <Tooltip title={certificate.imageUrl ? 'Baixar' : 'PDF ainda não disponível'}>
+        <Tooltip title="Baixar">
           <span>
             <IconButton
               onClick={() => onDownload(certificate)}
-              disabled={!certificate.imageUrl}
               size="small"
               sx={ACTION_BUTTON_SX}
             >

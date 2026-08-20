@@ -8,6 +8,11 @@ import { Button } from '@/components/ui/Button';
 import { certificateService } from '@/services/certificate.service';
 import { useMockUser } from '@/mocks/useMockUser';
 import type { CertificateManagementItem } from '@/types/certificate-management';
+import { Toast } from '@/components/ui/Toast';
+import { ToastSeverity } from '@/types/toast';
+import { useCertificatePdfPreview } from '@/features/certificate/hooks/useCertificatePdfPreview';
+import { baixarCertificadoPdf } from '@/features/certificate/utils/certificatePdf';
+import { extractApiErrorMessage } from '@/utils/apiError';
 
 export default function CertificateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,6 +22,12 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   const [cert, setCert] = useState<CertificateManagementItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // O PDF é buscado em paralelo com os dados do certificado: o id já veio
+  // da rota, então não precisa esperar o GET do certificado terminar.
+  const pdf = useCertificatePdfPreview(id);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,9 +49,16 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
     };
   }, [id]);
 
-  const handleDownload = () => {
-    if (!cert?.imageUrl) return;
-    window.open(cert.imageUrl, '_blank', 'noopener,noreferrer');
+  const handleDownload = async () => {
+    if (!cert) return;
+    setIsDownloading(true);
+    try {
+      await baixarCertificadoPdf({ ...cert, id });
+    } catch (error) {
+      setToastMessage(extractApiErrorMessage(error, 'Não foi possível baixar o certificado.'));
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -124,17 +142,21 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
               justifyContent: 'center',
             }}
           >
-            {cert.imageUrl ? (
+            {pdf.isLoading ? (
+              <CircularProgress size={28} />
+            ) : pdf.url ? (
               <Box
                 component="iframe"
-                src={cert.imageUrl}
+                src={pdf.url}
                 title={`Certificado - ${cert.title}`}
                 sx={{ width: '100%', height: '100%', border: 0 }}
               />
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: '#94a3b8' }}>
                 <PictureAsPdf sx={{ fontSize: 40 }} />
-                <Typography sx={{ fontSize: '0.85rem' }}>PDF ainda não disponível</Typography>
+                <Typography sx={{ fontSize: '0.85rem' }}>
+                  {pdf.error ?? 'PDF indisponível'}
+                </Typography>
               </Box>
             )}
           </Box>
@@ -202,7 +224,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
                 color="secondary"
                 sx={{ px: 6, borderRadius: '50px', fontWeight: 700 }}
                 leftIcon={<Download />}
-                disabled={!cert.imageUrl}
+                disabled={isDownloading}
                 onClick={handleDownload}
               >
                 Baixar
@@ -211,6 +233,13 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
           </Box>
         </Box>
       </Container>
+
+      <Toast
+        open={Boolean(toastMessage)}
+        message={toastMessage}
+        severity={ToastSeverity.Error}
+        onClose={() => setToastMessage('')}
+      />
     </Box>
   );
 }

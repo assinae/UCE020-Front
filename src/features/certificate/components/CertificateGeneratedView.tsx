@@ -16,6 +16,7 @@ import { ToastSeverity } from '@/types/toast';
 import { certificateService } from '@/services/certificate.service';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { useCertificatesGenerated } from '../hooks/useCertificatesGenerated';
+import { baixarCertificadoPdf } from '../utils/certificatePdf';
 import { CertificateStatsRow } from './CertificateStatsRow';
 import { CertificateSummaryCard } from './CertificateSummaryCard';
 import { CertificateBatchActions } from './CertificateBatchActions';
@@ -65,9 +66,18 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
 
   const handleView = (certificate: CertificateManagementItem) =>
     router.push(`/certificate/${certificate.id}`);
-  const handleDownload = (certificate: CertificateManagementItem) => {
-    if (!certificate.imageUrl) return;
-    window.open(certificate.imageUrl, '_blank', 'noopener,noreferrer');
+  // O PDF é gerado sob demanda numa rota autenticada, então não dá para abrir
+  // a URL direto: o conteúdo vem pelo axios e vira download no navegador.
+  const handleDownload = async (certificate: CertificateManagementItem) => {
+    try {
+      await baixarCertificadoPdf(certificate);
+    } catch (error) {
+      setToast({
+        open: true,
+        message: extractApiErrorMessage(error, 'Não foi possível baixar o certificado.'),
+        severity: ToastSeverity.Error,
+      });
+    }
   };
 
   const handleSignBatch = () => setIsSignModalOpen(true);
