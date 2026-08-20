@@ -20,6 +20,8 @@ type BarcodeDetectorLike = {
 };
 type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
 
+const QR_DEBUG_ENABLED = process.env.NEXT_PUBLIC_QR_DEBUG === 'true';
+
 const SCAN_INTERVAL_MS = 120;
 const SUCCESS_FEEDBACK_MS = 900;
 const DUPLICATE_SCAN_WINDOW_MS = 1500;
@@ -62,6 +64,7 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
 
   const [status, setStatus] = useState<ScannerStatus>('loading');
   const [message, setMessage] = useState('Inicializando câmera...');
+  const [detectionTimeMs, setDetectionTimeMs] = useState<number | null>(null);
 
   useEffect(() => {
     onResultRef.current = onResult;
@@ -80,6 +83,7 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
     let isScanning = false;
     let hasFrameCallback = false;
     let barcodeDetector = getBarcodeDetector();
+    let lastFrameStartTime = performance.now();
 
     function clearTimers() {
       if (scanTimerRef.current) window.clearTimeout(scanTimerRef.current);
@@ -109,7 +113,7 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
       }, SCAN_INTERVAL_MS);
     }
 
-    function handleDetectedCode(value: string) {
+    function handleDetectedCode(value: string, frameStartTime: number) {
       const now = Date.now();
       const lastScan = lastScannedRef.current;
       const isDuplicate =
@@ -117,8 +121,15 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
 
       if (isDuplicate) return;
 
+      const detectionTime = Math.max(0, Math.round(performance.now() - frameStartTime));
       lastScannedRef.current = { value, timestamp: now };
+      setDetectionTimeMs(detectionTime);
       setStatus('success');
+
+      if (QR_DEBUG_ENABLED) {
+        console.debug(`[QR DEBUG] código detectado em ${detectionTime}ms`);
+      }
+
       onResultRef.current?.(value);
 
       if (successTimerRef.current) window.clearTimeout(successTimerRef.current);
@@ -148,6 +159,7 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
         return;
       }
 
+      lastFrameStartTime = performance.now();
       isScanning = true;
 
       try {
@@ -184,7 +196,7 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
         }
 
         if (value) {
-          handleDetectedCode(value);
+          handleDetectedCode(value, lastFrameStartTime);
         }
       } finally {
         isScanning = false;
@@ -331,6 +343,19 @@ export function QrCodeScanner({ onResult, scanKey = 0, paused = false }: QrCodeS
       >
         {isSuccess ? 'QR Code detectado' : message}
       </Typography>
+
+      {QR_DEBUG_ENABLED && (
+        <Typography
+          sx={{
+            fontSize: 11,
+            color: colorTokens.text.secondary,
+            textAlign: 'center',
+            fontFamily: 'monospace',
+          }}
+        >
+          {detectionTimeMs === null ? 'Debug: aguardando detecção...' : `Debug: ${detectionTimeMs} ms`}
+        </Typography>
+      )}
     </Box>
   );
 }
