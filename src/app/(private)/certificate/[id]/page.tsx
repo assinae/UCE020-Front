@@ -13,6 +13,7 @@ import { ToastSeverity } from '@/types/toast';
 import { useCertificatePdfPreview } from '@/features/certificate/hooks/useCertificatePdfPreview';
 import { baixarCertificadoPdf } from '@/features/certificate/utils/certificatePdf';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { formatBahiaDate } from '@/utils/date';
 
 export default function CertificateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,8 +26,6 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   const [isDownloading, setIsDownloading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // O PDF é buscado em paralelo com os dados do certificado: o id já veio
-  // da rota, então não precisa esperar o GET do certificado terminar.
   const pdf = useCertificatePdfPreview(id);
 
   useEffect(() => {
@@ -193,7 +192,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CalendarToday sx={{ fontSize: 16, color: '#64748b' }} />
                 <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                  Emitido em {new Date(cert.issueDate).toLocaleDateString('pt-BR')}
+                  Emitido em {formatBahiaDate(cert.issueDate)}
                 </Typography>
               </Box>
 

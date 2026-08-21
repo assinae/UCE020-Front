@@ -24,6 +24,7 @@ import {
   certificateService,
   CertificateVerificationError,
 } from '@/services/certificate.service';
+import { formatBahiaDateTime } from '@/utils/date';
 
 // ── Design tokens (mesma identidade do login) ──────────────
 const navy = '#13284D';
@@ -42,15 +43,7 @@ interface CertificateVerifyViewProps {
 
 function formatDateTime(value?: string | null) {
   if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatBahiaDateTime(value);
 }
 
 // ── Linha de detalhe (ícone + rótulo + valor) ──────────────

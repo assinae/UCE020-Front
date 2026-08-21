@@ -2,15 +2,12 @@ import type { PresenceScanStatus } from '@/types/presence';
 
 export function getScanStatusMessage(
   status: PresenceScanStatus,
-  payload: { participantName?: string; activityTitle?: string } | null,
+  payload: { participantName: string; activityTitle: string } | null,
 ): { message: string; monitorGuidance: string } {
-  const participantName = payload?.participantName ?? 'Participante';
-  const activityTitle = payload?.activityTitle ?? 'Atividade';
-
   switch (status) {
     case 'ready':
       return {
-        message: `Confirmar presença de ${participantName} em ${activityTitle}`,
+        message: `Confirmar presença de ${payload?.participantName} em ${payload?.activityTitle}`,
         monitorGuidance: 'Confirme a presença se os dados estiverem corretos',
       };
     case 'invalid_qr':
