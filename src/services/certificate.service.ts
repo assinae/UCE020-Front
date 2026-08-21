@@ -66,11 +66,6 @@ class CertificateService {
     return { ...data.data, status: DEFAULT_STATUS };
   }
 
-  // Busca o PDF do certificado, gerado sob demanda pelo back a cada requisição.
-  //
-  // Diferente da URL antiga do Supabase — pública, podia ir direto num href —
-  // esta rota exige Authorization. Por isso precisa passar pelo axios, que injeta
-  // o token, e o conteúdo volta como Blob.
   async getCertificatePdf(id: string): Promise<Blob> {
     try {
       const { data } = await api.get<Blob>(`/certificate/${encodeURIComponent(id)}/pdf`, {
@@ -78,9 +73,8 @@ class CertificateService {
       });
       return data;
     } catch (error) {
-      // Com responseType 'blob' o corpo de ERRO também volta como Blob, e o JSON
-      // do HttpExceptionFilter chegaria ilegível em extractApiErrorMessage.
-      // Converte de volta para objeto antes de propagar.
+      // Com responseType 'blob' o corpo de ERRO também vem como Blob, e chegaria
+      // ilegível em extractApiErrorMessage.
       if (error instanceof AxiosError && error.response?.data instanceof Blob) {
         try {
           error.response.data = JSON.parse(await error.response.data.text());
