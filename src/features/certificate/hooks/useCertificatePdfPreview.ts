@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { certificateService } from '@/services/certificate.service';
 import { extractApiErrorMessage } from '@/utils/apiError';
@@ -38,15 +38,33 @@ export function useCertificatePdfPreview(id?: string): CertificatePdfPreview {
     retry: false,
   });
 
-  // O blob fica no cache do React Query; o object URL é derivado dele e
-  // revogado ao trocar de certificado ou desmontar. Sem revogar, o blob fica
-  // retido em memória enquanto a aba estiver aberta.
-  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : undefined), [blob]);
+  const [url, setUrl] = useState<string>();
 
+  // O blob fica no cache do React Query; o object URL é criado a partir dele e
+  // revogado ao trocar de certificado ou desmontar — sem isso o blob fica retido
+  // em memória enquanto a aba estiver aberta.
+  //
+  // A criação precisa acontecer DENTRO do efeito, não num useMemo: o StrictMode
+  // roda efeito -> cleanup -> efeito, e o cleanup revoga a URL. Com useMemo o
+  // segundo ciclo não recriaria nada (o blob não mudou) e sobraria uma URL
+  // revogada no src do iframe — a miniatura quebrava ao revisitar um
+  // certificado já em cache.
   useEffect(() => {
-    if (!url) return;
-    return () => URL.revokeObjectURL(url);
-  }, [url]);
+    if (!blob) return;
+
+    const objectUrl = URL.createObjectURL(blob);
+    // A regra set-state-in-effect existe para evitar render em cascata, mas aqui
+    // é um render extra por blob, não um ciclo. Criar o object URL é sincronizar
+    // com um sistema externo (a API de Blob do navegador) e tem cleanup
+    // obrigatório — por isso não dá para derivar em tempo de render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+      setUrl(undefined);
+    };
+  }, [blob]);
 
   return {
     url,
