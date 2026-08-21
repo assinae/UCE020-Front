@@ -3,7 +3,11 @@ import type { PresenceQrPayload } from '@/types/presence';
 const REQUIRED_FIELDS: (keyof PresenceQrPayload)[] = ['participantId', 'activityId', 'eventId'];
 
 export function buildPresenceQrPayload(payload: PresenceQrPayload): string {
-  return JSON.stringify(payload);
+  return JSON.stringify({
+    participantId: payload.participantId,
+    activityId: payload.activityId,
+    eventId: payload.eventId,
+  });
 }
 
 export function parsePresenceQrPayload(rawValue: string): PresenceQrPayload | null {
@@ -26,9 +30,11 @@ export function parsePresenceQrPayload(rawValue: string): PresenceQrPayload | nu
 
     return {
       participantId: String(record.participantId),
-      participantName: typeof record.participantName === 'string' ? record.participantName : '',
+      participantName:
+        typeof record.participantName === 'string' ? record.participantName : undefined,
       activityId: String(record.activityId),
-      activityTitle: typeof record.activityTitle === 'string' ? record.activityTitle : '',
+      activityTitle:
+        typeof record.activityTitle === 'string' ? record.activityTitle : undefined,
       eventId: String(record.eventId),
     };
   } catch {
