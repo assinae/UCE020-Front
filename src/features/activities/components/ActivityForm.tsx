@@ -22,6 +22,7 @@ import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import { Button, TextInput } from '@/components/ui';
 import { colorTokens } from '@/lib/colors';
 import RegisterGuestModal from '@/components/modals/register-guest-modal/RegisterGuestModal';
+import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -109,14 +110,11 @@ function createTouchedState(): TouchedState {
 }
 
 function getTodayString(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return getBahiaDateInput(new Date());
 }
 
 function toDateTime(date: string, time: string): string {
-  if (!date || !time) return '';
-  return `${date}T${time}`;
+  return toBahiaIso(date, time);
 }
 
 function formatDateBR(iso: string): string {
@@ -132,8 +130,8 @@ function getErrors(
   eventDateRange?: { start: string; end: string },
   maxWorkload?: number
 ) {
-  const minDate = eventDateRange ? eventDateRange.start.slice(0, 10) : getTodayString();
-  const maxDate = eventDateRange ? eventDateRange.end.slice(0, 10) : undefined;
+  const minDate = eventDateRange ? getBahiaDateInput(eventDateRange.start) : getTodayString();
+  const maxDate = eventDateRange ? getBahiaDateInput(eventDateRange.end) : undefined;
 
   const startDT = toDateTime(form.startDate, form.startTime);
   const endDT = toDateTime(form.endDate, form.endTime);
@@ -179,22 +177,22 @@ function getErrors(
     })(),
     startTime: (() => {
       if (touched.startTime && !form.startTime) return 'Selecione o horário de início.';
-      if (touched.startTime && eventDateRange && startDT && startDT < eventDateRange.start) {
-        const hora = eventDateRange.start.slice(11, 16);
+      if (touched.startTime && eventDateRange && startDT && new Date(startDT) < new Date(eventDateRange.start)) {
+        const hora = getBahiaTimeInput(eventDateRange.start);
         return `A atividade não pode começar antes das ${hora} (início do evento).`;
       }
-      if (touched.startTime && eventDateRange && startDT && startDT > eventDateRange.end) {
+      if (touched.startTime && eventDateRange && startDT && new Date(startDT) > new Date(eventDateRange.end)) {
         return 'O horário de início ultrapassa o término do evento.';
       }
       return '';
     })(),
     endTime: (() => {
       if (touched.endTime && !form.endTime) return 'Selecione o horário de término.';
-      if (touched.endTime && eventDateRange && endDT && endDT > eventDateRange.end) {
-        const hora = eventDateRange.end.slice(11, 16);
+      if (touched.endTime && eventDateRange && endDT && new Date(endDT) > new Date(eventDateRange.end)) {
+        const hora = getBahiaTimeInput(eventDateRange.end);
         return `A atividade não pode terminar depois das ${hora} (término do evento).`;
       }
-      if (touched.endTime && startDT && endDT && endDT < startDT) {
+      if (touched.endTime && startDT && endDT && new Date(endDT) < new Date(startDT)) {
         return 'O término não pode ser antes do início.';
       }
       return '';
@@ -208,15 +206,19 @@ function isFormValid(
   eventDateRange?: { start: string; end: string },
   maxWorkload?: number
 ) {
-  const minDate = eventDateRange ? eventDateRange.start.slice(0, 10) : getTodayString();
-  const maxDate = eventDateRange ? eventDateRange.end.slice(0, 10) : undefined;
+  const minDate = eventDateRange ? getBahiaDateInput(eventDateRange.start) : getTodayString();
+  const maxDate = eventDateRange ? getBahiaDateInput(eventDateRange.end) : undefined;
   const workloadNum = Number(form.workload);
 
   const startDT = toDateTime(form.startDate, form.startTime);
   const endDT = toDateTime(form.endDate, form.endTime);
 
   const withinEventRange =
-    !eventDateRange || (startDT >= eventDateRange.start && endDT <= eventDateRange.end);
+    !eventDateRange ||
+    (Boolean(startDT) &&
+      Boolean(endDT) &&
+      new Date(startDT) >= new Date(eventDateRange.start) &&
+      new Date(endDT) <= new Date(eventDateRange.end));
   return (
     Object.values(errors).every((e) => e === '') &&
     form.name.trim().length >= 3 &&
@@ -231,7 +233,7 @@ function isFormValid(
     (!maxDate || form.endDate <= maxDate) &&
     Boolean(form.startTime) &&
     Boolean(form.endTime) &&
-    endDT >= startDT &&
+    new Date(endDT) >= new Date(startDT) &&
     withinEventRange &&
     form.workload.trim().length > 0 &&
     !isNaN(workloadNum) &&
@@ -823,7 +825,7 @@ export default function ActivityForm({
         activityTitle={form.name || 'Nova atividade'}
         activityDate={
           form.startDate && form.startTime
-            ? new Date(`${form.startDate}T${form.startTime}:00`)
+            ? new Date(toBahiaIso(form.startDate, form.startTime))
             : new Date()
         }
         activityLocation={form.location || displayedEvent.location}
