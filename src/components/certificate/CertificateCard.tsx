@@ -4,6 +4,7 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
+import { formatBahiaDate } from '@/utils/date';
 
 interface CertificateCardProps {
   id: string;
@@ -117,7 +118,7 @@ export function CertificateCard({ id, title, issuedDate, location, hours }: Cert
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.5, lg: 1 } }}>
           <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.65, color: '#667085', fontSize: 12.5 }}>
             <CalendarMonthOutlinedIcon sx={{ fontSize: 15, color: '#9AA4B2' }} />
-            {new Date(issuedDate).toLocaleDateString('pt-BR')}
+            {formatBahiaDate(issuedDate)}
           </Box>
           {location ? (
             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.65, minWidth: 0, maxWidth: '100%', color: '#667085', fontSize: 12.5 }}>

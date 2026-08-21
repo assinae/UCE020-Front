@@ -3,14 +3,10 @@ import type { EventCardProps } from "@/types/event";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import { formatBahiaDate } from "@/utils/date";
 
 function formatDateRange(start: string, end: string): string {
-  const fmt = (date: string) =>
-    new Date(date).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+  const fmt = (date: string) => formatBahiaDate(date);
 
   return `${fmt(start)} a ${fmt(end)}`;
 }
