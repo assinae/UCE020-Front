@@ -1,3 +1,5 @@
+import { APP_TIMEZONE, formatBahiaDate, formatBahiaDateTime, formatBahiaTime } from './date';
+
 function parseDateValue(date?: Date | string): Date | null {
   if (!date) return null;
 
@@ -9,38 +11,18 @@ function parseDateValue(date?: Date | string): Date | null {
   if (!value) return null;
 
   const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
+  if (dateOnlyMatch) return null;
 
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export function formatDate(date: Date | string): string {
-  const d = parseDateValue(date);
-  if (!d) return 'Data indisponível';
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(d);
+  return formatBahiaDate(date);
 }
 
 export function formatDateTime(date: Date | string): string {
-  const d = parseDateValue(date);
-  if (!d) return 'Data indisponível';
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
+  return formatBahiaDateTime(date);
 }
 
 export function formatCurrency(value: number): string {
@@ -58,13 +40,7 @@ export function formatNumber(value: number, decimals: number = 2): string {
 }
 
 export function formatTime(date: Date | string): string {
-  const d = parseDateValue(date);
-  if (!d) return 'Horário indisponível';
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
+  return formatBahiaTime(date);
 }
 
 export function formatActivitySchedule(startDate: Date | string, endDate: Date | string) {
@@ -78,33 +54,21 @@ export function formatActivityDate(startDate: Date | string, endDate?: Date | st
   const start = parseDateValue(startDate);
   if (!start) return 'Data não informada';
 
-  const startDay = start.getUTCDate();
-  const startMonth = start.getUTCMonth();
-  const startYear = start.getUTCFullYear();
-  const startMonthLabel = new Intl.DateTimeFormat('pt-BR', {
+  const startLabel = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: APP_TIMEZONE,
+    day: 'numeric',
     month: 'long',
-    timeZone: 'UTC',
+    year: 'numeric',
   }).format(start);
+  const end = endDate ? parseDateValue(endDate) : null;
+  if (!end) return startLabel;
 
-  const end = parseDateValue(endDate);
-  if (!end) return `${startDay} de ${startMonthLabel} de ${startYear}`;
-
-  const endDay = end.getUTCDate();
-  const endMonth = end.getUTCMonth();
-  const endYear = end.getUTCFullYear();
-
-  if (startDay === endDay && startMonth === endMonth && startYear === endYear) {
-    return `${startDay} de ${startMonthLabel} de ${startYear}`;
-  }
-
-  if (startMonth === endMonth && startYear === endYear) {
-    return `${startDay} a ${endDay} de ${startMonthLabel} de ${startYear}`;
-  }
-
-  const endMonthLabel = new Intl.DateTimeFormat('pt-BR', {
+  const endLabel = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: APP_TIMEZONE,
+    day: 'numeric',
     month: 'long',
-    timeZone: 'UTC',
+    year: 'numeric',
   }).format(end);
 
-  return `${startDay} de ${startMonthLabel} de ${startYear} a ${endDay} de ${endMonthLabel} de ${endYear}`;
+  return startLabel === endLabel ? startLabel : `${startLabel} a ${endLabel}`;
 }

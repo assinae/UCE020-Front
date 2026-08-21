@@ -18,6 +18,7 @@ import { CertificateCard } from "@/components/certificate";
 import { Searchbar } from "@/components/ui/Searchbar";
 import { certificateService } from "@/services/certificate.service";
 import type { CertificateManagementItem } from "@/types/certificate-management";
+import { getBahiaDateKey } from "@/utils/date";
 
 const periodOptions = [
   { value: "todos", label: "Todos" },
@@ -59,18 +60,19 @@ export default function CertificatesPage() {
 
   const filteredCertificates = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const now = new Date();
+    const nowKey = getBahiaDateKey();
+    const nowYear = nowKey.slice(0, 4);
+    const nowMonth = nowKey.slice(0, 7);
 
     return certificates.filter((certificate) => {
-      const issuedDate = new Date(certificate.issueDate);
+      const issuedKey = getBahiaDateKey(certificate.issueDate);
       const matchesSearch = certificate.title.toLowerCase().includes(normalizedSearch);
       const matchesPeriod =
         periodFilter === "todos" ||
         (periodFilter === "mes" &&
-          issuedDate.getMonth() === now.getMonth() &&
-          issuedDate.getFullYear() === now.getFullYear()) ||
-        (periodFilter === "ano" && issuedDate.getFullYear() === now.getFullYear()) ||
-        (periodFilter === "anteriores" && issuedDate.getFullYear() < now.getFullYear());
+          issuedKey.slice(0, 7) === nowMonth) ||
+        (periodFilter === "ano" && issuedKey.slice(0, 4) === nowYear) ||
+        (periodFilter === "anteriores" && issuedKey.slice(0, 4) < nowYear);
 
       return matchesSearch && matchesPeriod;
     });

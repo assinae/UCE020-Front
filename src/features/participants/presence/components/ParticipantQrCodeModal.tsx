@@ -21,7 +21,7 @@ export function ParticipantQrCodeModal({
 
   return (
     <ModalContainer open={open} onClose={onClose}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.25, p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.25, p:2 }}>
         <CloseButton onClick={onClose} position="relative" top={0} right={0} />
       </Box>
 
@@ -49,7 +49,7 @@ export function ParticipantQrCodeModal({
         </Typography>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-          <QRCode value={qrPayload} size={220} level="Q" style={{ borderRadius: '12px' }} />
+          <QRCode value={qrPayload} size={260} level="H" style={{ borderRadius: '12px' }} />
         </Box>
       </Box>
     </ModalContainer>

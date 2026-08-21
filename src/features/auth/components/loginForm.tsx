@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Visibility, VisibilityOff, ArrowBackIos } from "@mui/icons-material";
 import { useLogin } from "../hooks/useLogin";
+import { formatBahiaYear } from "@/utils/date";
 
 // ── Design tokens ────────────────────────────────────────
 const navy   = "#13284D";
@@ -112,7 +113,7 @@ function LeftPanel() {
 
       {/* Rodapé */}
       <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: 12, zIndex: 1 }}>
-        © {new Date().getFullYear()} Assinaê · UEFS
+        © {formatBahiaYear()} Assinaê · UEFS
       </Typography>
     </Box>
   );
