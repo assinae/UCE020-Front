@@ -15,6 +15,7 @@ import {
 } from "@mui/icons-material";
 import { useRegister } from "../hooks/useRegister";
 import { UserRegister } from "../types/userRegister";
+import { formatBahiaYear } from "@/utils/date";
 
 // ── Design tokens ────────────────────────────────────────
 const navy   = "#13284D";
@@ -123,7 +124,7 @@ function LeftPanel() {
       </Box>
 
       <Typography sx={{ color: "rgba(255,255,255,0.25)", fontSize: 12, zIndex: 1 }}>
-        © {new Date().getFullYear()} Assinaê · UEFS
+        © {formatBahiaYear()} Assinaê · UEFS
       </Typography>
     </Box>
   );

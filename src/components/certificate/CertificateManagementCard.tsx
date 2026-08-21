@@ -6,6 +6,7 @@ import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import { CertificateBadge } from '@/features/certificate/components/certificateBadge';
 import { CERTIFICATE_ROLE_COLORS, CERTIFICATE_STATUS_META } from '@/mocks/certificate-management';
 import type { CertificateManagementItem } from '@/types/certificate-management';
+import { formatBahiaDate } from '@/utils/date';
 
 interface CertificateManagementCardProps {
   certificate: CertificateManagementItem;
@@ -128,7 +129,7 @@ export function CertificateManagementCard({
               <AccessTimeOutlinedIcon sx={{ fontSize: 13, color: '#94A3B8', flexShrink: 0 }} />
               <Typography sx={{ fontSize: 11.5, color: '#64748B' }}>
                 {certificate.hours ? `${certificate.hours}h  •  ` : ''}
-                Emitido em {new Date(certificate.issueDate).toLocaleDateString('pt-BR')}
+                Emitido em {formatBahiaDate(certificate.issueDate)}
               </Typography>
             </Box>
           </Box>

@@ -31,6 +31,7 @@ import { useCreateEvent } from '../../evento/hooks/useCreateEvent';
 import { useEditEvent } from '../../evento/hooks/useEditEvent';
 import ActivityForm, { ActivityFormState } from '@/features/activities/components/ActivityForm';
 import { Activity, ActivityGuest } from '@/types';
+import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 type EventFormMode = 'create' | 'edit';
 
@@ -127,16 +128,11 @@ function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
 }
 
 function toISODateTime(date: string, time: string): string {
-  if (!date || !time) return '';
-
-  const localDateTime = new Date(`${date}T${time}:00`);
-  return Number.isNaN(localDateTime.getTime()) ? '' : localDateTime.toISOString();
+  return toBahiaIso(date, time);
 }
 
 function getTodayString(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return getBahiaDateInput(new Date());
 }
 
 function formatDateBR(iso: string): string {
@@ -186,11 +182,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const startDT = existingEvent.dataInicio ? new Date(existingEvent.dataInicio) : null;
       const endDT = existingEvent.dataFim ? new Date(existingEvent.dataFim) : null;
 
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const toDate = (dt: Date | null) =>
-        dt ? `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}` : '';
-      const toTime = (dt: Date | null) =>
-        dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : '';
+      const toDate = (dt: Date | null) => (dt ? getBahiaDateInput(dt) : '');
+      const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
       setForm({
         nome: existingEvent.nome ?? '',

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { certificateService } from '@/services/certificate.service';
 import { useMockUser } from '@/mocks/useMockUser';
 import type { CertificateManagementItem } from '@/types/certificate-management';
+import { formatBahiaDate } from '@/utils/date';
 
 export default function CertificateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -171,7 +172,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CalendarToday sx={{ fontSize: 16, color: '#64748b' }} />
                 <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                  Emitido em {new Date(cert.issueDate).toLocaleDateString('pt-BR')}
+                  Emitido em {formatBahiaDate(cert.issueDate)}
                 </Typography>
               </Box>
 
