@@ -127,7 +127,10 @@ function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
 }
 
 function toISODateTime(date: string, time: string): string {
-  return `${date}T${time}:00`;
+  if (!date || !time) return '';
+
+  const localDateTime = new Date(`${date}T${time}:00`);
+  return Number.isNaN(localDateTime.getTime()) ? '' : localDateTime.toISOString();
 }
 
 function getTodayString(): string {
