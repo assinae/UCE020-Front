@@ -26,6 +26,8 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   const [isDownloading, setIsDownloading] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  // O PDF é buscado em paralelo com os dados do certificado: o id já veio
+  // da rota, então não precisa esperar o GET do certificado terminar.
   const pdf = useCertificatePdfPreview(id);
 
   useEffect(() => {
