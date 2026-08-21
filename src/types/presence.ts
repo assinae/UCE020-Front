@@ -1,8 +1,8 @@
 export interface PresenceQrPayload {
   participantId: string;
-  participantName?: string;
+  participantName: string;
   activityId: string;
-  activityTitle?: string;
+  activityTitle: string;
   eventId: string;
 }
 
