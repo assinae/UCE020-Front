@@ -9,31 +9,19 @@ import type {
 function buildResult(
   status: PresenceScanStatus,
   payload: PresenceScanResult['payload'],
-  context: PresenceValidationContext,
 ): PresenceScanResult {
-  const normalizedPayload = payload
-    ? {
-        ...payload,
-        participantName: payload.participantName || 'Participante',
-        activityTitle: payload.activityTitle || context.activityTitle,
-      }
-    : null;
-
   const { message, monitorGuidance } = getScanStatusMessage(
     status,
-    normalizedPayload
-      ? {
-          participantName: normalizedPayload.participantName,
-          activityTitle: normalizedPayload.activityTitle,
-        }
+    payload
+      ? { participantName: payload.participantName, activityTitle: payload.activityTitle }
       : null,
   );
 
   return {
     status,
-    payload: normalizedPayload,
-    participantName: normalizedPayload?.participantName ?? null,
-    activityTitle: normalizedPayload?.activityTitle ?? null,
+    payload,
+    participantName: payload?.participantName ?? null,
+    activityTitle: payload?.activityTitle ?? null,
     message,
     monitorGuidance,
     canConfirm: status === 'ready',
@@ -47,16 +35,16 @@ export function validatePresenceScan(
   const payload = parsePresenceQrPayload(rawQrValue);
 
   if (!payload) {
-    return buildResult('invalid_qr', null, context);
+    return buildResult('invalid_qr', null);
   }
 
   if (payload.eventId !== context.eventId) {
-    return buildResult('wrong_event', payload, context);
+    return buildResult('wrong_event', payload);
   }
 
   if (payload.activityId !== context.activityId) {
-    return buildResult('wrong_activity', payload, context);
+    return buildResult('wrong_activity', payload);
   }
 
-  return buildResult('ready', payload, context);
+  return buildResult('ready', payload);
 }
