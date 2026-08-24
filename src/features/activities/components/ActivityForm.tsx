@@ -12,6 +12,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Switch,
   Typography,
 } from '@mui/material';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
@@ -47,9 +48,11 @@ export type ActivityFormState = {
   startTime: string;
   endTime: string;
   guests: ActivityGuest[];
+  /** Se marcado, a atividade emitirá certificado individual de participante ao ser finalizada. */
+  generateCertificate: boolean;
 };
 
-type TouchedState = Record<Exclude<keyof ActivityFormState, 'guests'>, boolean>;
+type TouchedState = Record<Exclude<keyof ActivityFormState, 'guests' | 'generateCertificate'>, boolean>;
 
 export type ActivityEventInfo = {
   title: string;
@@ -85,6 +88,7 @@ const EMPTY_FORM: ActivityFormState = {
   startTime: '',
   endTime: '',
   guests: [],
+  generateCertificate: false,
 };
 
 const FALLBACK_EVENT_INFO: ActivityEventInfo = {
@@ -312,6 +316,10 @@ export default function ActivityForm({
 
   function markTouched(field: Exclude<keyof ActivityFormState, 'guests'>) {
     setTouched((current) => ({ ...current, [field]: true }));
+  }
+
+  function toggleGenerateCertificate(value: boolean) {
+    setForm((current) => ({ ...current, generateCertificate: value }));
   }
 
   async function handleGuestSubmit(payload: { fullName: string; role: string; email: string }) {
@@ -711,6 +719,35 @@ export default function ActivityForm({
                     Máximo: {maxWorkload}h (carga horária do evento)
                   </Typography>
                 ) : null}
+              </Box>
+
+              <Box
+                sx={{
+                  border: `1px solid ${colorTokens.neutral.gray300}`,
+                  borderRadius: '10px',
+                  px: 1.5,
+                  py: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: colorTokens.text.primary }}>
+                    Gerar Certificado da Atividade
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                    Emite certificado individual para quem tiver presença confirmada, após a
+                    atividade ser finalizada.
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={form.generateCertificate}
+                  onChange={(e) => toggleGenerateCertificate(e.target.checked)}
+                  slotProps={{ input: { 'aria-label': 'Gerar Certificado da Atividade' } }}
+                  sx={{ flexShrink: 0 }}
+                />
               </Box>
 
               {/* ── Convidados ── */}

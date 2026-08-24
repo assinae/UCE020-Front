@@ -8,6 +8,7 @@ import type {
   CertificateRoleStat,
   CertificateVerification,
   CertificateVerificationResult,
+  GenerateActivityCertificatesResult,
 } from '@/types/certificate-management';
 
 // Erro de verificação com a mensagem retornada pelo backend (ex.: código inexistente
@@ -121,6 +122,19 @@ class CertificateService {
   // atividade (atividade precisa estar finalizada). Também seguro chamar mais de uma vez.
   async generateGuestCertificates(atividadeId: number | string): Promise<void> {
     await api.post(`/activity/${atividadeId}/certificate/guests`);
+  }
+
+  // Emite os certificados de participante de uma atividade específica, para quem tem
+  // presença confirmada nela. Só funciona se a atividade tiver `gerarCertificado: true`
+  // e estiver com status "finalizada" — senão o backend responde 403. Idempotente: quem
+  // já tem certificado entra em `alreadyIssued` e não gera arquivo duplicado.
+  async generateActivityCertificates(
+    atividadeId: number | string,
+  ): Promise<GenerateActivityCertificatesResult> {
+    const { data } = await api.post<{ message?: string; data: GenerateActivityCertificatesResult }>(
+      `/activity/${atividadeId}/certificate/participants`,
+    );
+    return data.data;
   }
 
   // Verifica publicamente a autenticidade de um certificado pelo código de verificação.

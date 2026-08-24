@@ -32,6 +32,7 @@ import { ToastSeverity } from '@/types/toast';
 import { Toast } from '@/components/ui/Toast';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { activityService } from '@/services/activityService';
+import { certificateService } from '@/services/certificate.service';
 import { isAxiosError } from 'axios';
 
 interface EventDetailViewProps {
@@ -195,6 +196,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const [isPresenceConfirmed, setIsPresenceConfirmed] = useState(false);
   const [activityPresenceMap, setActivityPresenceMap] = useState<Record<string, boolean>>({});
 
+  const [isActivityCertificateEnabled, setIsActivityCertificateEnabled] = useState(false);
+  const [activityCertificateFlagMap, setActivityCertificateFlagMap] = useState<Record<string, boolean>>({});
+  const [isGeneratingActivityCertificates, setIsGeneratingActivityCertificates] = useState(false);
+
   const isSignupProcessingRef = useRef(false);
   const pendingEnrollmentChecksRef = useRef<Set<string>>(new Set());
 
@@ -353,6 +358,31 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     setSelectedActivity(null);
     setIsQrModalOpen(false);
     router.push(buildListParticipantsPath(eventId, selectedActivity.id));
+  }
+
+  async function handleGenerateActivityCertificates() {
+    if (!selectedActivity) return;
+
+    setIsGeneratingActivityCertificates(true);
+    try {
+      const result = await certificateService.generateActivityCertificates(selectedActivity.id);
+      const alreadyIssuedSuffix =
+        result.alreadyIssued > 0 ? ` (${result.alreadyIssued} já emitido(s) anteriormente)` : '';
+
+      setToast({
+        open: true,
+        message: `${result.issued} certificado(s) de atividade emitido(s)${alreadyIssuedSuffix}.`,
+        severity: ToastSeverity.Success,
+      });
+    } catch (error) {
+      setToast({
+        open: true,
+        message: extractApiErrorMessage(error, 'Não foi possível gerar os certificados da atividade'),
+        severity: ToastSeverity.Error,
+      });
+    } finally {
+      setIsGeneratingActivityCertificates(false);
+    }
   }
 
   function handleBack() {
@@ -691,6 +721,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             setSelectedActivity(activity as ActivityLike);
             setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
             setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
+            setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
             setIsQrModalOpen(false);
 
             if (pendingEnrollmentChecksRef.current.has(activityKey)) {
@@ -704,6 +735,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               const activityDetails = await activityService.findOne(activity.id);
               let isRegistered = Boolean(activityDetails?.isRegistered ?? false);
               let presenceConfirmed = false;
+              const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
 
               if (Number.isFinite(normalizedEventId) && Number.isFinite(Number(activity.id)) && user?.id) {
                 try {
@@ -724,6 +756,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
               setIsActivityEnrolled(isRegistered);
               setIsPresenceConfirmed(presenceConfirmed);
+              setIsActivityCertificateEnabled(certificateEnabled);
               setActivityEnrollmentMap((prev) => ({
                 ...prev,
                 [activityKey]: isRegistered,
@@ -732,10 +765,15 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                 ...prev,
                 [activityKey]: presenceConfirmed,
               }));
+              setActivityCertificateFlagMap((prev) => ({
+                ...prev,
+                [activityKey]: certificateEnabled,
+              }));
             } catch (error) {
               console.error('[ATIVIDADE] erro ao verificar inscrição:', error);
               setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
               setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
+              setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
             } finally {
               pendingEnrollmentChecksRef.current.delete(activityKey);
               setIsCheckingActivityEnrollment(false);
@@ -765,12 +803,15 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             : activityModalVariant
         }
         presenceConfirmed={isPresenceConfirmed}
+        generateCertificate={isActivityCertificateEnabled}
         isLoading={isCheckingActivityEnrollment}
+        isGeneratingCertificates={isGeneratingActivityCertificates}
         onSignup={handleSignup}
         onCancelParticipation={handleCancelParticipation}
         onMarkPresence={handleMarkPresence}
         onValidatePresences={goToListParticipants}
         onListParticipants={goToListParticipants}
+        onGenerateCertificates={handleGenerateActivityCertificates}
       />
 
       {selectedActivity && user && (

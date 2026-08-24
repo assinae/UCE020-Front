@@ -6,13 +6,17 @@ import type { ActivityModalProps } from '@/types/activity';
 type ActivityModalActionsProps = Pick<
   ActivityModalProps,
   | 'variant'
+  | 'status'
   | 'presenceConfirmed'
+  | 'generateCertificate'
   | 'onSignup'
   | 'onCancelParticipation'
   | 'onMarkPresence'
   | 'onValidatePresences'
   | 'onListParticipants'
+  | 'onGenerateCertificates'
   | 'isLoading'
+  | 'isGeneratingCertificates'
 >;
 
 const actionButtonSx = {
@@ -24,14 +28,20 @@ const actionButtonSx = {
 
 export function ActivityModalActions({
   variant,
+  status,
   presenceConfirmed,
+  generateCertificate,
   onSignup,
   onCancelParticipation,
   onMarkPresence,
   onValidatePresences,
   onListParticipants,
+  onGenerateCertificates,
   isLoading,
+  isGeneratingCertificates,
 }: ActivityModalActionsProps) {
+  const canGenerateCertificates =
+    Boolean(generateCertificate) && (status ?? '').trim().toLowerCase() === 'finalizada';
   // Participante inscrito com presença já confirmada: nenhuma ação disponível,
   // apenas o status "Presença registrada".
   if (variant === 'manage' && presenceConfirmed) {
@@ -99,9 +109,20 @@ export function ActivityModalActions({
       )}
 
       {variant === 'organizer' && (
-        <Button sx={actionButtonSx} onClick={onListParticipants}>
-          Participantes
-        </Button>
+        <>
+          <Button sx={actionButtonSx} onClick={onListParticipants}>
+            Participantes
+          </Button>
+
+          <Button
+            sx={actionButtonSx}
+            variant="outlined"
+            onClick={onGenerateCertificates}
+            disabled={!canGenerateCertificates || Boolean(isGeneratingCertificates)}
+          >
+            {isGeneratingCertificates ? 'Gerando...' : 'Gerar certificados'}
+          </Button>
+        </>
       )}
     </Box>
   );
