@@ -71,7 +71,8 @@ export interface ActivityCertificateIssuance {
   role: CertificateManagementRole;
   alreadyIssued: boolean;
   issueDate: string;
-  fileUrl: string;
+  // Sem fileUrl: o PDF é gerado sob demanda via GET /certificate/:id/pdf,
+  // não fica mais disponível no ato da emissão.
 }
 
 export interface GenerateActivityCertificatesResult {
