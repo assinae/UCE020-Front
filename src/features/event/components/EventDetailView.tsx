@@ -200,6 +200,12 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const [activityCertificateFlagMap, setActivityCertificateFlagMap] = useState<Record<string, boolean>>({});
   const [isGeneratingActivityCertificates, setIsGeneratingActivityCertificates] = useState(false);
 
+  // GET /event/:id retorna as atividades num formato sem `status`/`gerarCertificado` —
+  // por isso a fonte confiável pra esses dois campos é sempre GET /activity/:id
+  // (activityService.findOne), nunca `event.atividades` direto.
+  const [activityAuthoritativeStatus, setActivityAuthoritativeStatus] = useState('');
+  const [activityStatusMap, setActivityStatusMap] = useState<Record<string, string>>({});
+
   const isSignupProcessingRef = useRef(false);
   const pendingEnrollmentChecksRef = useRef<Set<string>>(new Set());
 
@@ -722,6 +728,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
             setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
             setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
+            setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
             setIsQrModalOpen(false);
 
             if (pendingEnrollmentChecksRef.current.has(activityKey)) {
@@ -736,6 +743,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               let isRegistered = Boolean(activityDetails?.isRegistered ?? false);
               let presenceConfirmed = false;
               const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
+              const authoritativeStatus = activityDetails?.status ?? '';
 
               if (Number.isFinite(normalizedEventId) && Number.isFinite(Number(activity.id)) && user?.id) {
                 try {
@@ -757,6 +765,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               setIsActivityEnrolled(isRegistered);
               setIsPresenceConfirmed(presenceConfirmed);
               setIsActivityCertificateEnabled(certificateEnabled);
+              setActivityAuthoritativeStatus(authoritativeStatus);
               setActivityEnrollmentMap((prev) => ({
                 ...prev,
                 [activityKey]: isRegistered,
@@ -769,11 +778,16 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                 ...prev,
                 [activityKey]: certificateEnabled,
               }));
+              setActivityStatusMap((prev) => ({
+                ...prev,
+                [activityKey]: authoritativeStatus,
+              }));
             } catch (error) {
               console.error('[ATIVIDADE] erro ao verificar inscrição:', error);
               setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
               setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
               setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
+              setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
             } finally {
               pendingEnrollmentChecksRef.current.delete(activityKey);
               setIsCheckingActivityEnrollment(false);
@@ -795,7 +809,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         location={selectedActivity?.location ?? event.localizacao ?? ''}
         hours={Number(selectedActivity?.workload ?? 0) || event.cargaHoraria || 0}
         participantsCount={0}
-        status={selectedActivity?.status ?? ''}
+        status={activityAuthoritativeStatus || selectedActivity?.status || ''}
         description={selectedActivity?.description ?? ''}
         variant={
           isCheckingActivityEnrollment && role === 'participant'
