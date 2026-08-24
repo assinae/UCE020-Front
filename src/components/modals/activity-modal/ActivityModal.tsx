@@ -1,6 +1,7 @@
 'use client';
 
-import { Box } from '@mui/material';
+import { Box, Chip } from '@mui/material';
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import { ModalContainer, CloseButton } from '@/components/modals';
 import { ScheduleCard } from '@/components';
 import type { ActivityModalProps } from '@/types/activity';
@@ -20,12 +21,15 @@ export default function ActivityModal({
   description,
   variant,
   presenceConfirmed,
+  generateCertificate,
   onSignup,
   onCancelParticipation,
   onMarkPresence,
   onValidatePresences,
   onListParticipants,
+  onGenerateCertificates,
   isLoading,
+  isGeneratingCertificates,
 }: ActivityModalProps) {
   if (!open) return null;
 
@@ -61,15 +65,30 @@ export default function ActivityModal({
           description={description}
         />
 
+        {variant === 'organizer' && generateCertificate && (
+          <Chip
+            icon={<VerifiedRoundedIcon sx={{ fontSize: 16 }} />}
+            label="Emite certificado individual"
+            size="small"
+            color="success"
+            variant="outlined"
+            sx={{ alignSelf: 'center', fontWeight: 600 }}
+          />
+        )}
+
         <ActivityModalActions
           variant={variant}
+          status={status}
           presenceConfirmed={presenceConfirmed}
+          generateCertificate={generateCertificate}
           onSignup={onSignup}
           onCancelParticipation={onCancelParticipation}
           onMarkPresence={onMarkPresence}
           onValidatePresences={onValidatePresences}
           onListParticipants={onListParticipants}
+          onGenerateCertificates={onGenerateCertificates}
           isLoading={isLoading}
+          isGeneratingCertificates={isGeneratingCertificates}
         />
       </Box>
     </ModalContainer>

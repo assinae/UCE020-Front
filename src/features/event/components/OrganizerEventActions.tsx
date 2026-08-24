@@ -31,6 +31,22 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+// As chamadas de certificado na finalização são best-effort (um evento/atividade sem
+// ninguém a certificar não deve travar a navegação), mas isso não pode significar
+// "falha invisível". Loga cada rejeição com contexto pra aparecer no console em vez
+// de só na aba Network.
+function logSettledFailures(
+  labels: string[],
+  results: PromiseSettledResult<unknown>[],
+): void {
+  results.forEach((result, index) => {
+    if (result.status !== 'rejected') return;
+    const label = labels[index] ?? `chamada ${index}`;
+    const message = extractErrorMessage(result.reason, 'erro desconhecido');
+    console.warn(`[certificados] falha ao gerar certificado (${label}): ${message}`, result.reason);
+  });
+}
+
 export function OrganizerEventActions({ eventId, isFinalized = false, onFinalized, onFinalizeError }: OrganizerEventActionsProps) {
   const router = useRouter();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -55,14 +71,23 @@ export function OrganizerEventActions({ eventId, isFinalized = false, onFinalize
 
       // Gera os certificados na sequência. Cada chamada é best-effort — um
       // evento/atividade sem ninguém a certificar (ex: atividade sem convidado)
-      // não deve impedir a navegação para a tela de certificados gerados.
-      const evento = await eventService.findOne(eventId).catch(() => null);
+      // não deve impedir a navegação para a tela de certificados gerados. Mas
+      // "best-effort" não é "silencioso": ver logSettledFailures abaixo.
+      const evento = await eventService.findOne(eventId).catch((error) => {
+        console.warn('[certificados] falha ao rebuscar evento após finalizar:', error);
+        return null;
+      });
       const activityIds = evento?.atividades?.map((activity) => activity.id) ?? [];
 
-      await Promise.allSettled([
+      const certificateLabels = [
+        'certificados de participante do evento',
+        ...activityIds.map((activityId) => `certificados de convidado da atividade ${activityId}`),
+      ];
+      const certificateResults = await Promise.allSettled([
         certificateService.generateParticipantCertificates(eventId),
         ...activityIds.map((activityId) => certificateService.generateGuestCertificates(activityId)),
       ]);
+      logSettledFailures(certificateLabels, certificateResults);
 
       onFinalized?.();
       router.push(`/certificate/generated/${eventId}`);

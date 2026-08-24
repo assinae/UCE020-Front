@@ -61,3 +61,22 @@ export interface CertificateVerificationResult {
   message: string;
   data: CertificateVerification;
 }
+
+// Item individual retornado por POST /activity/:id/certificate/participants
+// (um por participante com presença confirmada na atividade).
+export interface ActivityCertificateIssuance {
+  usuarioId: number;
+  name: string;
+  email: string;
+  role: CertificateManagementRole;
+  alreadyIssued: boolean;
+  issueDate: string;
+  // Sem fileUrl: o PDF é gerado sob demanda via GET /certificate/:id/pdf,
+  // não fica mais disponível no ato da emissão.
+}
+
+export interface GenerateActivityCertificatesResult {
+  issued: number;
+  alreadyIssued: number;
+  certificates: ActivityCertificateIssuance[];
+}
