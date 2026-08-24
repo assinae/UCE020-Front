@@ -11,7 +11,9 @@ export function ContentCard({ children, sx, ...props }: ContentCardProps) {
     <Box
       sx={{
         bgcolor: colorTokens.neutral.white,
-        borderRadius: '24px',
+        borderRadius: '20px',
+        border: '1px solid rgba(15, 29, 53, 0.06)',
+        boxShadow: '0 1px 2px rgba(15, 29, 53, 0.04)',
         p: 2,
         display: 'flex',
         flexDirection: 'column',

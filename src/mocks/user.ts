@@ -2,17 +2,17 @@ import type { AppUser } from '@/types/user';
 
 export const MOCK_USERS_AVAILABLE = {
   participant: {
-    id: 'p1',
-    name: 'Tiago Abreu Participante',
+    id: '1',
+    name: 'Usuário Teste 2',
     role: 'participant',
   },
   monitor: {
-    id: 'monitor-001',
+    id: '2',
     name: 'Joãozinho Monitor',
     role: 'monitor',
   },
   organizer: {
-    id: 'organizer-001',
+    id: '3',
     name: 'Mariazinha Organizadora',
     role: 'organizer',
   },

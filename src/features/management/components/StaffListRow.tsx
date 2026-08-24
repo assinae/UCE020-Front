@@ -10,8 +10,8 @@ import { managementIconButtonSx, managementListNameSx, managementListRowSx } fro
 interface StaffListRowProps {
   name: string;
   role: string;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function StaffListRow({ name, role, onEdit, onDelete }: StaffListRowProps) {
@@ -23,13 +23,17 @@ export function StaffListRow({ name, role, onEdit, onDelete }: StaffListRowProps
 
       <LabelChip status={role} />
       
-      <IconButton onClick={onEdit} aria-label={`Editar ${name}`} sx={managementIconButtonSx}>
-        <EditOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
-      </IconButton>
+      {onEdit && (
+        <IconButton onClick={onEdit} aria-label={`Editar ${name}`} sx={managementIconButtonSx}>
+          <EditOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
+        </IconButton>
+      )}
 
-      <IconButton onClick={onDelete} aria-label={`Remover ${name}`} sx={managementIconButtonSx}>
-        <DeleteOutlineOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
-      </IconButton>
+      {onDelete && (
+        <IconButton onClick={onDelete} aria-label={`Remover ${name}`} sx={managementIconButtonSx}>
+          <DeleteOutlineOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
+        </IconButton>
+      )}
     </Box>
   );
 }

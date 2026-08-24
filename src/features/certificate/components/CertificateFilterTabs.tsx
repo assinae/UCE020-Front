@@ -11,9 +11,11 @@ export function CertificateFilterTabs({ activeTab, onChange }: CertificateFilter
     <Box
       sx={{
         display: 'flex',
-        gap: 1,
+        gap: 0.5,
         overflowX: 'auto',
-        pb: 0.5,
+        p: 0.5,
+        bgcolor: '#F1F5F9',
+        borderRadius: '14px',
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
@@ -22,16 +24,22 @@ export function CertificateFilterTabs({ activeTab, onChange }: CertificateFilter
           key={tab}
           onClick={() => onChange(tab)}
           sx={{
-            px: 1.5,
-            py: 0.75,
-            borderRadius: '20px',
+            flex: { xs: '0 0 auto', lg: 1 },
+            textAlign: 'center',
+            px: { xs: 1.75, lg: 2 },
+            py: 0.85,
+            borderRadius: '10px',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             fontSize: 12,
-            fontWeight: activeTab === tab ? 600 : 500,
-            bgcolor: activeTab === tab ? '#0F1D35' : 'transparent',
-            color: activeTab === tab ? '#fff' : '#64748B',
-            transition: 'all 0.15s',
+            fontWeight: activeTab === tab ? 700 : 500,
+            bgcolor: activeTab === tab ? '#FFFFFF' : 'transparent',
+            color: activeTab === tab ? '#0F1D35' : '#64748B',
+            boxShadow: activeTab === tab ? '0 1px 3px rgba(15, 29, 53, 0.10)' : 'none',
+            transition: 'all 0.15s ease',
+            '&:hover': {
+              color: activeTab === tab ? '#0F1D35' : '#0F1D35',
+            },
           }}
         >
           {tab}

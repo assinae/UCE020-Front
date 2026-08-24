@@ -1,49 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Event } from "@/types/event";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { eventService } from "@/services/eventService";
 import { useAuth } from "@/providers/auth-provider";
 
 export function useHomeEvents() {
-  const { user, isLoading } = useAuth();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isFetchingEvents, setIsFetchingEvents] = useState(false);
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  useEffect(() => {
-    if (isLoading || !user) return;
+  const { data, isFetching, isLoading: isQueryLoading } = useQuery({
+    queryKey: ["home-events", user?.id],
+    queryFn: () => eventService.findParticipatingEvents('participante'),
+    enabled: !!user && !isAuthLoading,
+  });
 
-    let isMounted = true;
-    Promise.resolve().then(() => {
-      if (isMounted) {
-        setIsFetchingEvents(true);
-      }
-    });
-
-    eventService
-      .findParticipatingEvents('participante')
-      .then((events) => {
-        if (isMounted) {
-          setEvents(Array.isArray(events) ? events : []);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setEvents([]);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsFetchingEvents(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, isLoading]);
-
+  const events = Array.isArray(data) ? data : [];
   const filteredEvents = useMemo(() => (user ? events : []), [events, user]);
 
-  return { filteredEvents, isFetchingEvents };
+  const loading = isAuthLoading || isQueryLoading;
+
+  return { filteredEvents, isFetchingEvents: isFetching, loading };
 }

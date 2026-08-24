@@ -24,13 +24,14 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
-import { Button, TextInput } from '@/components/ui';
+import { Button, TextInput, PageLoader } from '@/components/ui';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
 import { useCreateEvent } from '../../evento/hooks/useCreateEvent';
 import { useEditEvent } from '../../evento/hooks/useEditEvent';
 import ActivityForm, { ActivityFormState } from '@/features/activities/components/ActivityForm';
 import { Activity, ActivityGuest } from '@/types';
+import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 type EventFormMode = 'create' | 'edit';
 
@@ -89,7 +90,7 @@ function createTouchedState(): TouchedState {
   };
 }
 
-function getErrors(form: FormState, touched: TouchedState) {
+function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
   return {
     nome:
       touched.nome && form.nome.trim().length < 3
@@ -109,8 +110,10 @@ function getErrors(form: FormState, touched: TouchedState) {
     })(),
     endDate: (() => {
       if (touched.endDate && !form.endDate) return 'Selecione a data de término.';
-      if (touched.endDate && form.endDate && form.endDate < getTodayString())
-        return 'A data de término não pode ser no passado.';
+      const todayStr = getTodayString();
+      const minEndDate = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
+      if (touched.endDate && form.endDate && form.endDate < minEndDate)
+        return 'A data de término inválida.';
       return '';
     })(),
     startTime: touched.startTime && !form.startTime ? 'Selecione o horário de início.' : '',
@@ -125,13 +128,11 @@ function getErrors(form: FormState, touched: TouchedState) {
 }
 
 function toISODateTime(date: string, time: string): string {
-  return `${date}T${time}:00`;
+  return toBahiaIso(date, time);
 }
 
 function getTodayString(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return getBahiaDateInput(new Date());
 }
 
 function formatDateBR(iso: string): string {
@@ -170,6 +171,9 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   const isSubmitting = createLoading || updateLoading;
   const submitError = createError || updateError;
+  const todayStr = getTodayString();
+  const startDateMin = todayStr;
+  const endDateMin = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
 
   useEffect(() => {
     if (!existingEvent) return;
@@ -178,11 +182,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const startDT = existingEvent.dataInicio ? new Date(existingEvent.dataInicio) : null;
       const endDT = existingEvent.dataFim ? new Date(existingEvent.dataFim) : null;
 
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const toDate = (dt: Date | null) =>
-        dt ? `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}` : '';
-      const toTime = (dt: Date | null) =>
-        dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : '';
+      const toDate = (dt: Date | null) => (dt ? getBahiaDateInput(dt) : '');
+      const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
       setForm({
         nome: existingEvent.nome ?? '',
@@ -224,7 +225,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     });
   }, [existingEvent]);
 
-  const errors = useMemo(() => getErrors(form, touched), [form, touched]);
+  const errors = useMemo(() => getErrors(form, touched, isEdit), [form, touched, isEdit]);
   const canSubmit =
     Object.values(errors).every((e) => e === '') &&
     form.nome.trim().length >= 3 &&
@@ -233,6 +234,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     form.descricao.trim().length >= 10 &&
     form.startDate.length > 0 &&
     form.endDate.length > 0 &&
+    form.startDate >= getTodayString() &&
     form.endDate >= form.startDate &&
     form.startTime.length > 0 &&
     form.endTime.length > 0 &&
@@ -270,8 +272,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     const allTouched = Object.fromEntries(Object.keys(form).map((k) => [k, true])) as TouchedState;
     setTouched(allTouched);
 
-    const today = getTodayString();
-    const currentErrors = getErrors(form, allTouched);
+    const currentErrors = getErrors(form, allTouched, isEdit);
     const isValid =
       Object.values(currentErrors).every((e) => e === '') &&
       form.nome.trim().length >= 3 &&
@@ -279,7 +280,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       form.responsavel.trim().length >= 3 &&
       form.descricao.trim().length >= 10 &&
       form.startDate.length > 0 &&
-      form.startDate >= today &&
       form.endDate.length > 0 &&
       form.endDate >= form.startDate &&
       form.startTime.length > 0 &&
@@ -358,19 +358,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   }
 
   if (isEdit && loadingEvent) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100dvh',
-          background: colorTokens.surface.background,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
+    return <PageLoader sx={{ background: colorTokens.surface.background }} />;
   }
 
   if (isEdit && loadError) {
@@ -614,7 +602,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     slotProps={{
                       inputLabel: { shrink: true },
                       input: {
-                        inputProps: { min: getTodayString() },
+                        inputProps: startDateMin ? { min: startDateMin } : undefined,
                         endAdornment: <InputAdornment position="end" />,
                       },
                     }}
@@ -639,7 +627,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     slotProps={{
                       inputLabel: { shrink: true },
                       input: {
-                        inputProps: { min: form.startDate || getTodayString() },
+                        inputProps: endDateMin ? { min: endDateMin } : undefined,
                         endAdornment: <InputAdornment position="end" />,
                       },
                     }}
@@ -772,6 +760,13 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   color="secondary"
                   leftIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
                   onClick={handleOpenNewActivity}
+                  disabled={
+                    !form.startDate ||
+                    !form.endDate ||
+                    !form.startTime ||
+                    !form.endTime ||
+                    !form.cargaHoraria
+                  }
                   sx={{
                     minWidth: 0,
                     px: 0,
@@ -792,7 +787,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               {activities.length === 0 ? (
                 <Typography
-                  sx={{ fontSize: 12, color: colorTokens.neutral.gray500, fontStyle: 'italic' }}
+                  sx={{
+                    fontSize: 12,
+                    color: colorTokens.neutral.gray500,
+                    fontStyle: 'italic',
+                    textAlign: 'center',
+                  }}
                 >
                   Nenhuma atividade cadastrada ainda.
                 </Typography>
@@ -944,6 +944,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             mode={editingActivity ? 'edit' : 'create'}
             variant="embedded"
             eventInfo={activityEventInfo}
+            eventDateRange={
+              form.startDate && form.startTime && form.endDate && form.endTime
+                ? {
+                    start: `${form.startDate}T${form.startTime}`,
+                    end: `${form.endDate}T${form.endTime}`,
+                  }
+                : undefined
+            }
+            maxWorkload={form.cargaHoraria ? Number(form.cargaHoraria) : undefined}
             initialValues={editingActivity ?? undefined}
             onSubmit={handleActivitySubmit}
             onCancel={handleCloseDrawer}

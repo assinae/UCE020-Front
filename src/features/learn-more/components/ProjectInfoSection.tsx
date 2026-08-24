@@ -123,6 +123,7 @@ export function ProjectInfoSection() {
                   borderRadius: { xs: '24px', md: '28px' },
                   px: { xs: 3, md: 4 },
                   py: { xs: 3, md: 3.5 },
+                  textAlign: { xs: 'center', md: 'left' },
                   transition: 'box-shadow 0.25s ease, transform 0.25s ease',
                   '&:hover': {
                     boxShadow: '0 12px 32px rgba(15,23,42,0.08)',

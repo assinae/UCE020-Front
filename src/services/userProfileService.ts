@@ -39,7 +39,7 @@ class UserProfileService {
    * Retorna o perfil do usuário autenticado
    */
   async getProfile(): Promise<UserProfileResponse> {
-    const { data } = await api.get<BackendUserProfileResponse>('/user/me');
+    const { data } = await api.get<BackendUserProfileResponse>('/me');
     return {
       data: toUserProfile(extractUser(data.data)),
       statusCode: data.statusCode,
@@ -50,30 +50,33 @@ class UserProfileService {
    * Atualiza nome e/ou email do usuário autenticado
    */
   async updateProfile(payload: UpdateProfilePayload): Promise<UserProfileResponse> {
-    const { data } = await api.patch<BackendUserProfileResponse>('/user/me', payload);
+    const { data } = await api.patch<BackendUserProfileResponse>('/me', payload);
     return {
       data: toUserProfile(extractUser(data.data)),
       statusCode: data.statusCode,
     };
   }
 
-  async uploadAvatar(file: File): Promise<{ data: { avatarUrl: string }; statusCode: number }> {
+  async uploadAvatar(file: File): Promise<UserProfileResponse> {
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('foto', file);
 
-    const { data } = await api.post<{ data: { avatarUrl: string }; statusCode: number }>(
-      '/user/me/avatar',
+    const { data } = await api.post<BackendUserProfileResponse>(
+      '/me/foto',
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
 
-    return data;
+    return {
+      data: toUserProfile(extractUser(data.data)),
+      statusCode: data.statusCode,
+    };
   }
 
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
-    await api.patch('/user/me/password', {
-      senhaAtual: payload.currentPassword,
-      novaSenha: payload.newPassword,
+    await api.patch('/me/senha', {
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
     });
   }
 }

@@ -1,47 +1,83 @@
-import { Box, Typography } from '@mui/material';
+'use client';
+
+import { Typography, Box, Divider } from '@mui/material';
+import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import { useState } from 'react';
-import type { ScheduleDescriptionProps } from '@/types/scheduleCard';
 
-export default function ScheduleDescription({ description }: ScheduleDescriptionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+interface ScheduleDescriptionProps {
+  description?: string;
+}
 
-  const toggleExpand = () => setIsExpanded(!isExpanded);
+export default function ScheduleDescription({
+  description = '',
+}: ScheduleDescriptionProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const safeDescription = description ?? '';
+
+  if (!safeDescription.trim()) return null;
+
+  const shouldTruncate = safeDescription.length > 278;
+
+  const displayedDescription =
+    expanded || !shouldTruncate
+      ? safeDescription
+      : `${safeDescription.slice(0, 278)}...`;
+
+  function toggleExpand() {
+    setExpanded((prev) => !prev);
+  }
 
   return (
-    <Box sx={{ mt: { xs: 2.5, sm: 4 }, mb: { xs: 3, sm: 4 } }}>
+    <Box sx={{ mt: { xs: 2.5, sm: 3.5 }, mb: { xs: 1, sm: 1.5 } }}>
+      <Divider sx={{ mb: 2 }} />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+        <NotesRoundedIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+        <Typography
+          sx={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: 'text.primary',
+            letterSpacing: '0.01em',
+          }}
+        >
+          Descrição
+        </Typography>
+      </Box>
+
       <Typography
-        onClick={toggleExpand}
         sx={{
           color: 'text.primary',
-          fontSize: { xs: 12, sm: 12 },
+          fontSize: { xs: 12.5, sm: 12.5 },
           textAlign: 'justify',
-          cursor: 'pointer',
-          display: '-webkit-box',
-          WebkitLineClamp: isExpanded ? 'unset' : 5,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          transition: 'all 0.2s ease-in-out',
+          lineHeight: 1.7,
+          opacity: 0.85,
         }}
       >
-        {description}
+        {displayedDescription}
       </Typography>
-      {description.length > 278 && (
+
+      {shouldTruncate && (
         <Typography
-          component="span"
+          component="button"
+          type="button"
           onClick={toggleExpand}
           sx={{
-            display: 'inline-block',
             mt: 1,
-            fontSize: '8px',
-            color: 'text.secondary',
+            p: 0,
+            border: 0,
+            background: 'transparent',
+            color: 'primary.main',
+            fontSize: { xs: 12, sm: 12 },
+            fontWeight: 700,
             cursor: 'pointer',
-            fontWeight: 500,
             '&:hover': {
-              opacity: 0.7,
+              textDecoration: 'underline',
             },
           }}
         >
-          {isExpanded ? 'Ver menos' : 'Ver mais'}
+          {expanded ? 'Ver menos' : 'Ver mais'}
         </Typography>
       )}
     </Box>

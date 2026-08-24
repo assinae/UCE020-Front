@@ -1,20 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Box, IconButton, Typography } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { ContentCard } from '@/components/layout/ContentCard';
+import { Toast } from '@/components/ui';
 import { presenceService } from '@/services/presenceService';
 import { colorTokens } from '@/lib/colors';
+import { ToastSeverity } from '@/types/toast';
 import { validatePresenceScan } from '@/features/participants/presence/utils/validatePresenceScan';
-import { requirePresenceContext } from '@/features/participants/presence/utils/resolvePresenceContext';
+import {
+  fetchPresenceContext,
+  requirePresenceContext,
+} from '@/features/participants/presence/utils/resolvePresenceContext';
 import { buildListParticipantsPath } from '@/features/participants/presence/utils/routes';
 import { PresenceContextMissing } from './PresenceContextMissing';
 import { QrCodeScanner } from './QrCodeScanner';
 import { PresenceScanModal } from './PresenceScanModal';
-import type { PresenceScanResult } from '@/types/presence';
+import type { PresenceScanResult, PresenceValidationContext } from '@/types/presence';
 
 interface ScanState {
   modalOpen: boolean;
@@ -97,13 +103,36 @@ function PresenceScannerPanel({
 export function ValidatePresenceView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const context = requirePresenceContext(
-    searchParams.get('eventId'),
-    searchParams.get('activityId'),
-  );
+  const queryClient = useQueryClient();
+  const eventIdParam = searchParams.get('eventId');
+  const activityIdParam = searchParams.get('activityId');
 
+  const [context, setContext] = useState<PresenceValidationContext | null>(() =>
+    requirePresenceContext(eventIdParam, activityIdParam),
+  );
   const [state, setState] = useState<ScanState>(INITIAL_STATE);
   const [scanKey, setScanKey] = useState(0);
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
+    open: false,
+    message: '',
+    severity: ToastSeverity.Success,
+  });
+
+  useEffect(() => {
+    const fallbackContext = requirePresenceContext(eventIdParam, activityIdParam);
+
+    let isMounted = true;
+
+    void fetchPresenceContext(eventIdParam, activityIdParam).then((resolvedContext) => {
+      if (isMounted) {
+        setContext(resolvedContext ?? fallbackContext);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [eventIdParam, activityIdParam]);
 
   function handleScan(qrCode: string) {
     if (!context || state.modalOpen) return;
@@ -133,9 +162,22 @@ export function ValidatePresenceView() {
         eventId: payload.eventId,
         activityId: payload.activityId,
       });
+
+      queryClient.invalidateQueries({ queryKey: ['activity-participants'] });
+
+      setToast({
+        open: true,
+        message: 'Presença confirmada com sucesso',
+        severity: ToastSeverity.Success,
+      });
       closeModal();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao confirmar presença';
+      setToast({
+        open: true,
+        message,
+        severity: ToastSeverity.Error,
+      });
       setState((prev) => ({ ...prev, error: message, isConfirming: false }));
     }
   }
@@ -144,10 +186,10 @@ export function ValidatePresenceView() {
     return <PresenceContextMissing />;
   }
 
-  const { eventId, activityId, eventName, activityTitle } = context;
+  const { eventId: contextEventId, activityId: contextActivityId, eventName, activityTitle } = context;
 
   function handleBack() {
-    router.push(buildListParticipantsPath(eventId, activityId));
+    router.push(buildListParticipantsPath(contextEventId, contextActivityId));
   }
 
   return (
@@ -179,6 +221,13 @@ export function ValidatePresenceView() {
         onConfirm={handleConfirmPresence}
         isConfirming={state.isConfirming}
         confirmError={state.error}
+      />
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
     </AppPageContainer>
   );

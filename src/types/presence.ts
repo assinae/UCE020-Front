@@ -47,4 +47,5 @@ export interface ConfirmPresenceResponse {
   eventId: string;
   activityId: string;
   confirmedAt: string;
+  message?: string;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Container,
@@ -9,13 +9,16 @@ import {
   MenuItem,
   Select,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 
 import { CertificateCard } from "@/components/certificate";
 import { Searchbar } from "@/components/ui/Searchbar";
-import { MOCK_CERTIFICATES } from "@/mocks/certificates";
+import { certificateService } from "@/services/certificate.service";
+import type { CertificateManagementItem } from "@/types/certificate-management";
+import { getBahiaDateKey } from "@/utils/date";
 
 const periodOptions = [
   { value: "todos", label: "Todos" },
@@ -26,24 +29,50 @@ const periodOptions = [
 
 export default function CertificatesPage() {
   const router = useRouter();
-  const [certificates] = useState(MOCK_CERTIFICATES);
+  const [certificates, setCertificates] = useState<CertificateManagementItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [periodFilter, setPeriodFilter] = useState("todos");
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadCertificates() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { items } = await certificateService.getMyCertificates();
+        if (active) setCertificates(items);
+      } catch (err) {
+        console.error("Erro ao buscar certificados:", err);
+        if (active) setError("Não foi possível carregar seus certificados.");
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    loadCertificates();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredCertificates = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const now = new Date();
+    const nowKey = getBahiaDateKey();
+    const nowYear = nowKey.slice(0, 4);
+    const nowMonth = nowKey.slice(0, 7);
 
     return certificates.filter((certificate) => {
-      const issuedDate = new Date(certificate.issuedDate);
+      const issuedKey = getBahiaDateKey(certificate.issueDate);
       const matchesSearch = certificate.title.toLowerCase().includes(normalizedSearch);
       const matchesPeriod =
         periodFilter === "todos" ||
         (periodFilter === "mes" &&
-          issuedDate.getMonth() === now.getMonth() &&
-          issuedDate.getFullYear() === now.getFullYear()) ||
-        (periodFilter === "ano" && issuedDate.getFullYear() === now.getFullYear()) ||
-        (periodFilter === "anteriores" && issuedDate.getFullYear() < now.getFullYear());
+          issuedKey.slice(0, 7) === nowMonth) ||
+        (periodFilter === "ano" && issuedKey.slice(0, 4) === nowYear) ||
+        (periodFilter === "anteriores" && issuedKey.slice(0, 4) < nowYear);
 
       return matchesSearch && matchesPeriod;
     });
@@ -67,22 +96,13 @@ export default function CertificatesPage() {
             <IconButton
               onClick={() => router.back()}
               size="small"
-              sx={{
-                color: "text.secondary",
-                "&:hover": { bgcolor: "background.default" },
-              }}
+              sx={{ color: "text.secondary", "&:hover": { bgcolor: "background.default" } }}
             >
               <ArrowBack />
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: "#2EC4A0" }} />
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 600,
-                  color: "text.primary",
-                }}
-              >
+              <Typography variant="h5" sx={{ fontWeight: 600, color: "text.primary" }}>
                 Certificados
               </Typography>
             </Box>
@@ -108,14 +128,9 @@ export default function CertificatesPage() {
                   "& .MuiInputBase-input": {
                     color: "#0F1D35",
                     fontWeight: 500,
-                    "&::placeholder": {
-                      color: "#667085",
-                      opacity: 1,
-                    },
+                    "&::placeholder": { color: "#667085", opacity: 1 },
                   },
-                  "& .MuiSvgIcon-root": {
-                    color: "#2EC4A0",
-                  },
+                  "& .MuiSvgIcon-root": { color: "#2EC4A0" },
                 }}
               />
             </Box>
@@ -133,21 +148,10 @@ export default function CertificatesPage() {
                   color: "#0F1D35",
                   fontWeight: 600,
                   boxShadow: "0 1px 2px rgba(15, 29, 53, 0.08)",
-                  "&:hover": {
-                    bgcolor: "#F8FAFC",
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    border: "none",
-                  },
-                  "& .MuiSelect-select": {
-                    py: 1.25,
-                    px: 2,
-                    display: "flex",
-                    alignItems: "center",
-                  },
-                  "& .MuiSelect-icon": {
-                    color: "#2EC4A0",
-                  },
+                  "&:hover": { bgcolor: "#F8FAFC" },
+                  "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                  "& .MuiSelect-select": { py: 1.25, px: 2, display: "flex", alignItems: "center" },
+                  "& .MuiSelect-icon": { color: "#2EC4A0" },
                 }}
                 MenuProps={{
                   slotProps: {
@@ -166,16 +170,9 @@ export default function CertificatesPage() {
                           px: 1.5,
                           color: "#101828",
                         },
-                        "& .MuiMenuItem-root:hover": {
-                          bgcolor: "#FFFFFF",
-                        },
-                        "& .Mui-selected": {
-                          bgcolor: "#344054",
-                          color: "#FFFFFF",
-                        },
-                        "& .Mui-selected:hover": {
-                          bgcolor: "#3D4A5C",
-                        },
+                        "& .MuiMenuItem-root:hover": { bgcolor: "#FFFFFF" },
+                        "& .Mui-selected": { bgcolor: "#344054", color: "#FFFFFF" },
+                        "& .Mui-selected:hover": { bgcolor: "#3D4A5C" },
                       },
                     },
                   },
@@ -185,13 +182,7 @@ export default function CertificatesPage() {
                   <MenuItem key={option.value} value={option.value}>
                     <Box
                       component="span"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        gap: 2,
-                      }}
+                      sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 2 }}
                     >
                       {option.label}
                     </Box>
@@ -202,7 +193,15 @@ export default function CertificatesPage() {
           </Box>
         </Box>
 
-        {certificates.length === 0 ? (
+        {isLoading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress sx={{ color: "#2EC4A0" }} />
+          </Box>
+        ) : error ? (
+          <Typography color="error" sx={{ textAlign: "center", py: 4 }}>
+            {error}
+          </Typography>
+        ) : certificates.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
             Você ainda não tem certificados criados
           </Typography>
@@ -229,7 +228,7 @@ export default function CertificatesPage() {
                 key={cert.id}
                 id={cert.id}
                 title={cert.title}
-                issuedDate={cert.issuedDate}
+                issuedDate={cert.issueDate}
                 location={cert.location}
                 hours={cert.hours}
               />

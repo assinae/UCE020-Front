@@ -144,7 +144,7 @@ export function HowItWorksSection() {
               sm: '1fr 1fr',
               md: '1fr 1fr 1fr 1fr',
             },
-            gap: { xs: 3, md: 3 },
+            gap: { xs: 0, sm: 3, md: 3 },
             position: 'relative',
           }}
         >
@@ -164,8 +164,9 @@ export function HowItWorksSection() {
             }}
           />
 
-          {steps.map((step) => {
+          {steps.map((step, index) => {
             const Icon = step.icon;
+            const isLast = index === steps.length - 1;
             return (
               <Box
                 key={step.number}
@@ -173,79 +174,115 @@ export function HowItWorksSection() {
                   position: 'relative',
                   zIndex: 1,
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
+                  flexDirection: { xs: 'row', md: 'column' },
+                  alignItems: { xs: 'flex-start', md: 'center' },
+                  textAlign: { xs: 'left', md: 'center' },
+                  gap: { xs: 2.5, md: 0 },
+                  pb: { xs: isLast ? 0 : 4, sm: 0 },
                   px: { xs: 0, md: 1 },
                 }}
               >
-                {/* Icon circle */}
+                {/* Icon column (holds circle + mobile connector line) */}
                 <Box
                   sx={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: '50%',
-                    backgroundColor: step.bg,
-                    border: `1.5px solid ${step.border}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 3,
-                    flexShrink: 0,
                     position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    alignSelf: { xs: 'stretch', md: 'auto' },
                   }}
                 >
-                  <Icon sx={{ fontSize: 34, color: step.accent }} />
+                  {/* Vertical connecting line (mobile only) */}
+                  {!isLast && (
+                    <Box
+                      sx={{
+                        display: { xs: 'block', sm: 'none' },
+                        position: 'absolute',
+                        top: 60,
+                        bottom: -16,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '2px',
+                        background: `linear-gradient(180deg, ${step.accent} 0%, rgba(91,100,112,0.15) 100%)`,
+                        opacity: 0.35,
+                        zIndex: 0,
+                      }}
+                    />
+                  )}
 
-                  {/* Step number badge */}
+                  {/* Icon circle */}
                   <Box
                     sx={{
-                      position: 'absolute',
-                      top: -8,
-                      right: -8,
-                      width: 24,
-                      height: 24,
+                      width: { xs: 60, md: 72 },
+                      height: { xs: 60, md: 72 },
                       borderRadius: '50%',
-                      backgroundColor: step.accent,
+                      backgroundColor: step.bg,
+                      border: `1.5px solid ${step.border}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      mb: { xs: 0, md: 3 },
+                      flexShrink: 0,
+                      position: 'relative',
+                      zIndex: 1,
                     }}
                   >
-                    <Typography
+                    <Icon sx={{ fontSize: { xs: 28, md: 34 }, color: step.accent }} />
+
+                    {/* Step number badge */}
+                    <Box
                       sx={{
-                        color: '#fff',
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        lineHeight: 1,
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        backgroundColor: step.accent,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      {step.number}
-                    </Typography>
+                      <Typography
+                        sx={{
+                          color: '#fff',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {step.number}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
 
-                <Typography
-                  sx={{
-                    fontWeight: 800,
-                    color: '#13284D',
-                    fontSize: { xs: '1.1rem', md: '1.2rem' },
-                    mb: 1,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {step.title}
-                </Typography>
+                {/* Text block */}
+                <Box sx={{ pt: { xs: 0.75, md: 0 } }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      color: '#13284D',
+                      fontSize: { xs: '1.1rem', md: '1.2rem' },
+                      mb: 1,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {step.title}
+                  </Typography>
 
-                <Typography
-                  sx={{
-                    color: '#5B6470',
-                    fontSize: { xs: '0.92rem', md: '0.95rem' },
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {step.description}
-                </Typography>
+                  <Typography
+                    sx={{
+                      color: '#5B6470',
+                      fontSize: { xs: '0.92rem', md: '0.95rem' },
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {step.description}
+                  </Typography>
+                </Box>
               </Box>
             );
           })}

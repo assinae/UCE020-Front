@@ -10,6 +10,7 @@ interface ParticipantsListCardProps {
   presenceFilter: PresenceFilter;
   onSearchChange: (value: string) => void;
   onFilterToggle: (filter: Exclude<PresenceFilter, 'all'>) => void;
+  onBack?: () => void;
   renderParticipantActions?: (participant: Participant) => ReactNode;
 }
 
@@ -19,11 +20,13 @@ export function ParticipantsListCard({
   presenceFilter,
   onSearchChange,
   onFilterToggle,
+  onBack,
   renderParticipantActions,
 }: ParticipantsListCardProps) {
   return (
     <ManagementListCard
       title="Participantes"
+      onBack={onBack}
       searchRow={
         <ParticipantsSearchBar
           search={search}

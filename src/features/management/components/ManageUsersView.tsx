@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Box, CircularProgress, Typography, IconButton } from '@mui/material';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { useState } from 'react';
+import { PageLoader } from '@/components/ui';
 import { useRouter } from 'next/navigation';
-import { colorTokens } from '@/lib/colors';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { getRemoveStaffMessage } from '@/features/participants/presence/utils/presenceMessages';
@@ -15,6 +14,7 @@ import { EditUserRoleModal, USER_ROLES } from '../../../components/modals/manage
 import { eventService, TipoParticipante } from '@/services/eventService';
 import { Toast } from '@/components/ui/Toast';
 import { ToastSeverity } from '@/types/toast';
+import { useAuth } from '@/providers/auth-provider';
 import type { ManagedUser, StaffRole } from '@/types/management';
 
 interface ManageUsersViewProps {
@@ -35,9 +35,12 @@ const ROLE_MAP_REVERSE: Record<string, TipoParticipante> = {
 
 export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   const router = useRouter();
-  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+  const numericEventId = Number(eventId);
+  const hasValidEventId = Number.isFinite(numericEventId);
+
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
     open: false,
@@ -53,48 +56,89 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
 
-  useEffect(() => {
-    const numericEventId = Number(eventId);
-    let isMounted = true;
+  const { data: event } = useQuery({
+    queryKey: ['event', numericEventId],
+    queryFn: () => eventService.findOne(numericEventId),
+    enabled: hasValidEventId,
+  });
 
-    if (!Number.isFinite(numericEventId)) {
-      Promise.resolve().then(() => {
-        if (isMounted) setIsLoading(false);
+  const isEventFinalized = event?.status?.toLowerCase() === 'finalizada';
+
+  const { data: users = [], isLoading, isError } = useQuery({
+    queryKey: ['event-members', numericEventId],
+    queryFn: () => eventService.getEventMembers(numericEventId).then(members =>
+      members.map((member) => ({
+        id: String(member.usuarioId),
+        name: member.nome,
+        role: ROLE_MAP[member.tipo] || 'Participante',
+      }))
+    ),
+    enabled: hasValidEventId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  // Mostra um erro caso falhe a query de membros
+  if (isError && !toast.open) {
+    setToast({
+      open: true,
+      message: 'Erro ao carregar membros do evento.',
+      severity: ToastSeverity.Error,
+    });
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: (userId: string) => eventService.removeEventMember(numericEventId, Number(userId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-members', numericEventId] });
+      setToast({
+        open: true,
+        message: 'Membro removido com sucesso.',
+        severity: ToastSeverity.Success,
       });
-      return;
-    }
-
-    eventService
-      .getEventMembers(numericEventId)
-      .then((members) => {
-        const mappedUsers: ManagedUser[] = members.map((member) => ({
-          id: String(member.usuarioId),
-          name: member.nome,
-          role: ROLE_MAP[member.tipo] || 'Participante',
-        }));
-        setUsers(mappedUsers);
-      })
-      .catch((error) => {
-        console.error(error);
-        setToast({
-          open: true,
-          message: 'Erro ao carregar membros do evento.',
-          severity: ToastSeverity.Error,
-        });
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
+      closeDeleteModal();
+    },
+    onError: (error) => {
+      console.error(error);
+      setToast({
+        open: true,
+        message: 'Erro ao remover o membro.',
+        severity: ToastSeverity.Error,
       });
+      closeDeleteModal();
+    },
+  });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [eventId]);
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, newRole }: { userId: string; newRole: StaffRole }) => {
+      const tipo = ROLE_MAP_REVERSE[newRole];
+      return eventService.updateEventMember(numericEventId, Number(userId), tipo);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-members', numericEventId] });
+      setToast({
+        open: true,
+        message: 'Papel atualizado com sucesso.',
+        severity: ToastSeverity.Success,
+      });
+      closeEditModal();
+    },
+    onError: (error) => {
+      console.error(error);
+      setToast({
+        open: true,
+        message: 'Erro ao atualizar papel do membro.',
+        severity: ToastSeverity.Error,
+      });
+      closeEditModal();
+    },
+  });
 
   const filteredUsers = filterBySearch(users, search);
 
   // --- Exclusão ---
   function openDeleteModal(userId: string) {
+    if (isEventFinalized) return;
     const user = users.find((item) => item.id === userId);
     if (!user) return;
     setSelectedUser(user);
@@ -106,30 +150,14 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
     setSelectedUser(null);
   }
 
-  async function handleDeleteUser() {
+  function handleDeleteUser() {
     if (!selectedUser) return;
-    try {
-      await eventService.removeEventMember(Number(eventId), Number(selectedUser.id));
-      setUsers((current) => current.filter((item) => item.id !== selectedUser.id));
-      setToast({
-        open: true,
-        message: 'Membro removido com sucesso.',
-        severity: ToastSeverity.Success,
-      });
-    } catch (error) {
-      console.error(error);
-      setToast({
-        open: true,
-        message: 'Erro ao remover o membro.',
-        severity: ToastSeverity.Error,
-      });
-    } finally {
-      closeDeleteModal();
-    }
+    deleteMutation.mutate(selectedUser.id);
   }
 
   // --- Edição de papel ---
   function openEditModal(userId: string) {
+    if (isEventFinalized) return;
     const user = users.find((item) => item.id === userId);
     if (!user) return;
     setEditingUser(user);
@@ -141,31 +169,9 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
     setEditingUser(null);
   }
 
-  async function handleSaveRole(newRole: StaffRole) {
+  function handleSaveRole(newRole: StaffRole) {
     if (!editingUser) return;
-    try {
-      const tipo = ROLE_MAP_REVERSE[newRole];
-      await eventService.updateEventMember(Number(eventId), Number(editingUser.id), tipo);
-      setUsers((current) =>
-        current.map((item) =>
-          item.id === editingUser.id ? { ...item, role: newRole } : item,
-        ),
-      );
-      setToast({
-        open: true,
-        message: 'Papel atualizado com sucesso.',
-        severity: ToastSeverity.Success,
-      });
-    } catch (error) {
-      console.error(error);
-      setToast({
-        open: true,
-        message: 'Erro ao atualizar papel do membro.',
-        severity: ToastSeverity.Error,
-      });
-    } finally {
-      closeEditModal();
-    }
+    updateRoleMutation.mutate({ userId: editingUser.id, newRole });
   }
 
   const deleteMessages = selectedUser
@@ -173,77 +179,33 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
     : { message: '', emphasisEndText: '' };
 
   if (isLoading) {
-    return (
-      <AppPageContainer
-        sx={{
-          minHeight: '100dvh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </AppPageContainer>
-    );
+    return <PageLoader />;
   }
 
   return (
-    <AppPageContainer
-      sx={{
-        bgcolor: { xs: 'background.default', sm: '#e8eaf0' },
-        display: { sm: 'flex' },
-        flexDirection: { sm: 'column' },
-        alignItems: { sm: 'center' },
-        justifyContent: { sm: 'center' },
-        py: { sm: 4 },
-      }}
-    >
-      <Box
-        sx={{
-          minHeight: { xs: '100dvh', sm: 'auto' },
-          bgcolor: 'background.paper',
-          borderRadius: { xs: 0, sm: 4 },
-          mx: { xs: -2, sm: 0 },
-          px: { xs: 2, sm: 3 },
-          py: { xs: 4, sm: 4 },
-          boxShadow: { xs: 'none', sm: '0 4px 24px rgba(0,0,0,0.08)' },
-          width: '100%',
-          maxWidth: 800,
-        }}
+    <AppPageContainer maxWidth={800}>
+      <ManagementListCard
+        title="Gerenciar Membros do Evento"
+        search={search}
+        onSearchChange={setSearch}
+        searchAriaLabel="Buscar usuário"
+        onBack={() => router.push(`/event/${eventId}`)}
+        isEmpty={filteredUsers.length === 0}
+        emptyMessage="Nenhum usuário encontrado"
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton
-            onClick={() => router.push(`/event/${eventId}`)}
-            aria-label="Voltar"
-            sx={{
-              color: colorTokens.text.primary,
-              bgcolor: '#F8FAFC',
-              border: '1px solid rgba(15, 29, 53, 0.06)',
-              '&:hover': { bgcolor: '#EEF2F6' },
-            }}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
-        </Box>
-        <ManagementListCard
-          title="Gerenciar Membros do Evento"
-          search={search}
-          onSearchChange={setSearch}
-          searchAriaLabel="Buscar usuário"
-          isEmpty={filteredUsers.length === 0}
-          emptyMessage="Nenhum usuário encontrado"
-        >
-          {filteredUsers.map((user) => (
+        {filteredUsers.map((user) => {
+          const isCurrentUser = String(currentUser?.id) === user.id;
+          return (
             <StaffListRow
               key={user.id}
               name={user.name}
               role={user.role}
-              onEdit={() => openEditModal(user.id)}
-              onDelete={() => openDeleteModal(user.id)}
+              onEdit={isCurrentUser || isEventFinalized ? undefined : () => openEditModal(user.id)}
+              onDelete={isCurrentUser || isEventFinalized ? undefined : () => openDeleteModal(user.id)}
             />
-          ))}
-        </ManagementListCard>
-      </Box>
+          );
+        })}
+      </ManagementListCard>
 
       {/* Modal de edição de tipo aplicando a renderização condicional correta com a key */}
       {editModalOpen && editingUser && (

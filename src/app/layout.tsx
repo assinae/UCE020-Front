@@ -3,6 +3,7 @@ import { Poppins } from 'next/font/google';
 import './globals.css';
 import ThemeRegistry from '@/providers/theme-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { ReactQueryProvider } from '@/providers/react-query-provider';
 
 const poppins = Poppins({
   variable: '--font-poppins',
@@ -27,7 +28,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full" suppressHydrationWarning>
-        <ThemeRegistry><AuthProvider>{children}</AuthProvider></ThemeRegistry>
+        <ThemeRegistry>
+          <ReactQueryProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ReactQueryProvider>
+        </ThemeRegistry>
       </body>
     </html>
   );

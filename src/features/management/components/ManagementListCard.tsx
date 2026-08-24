@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import { ContentCard } from '@/components/layout/ContentCard';
 import { colorTokens } from '@/lib/colors';
 import { ManagementSearchBar } from './ManagementSearchBar';
@@ -11,6 +12,7 @@ interface ManagementListCardProps {
   searchPlaceholder?: string;
   searchAriaLabel?: string;
   searchRow?: ReactNode;
+  onBack?: () => void;
   isEmpty?: boolean;
   emptyMessage?: string;
   children: ReactNode;
@@ -23,21 +25,34 @@ export function ManagementListCard({
   searchPlaceholder,
   searchAriaLabel,
   searchRow,
+  onBack,
   isEmpty = false,
   emptyMessage = 'Nenhum registro encontrado',
   children,
 }: ManagementListCardProps) {
   return (
-    <ContentCard>
-      <Typography
-        sx={{
-          fontWeight: 500,
-          fontSize: 20,
-          color: colorTokens.navigation.default,
-        }}
-      >
-        {title}
-      </Typography>
+    <ContentCard sx={{ p: { xs: 2, sm: 3 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {onBack && (
+          <IconButton
+            onClick={onBack}
+            aria-label="Voltar"
+            size="small"
+            sx={{ ml: -0.5, color: colorTokens.text.primary }}
+          >
+            <ArrowBackRoundedIcon fontSize="small" />
+          </IconButton>
+        )}
+        <Typography
+          sx={{
+            fontWeight: 500,
+            fontSize: { xs: 20, sm: 22 },
+            color: colorTokens.navigation.default,
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
 
       {searchRow ??
         (onSearchChange ? (

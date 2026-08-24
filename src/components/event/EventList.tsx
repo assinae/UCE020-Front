@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, FormControl, IconButton, MenuItem, Select, Typography } from '@mui/material';
+import { Box, CircularProgress, FormControl, IconButton, MenuItem, Select, Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { Event } from '@/types/event';
 import { EventCard } from '@/components/event/EventCard';
@@ -20,6 +20,7 @@ interface EventListProps {
   events: Event[];
   title?: string;
   home?: boolean;
+  loading?: boolean;
   noEventsMessage?: string;
   onEventClick?: (event: Event) => void;
 }
@@ -29,6 +30,7 @@ export function EventList({
   title = 'EVENTOS INSCRITOS',
   noEventsMessage = 'Nenhum evento encontrado.',
   home = true,
+  loading = false,
   onEventClick,
 
 }: EventListProps) {
@@ -70,7 +72,11 @@ export function EventList({
           </Typography>
         </Box>
 
-        {events.length === 0 ? (
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: '#2EC4A0' }} />
+          </Box>
+        ) : events.length === 0 ? (
           <Typography sx={{ fontSize: 14, color: 'text.secondary', py: 4, textAlign: 'center' }}>
             {noEventsMessage}
           </Typography>
@@ -251,7 +257,11 @@ export function EventList({
           </Box>
         </Box>
 
-        {events.length === 0 ? (
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: '#2EC4A0' }} />
+          </Box>
+        ) : events.length === 0 ? (
           <Typography sx={{ fontSize: 14, color: 'text.secondary', py: 4, textAlign: 'center' }}>
             {noEventsMessage}
           </Typography>

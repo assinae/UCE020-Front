@@ -2,65 +2,137 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { IconButton } from '@mui/material';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { Box } from '@mui/material';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
-import { useMockUser } from '@/mocks/useMockUser';
-import { unconfirmParticipantForActivity } from '@/mocks/participants-storage';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Toast, PageLoader } from '@/components/ui';
+import { useAuth } from '@/providers/auth-provider';
+import { participationService, type TipoParticipante } from '@/services/participationService';
+import { presenceService } from '@/services/presenceService';
+import { ToastSeverity } from '@/types/toast';
 import { requirePresenceContext } from '@/features/participants/presence/utils/resolvePresenceContext';
-import { getParticipantsForActivity } from '@/features/participants/presence/utils/getParticipantsForActivity';
 import { buildValidatePresencePath } from '@/features/participants/presence/utils/routes';
 import { PresenceContextMissing } from '@/features/participants/presence/components/PresenceContextMissing';
 import { RemovePresenceModal } from '@/features/participants/presence/components/RemovePresenceModal';
 import { ParticipantsListCard } from '@/features/participants/components/ParticipantsListCard';
 import { ParticipantPresenceActions } from '@/features/participants/components/ParticipantPresenceActions';
 import { ValidatePresencesButton } from '@/features/participants/components/ValidatePresencesButton';
-import { filterParticipants, togglePresenceFilter } from '@/features/participants/utils/filterParticipants';
-import { colorTokens } from '@/lib/colors';
+import {
+  filterParticipants,
+  togglePresenceFilter,
+} from '@/features/participants/utils/filterParticipants';
 import type { Participant, PresenceFilter } from '@/types/participant';
+
+const TIPO_TO_ROLE: Record<TipoParticipante, 'organizer' | 'monitor' | 'participant'> = {
+  organizador: 'organizer',
+  monitor: 'monitor',
+  participante: 'participant',
+};
 
 export function ListParticipantsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const mockUser = useMockUser();
-  const context = requirePresenceContext(
-    searchParams.get('eventId'),
-    searchParams.get('activityId'),
+  const { user } = useAuth();
+
+  const eventIdParam = searchParams.get('eventId');
+  const activityIdParam = searchParams.get('activityId');
+
+  const [context, setContext] = useState(() =>
+    requirePresenceContext(eventIdParam, activityIdParam),
   );
 
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [search, setSearch] = useState('');
   const [presenceFilter, setPresenceFilter] = useState<PresenceFilter>('all');
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
+    open: false,
+    message: '',
+    severity: ToastSeverity.Success,
+  });
+
+  const queryClient = useQueryClient();
+  const numericEventId = Number(context?.eventId);
+  const numericActivityId = Number(context?.activityId);
+  const hasValidContext = Number.isFinite(numericEventId) && Number.isFinite(numericActivityId);
+
   useEffect(() => {
-    const eventId = context?.eventId;
-    const activityId = context?.activityId;
+    const fallbackContext = requirePresenceContext(eventIdParam, activityIdParam);
 
-    if (!eventId || !activityId) return;
+    let isMounted = true;
 
-    const currentEventId = eventId;
-    const currentActivityId = activityId;
-
-    function refreshParticipants() {
-      setParticipants(getParticipantsForActivity(currentEventId, currentActivityId));
-    }
-
-    refreshParticipants();
-    window.addEventListener('pageshow', refreshParticipants);
+    void import('@/features/participants/presence/utils/resolvePresenceContext').then(({ fetchPresenceContext }) => {
+      void fetchPresenceContext(eventIdParam, activityIdParam).then((resolvedContext) => {
+        if (isMounted) {
+          setContext(resolvedContext ?? fallbackContext);
+        }
+      });
+    });
 
     return () => {
-      window.removeEventListener('pageshow', refreshParticipants);
+      isMounted = false;
     };
-  }, [context?.eventId, context?.activityId]);
+  }, [eventIdParam, activityIdParam]);
+
+  const {
+    data: participantType = null,
+    isLoading: isLoadingRole,
+  } = useQuery({
+    queryKey: ['participant-type', numericEventId, user?.id],
+    queryFn: () => participationService.getTipoParticipante(numericEventId),
+    enabled: hasValidContext && !!user,
+    retry: false,
+  });
+
+  const {
+    data: participants = [],
+    isLoading: isLoadingParticipants,
+    isError,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['activity-participants', numericEventId, numericActivityId],
+    queryFn: () => participationService.getActivityParticipants(numericEventId, numericActivityId),
+    enabled: hasValidContext,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const error = isError ? (queryError instanceof Error ? queryError.message : 'Erro ao carregar participantes') : null;
+
+  const removePresenceMutation = useMutation({
+    mutationFn: () => presenceService.removePresence({
+      participantId: selectedParticipant!.id,
+      eventId: context!.eventId,
+      activityId: context!.activityId,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activity-participants', numericEventId, numericActivityId] });
+      setToast({
+        open: true,
+        message: 'Presença removida com sucesso.',
+        severity: ToastSeverity.Success,
+      });
+      closeRemoveModal();
+    },
+    onError: (err) => {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover presença';
+      setToast({
+        open: true,
+        message: errorMessage,
+        severity: ToastSeverity.Error,
+      });
+      console.error(errorMessage);
+    },
+  });
 
   if (!context) {
     return <PresenceContextMissing />;
   }
 
   const { eventId, activityId, activityTitle } = context;
-  const isMonitor = mockUser.role === 'monitor';
-  const canEditPresence = isMonitor || mockUser.role === 'organizer';
+  const role = participantType ? TIPO_TO_ROLE[participantType] : 'participant';
+  const isMonitor = role === 'monitor';
+  const canEditPresence = isMonitor || role === 'organizer';
   const filteredParticipants = filterParticipants(participants, search, presenceFilter);
 
   function handleFilterToggle(filter: Exclude<PresenceFilter, 'all'>) {
@@ -73,7 +145,9 @@ export function ListParticipantsView() {
 
   function openRemoveModal(participantId: string) {
     const participant = participants.find((item) => item.id === participantId);
+
     if (!participant || participant.presenceStatus !== 'confirmed') return;
+
     setSelectedParticipant(participant);
   }
 
@@ -81,12 +155,11 @@ export function ListParticipantsView() {
     setSelectedParticipant(null);
   }
 
-  function handleRemovePresence() {
-    if (!selectedParticipant) return;
 
-    unconfirmParticipantForActivity(eventId, activityId, selectedParticipant.id);
-    setParticipants(getParticipantsForActivity(eventId, activityId));
-    closeRemoveModal();
+
+  function handleRemovePresence() {
+    if (!selectedParticipant || !context?.eventId || !context?.activityId) return;
+    removePresenceMutation.mutate();
   }
 
   function renderParticipantActions(participant: Participant) {
@@ -105,26 +178,29 @@ export function ListParticipantsView() {
     router.push(`/event/${eventId}`);
   }
 
-  return (
-    <AppPageContainer>
-      <IconButton
-        onClick={handleBack}
-        aria-label="Voltar"
-        sx={{ alignSelf: 'flex-start', color: colorTokens.text.primary }}
-      >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+  const isLoading = isLoadingParticipants || isLoadingRole;
 
+  return (
+    <AppPageContainer maxWidth={760}>
       {isMonitor && <ValidatePresencesButton onClick={goToValidatePresence} />}
 
-      <ParticipantsListCard
-        participants={filteredParticipants}
-        search={search}
-        presenceFilter={presenceFilter}
-        onSearchChange={setSearch}
-        onFilterToggle={handleFilterToggle}
-        renderParticipantActions={renderParticipantActions}
-      />
+      {isLoading ? (
+        <PageLoader minHeight="calc(100dvh - 160px)" />
+      ) : error ? (
+        <Box sx={{ color: 'error.main', textAlign: 'center', py: 2 }}>
+          {error}
+        </Box>
+      ) : (
+        <ParticipantsListCard
+          participants={filteredParticipants}
+          search={search}
+          presenceFilter={presenceFilter}
+          onSearchChange={setSearch}
+          onFilterToggle={handleFilterToggle}
+          onBack={handleBack}
+          renderParticipantActions={renderParticipantActions}
+        />
+      )}
 
       <RemovePresenceModal
         open={!!selectedParticipant}

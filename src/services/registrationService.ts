@@ -1,44 +1,98 @@
-import { MOCK_REGISTRATIONS, registerParticipant as registerParticipantInMock, unregisterParticipant as unregisterParticipantInMock } from '@/mocks/registrations';
+import { AxiosError } from 'axios';
+import { api } from './api';
 
-// TODO: integrar com o back
+const ACTIVITY_ID_MAP: Record<string, number> = {
+  a1: 1,
+  a2: 2,
+  a3: 3,
+};
+
+type RegistrationResponse = {
+  success: boolean;
+  data: {
+    activityId: number;
+    userId: number;
+    participationId: number;
+  };
+};
+
+type ApiErrorResponse = {
+  error?: string;
+  message?: string;
+};
+
 class RegistrationService {
-  isRegistered(eventId: string, activityId: string, participantId: string): boolean {
-    const eventReg = MOCK_REGISTRATIONS[eventId];
-    if (!eventReg) return false;
+  private normalizeActivityId(activityId: string | number): number {
+    if (typeof activityId === 'number') {
+      return activityId;
+    }
 
-    const activityReg = eventReg[activityId];
-    if (!activityReg) return false;
+    const mappedId = ACTIVITY_ID_MAP[activityId];
+    if (mappedId) {
+      return mappedId;
+    }
 
-    return activityReg.includes(participantId);
+    const normalized = Number(activityId);
+
+    if (Number.isNaN(normalized)) {
+      throw new Error(`Atividade mock sem mapeamento para o banco: ${activityId}`);
+    }
+
+    return normalized;
   }
 
-  register(eventId: string, activityId: string, participantId: string): string[] {
-    return registerParticipantInMock(eventId, activityId, participantId);
+  async register(
+    _eventId: string,
+    activityId: string,
+  ): Promise<RegistrationResponse> {
+    const normalizedActivityId = this.normalizeActivityId(activityId);
+
+    try {
+      const { data } = await api.post<RegistrationResponse>(
+        `/activity/${normalizedActivityId}/subscribe`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const errorData = (error as AxiosError<ApiErrorResponse>).response?.data;
+
+      throw new Error(
+        errorData?.error ||
+          errorData?.message ||
+          'Erro ao realizar inscrição',
+      );
+    }
   }
 
-  unregister(eventId: string, activityId: string, participantId: string): string[] {
-    return unregisterParticipantInMock(eventId, activityId, participantId);
+  async unregister(
+    _eventId: string,
+    activityId: string,
+  ): Promise<RegistrationResponse> {
+    const normalizedActivityId = this.normalizeActivityId(activityId);
+
+    try {
+      const { data } = await api.delete<RegistrationResponse>(
+        `/activity/${normalizedActivityId}/unsubscribe`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const errorData = (error as AxiosError<ApiErrorResponse>).response?.data;
+
+      throw new Error(
+        errorData?.error ||
+          errorData?.message ||
+          'Erro ao cancelar inscrição',
+      );
+    }
   }
 
-  getRegisteredParticipants(eventId: string, activityId: string): string[] {
-    const eventReg = MOCK_REGISTRATIONS[eventId];
-    if (!eventReg) return [];
-
-    return eventReg[activityId] ?? [];
+  canRegister(isRegistered: boolean): boolean {
+    return !isRegistered;
   }
 
-  getRegistrationCount(eventId: string, activityId: string): number {
-    return this.getRegisteredParticipants(eventId, activityId).length;
-  }
-
-  canRegister(eventId: string, activityId: string, participantId: string): boolean {
-    // permite qnd n ta inscrito
-    return !this.isRegistered(eventId, activityId, participantId);
-  }
-
-  canUnregister(eventId: string, activityId: string, participantId: string): boolean {
-    // permite qnd ta inscrito
-    return this.isRegistered(eventId, activityId, participantId);
+  canUnregister(isRegistered: boolean): boolean {
+    return isRegistered;
   }
 }
 

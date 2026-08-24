@@ -15,9 +15,11 @@ export interface Event {
   atividades?: Activity[];
   createdAt: string;
   updatedAt: string;
+  totalInscritos?: number;
 }
 
 export interface EventCardProps {
   event: Event;
   onClick?: (event: Event) => void;
+  onDelete?: (event: Event) => void;
 }

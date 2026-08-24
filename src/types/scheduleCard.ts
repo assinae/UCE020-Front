@@ -24,6 +24,8 @@ export interface ScheduleDetailsProps {
   hours: number;
   participantsCount: number;
   status: string;
+  /** Quando não há imagem, os detalhes ocupam a largura total. */
+  fullWidth?: boolean;
 }
 
 export interface ScheduleDescriptionProps {

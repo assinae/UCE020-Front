@@ -1,25 +1,53 @@
-import { MOCK_PARTICIPANTS } from '@/mocks/participants';
-import { MOCK_REGISTRATIONS } from '@/mocks/registrations';
-import { isParticipantConfirmed } from '@/mocks/participants-storage';
+import { api } from '@/services/api';
 import type { Participant } from '@/types/participant';
 
-export function getParticipantsForActivity(
+type ParticipantApiItem = {
+  id: string | number;
+  name?: string;
+  nome?: string;
+  email?: string;
+  role?: 'participant' | 'monitor' | 'organizer' | string;
+  tipo?: 'participant' | 'monitor' | 'organizer' | string;
+  presenceStatus?: 'pending' | 'confirmed';
+};
+
+type ParticipantsApiResponse =
+  | {
+      success?: boolean;
+      data?: ParticipantApiItem[] | { data?: ParticipantApiItem[] };
+    }
+  | ParticipantApiItem[];
+
+export async function getParticipantsForActivity(
   eventId: string,
   activityId: string,
-): Participant[] {
-  const registeredIds = MOCK_REGISTRATIONS[eventId]?.[activityId] ?? [];
+): Promise<Participant[]> {
+  void eventId;
 
-  return registeredIds
-    .map((id) => {
-      const participant = MOCK_PARTICIPANTS.find((item) => item.id === id);
-      if (!participant) return null;
+  const response = await api.get<ParticipantsApiResponse>(
+    `/activity/${activityId}/participants`,
+  );
 
-      return {
-        ...participant,
-        presenceStatus: isParticipantConfirmed(eventId, activityId, id)
-          ? ('confirmed' as const)
-          : ('pending' as const),
-      };
-    })
-    .filter((participant): participant is Participant => participant !== null);
+  const payload = response.data;
+
+  const rawParticipants = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.data?.data)
+        ? payload.data.data
+        : [];
+
+  return rawParticipants.map((participant) => ({
+    id: String(participant.id),
+    name: participant.name ?? participant.nome ?? '',
+    email: participant.email ?? '',
+    role:
+      participant.role === 'monitor' || participant.tipo === 'monitor'
+        ? 'monitor'
+        : participant.role === 'organizer' || participant.tipo === 'organizer'
+          ? 'organizer'
+          : 'participant',
+    presenceStatus: participant.presenceStatus ?? 'pending',
+  }));
 }

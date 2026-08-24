@@ -21,9 +21,11 @@ export function ParticipantQrCodeModal({
 
   return (
     <ModalContainer open={open} onClose={onClose}>
-      <CloseButton onClick={onClose} />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.25, p:2 }}>
+        <CloseButton onClick={onClose} position="relative" top={0} right={0} />
+      </Box>
 
-      <Box sx={{ px: 3, pb: 3 }}>
+      <Box sx={{ px: 3, pb: 3, pt: { xs: 0.5, sm: 0.75 } }}>
         <Typography
           sx={{
             color: 'text.secondary',

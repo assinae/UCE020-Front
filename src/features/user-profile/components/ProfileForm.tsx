@@ -8,6 +8,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import TextInput from '@/components/ui/inputs/TextInput';
+import PasswordInput from '@/components/ui/inputs/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import type { UserProfile } from '@/types/userProfile';
 
@@ -28,9 +29,16 @@ const SECURITY_RULES = [
   { label: 'Pelo menos um caractere especial', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
 ];
 
-export function ProfileForm({ user, onSave, isEditing, onEditChange, onChangePassword }: ProfileFormProps) {
+export function ProfileForm({
+  user,
+  onSave,
+  isEditing,
+  onEditChange,
+  onChangePassword,
+}: ProfileFormProps) {
   const [formData, setFormData] = useState<UserProfile>(user);
 
+  // ── Informações Pessoais ────────────────────────────────
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -173,15 +181,6 @@ export function ProfileForm({ user, onSave, isEditing, onEditChange, onChangePas
               placeholder="seu@email.com"
             />
           </Box>
-          {/* <Box>
-            <PasswordInput
-              label="Senha"
-              value={formData.password || ''}
-              onChange={(value) => handleInputChange('password', value)}
-              disabled={!isEditing}
-              showVisibilityToggle
-            />
-          </Box> */}
         </Box>
       </Box>
 
@@ -257,21 +256,21 @@ export function ProfileForm({ user, onSave, isEditing, onEditChange, onChangePas
 
         <Collapse in={isChangingPassword}>
           <Box sx={{ mb: 2.5 }}>
-            <TextInput
+            <PasswordInput
               label="Senha Atual"
-              type="password"
               value={currentPassword}
               onChange={setCurrentPassword}
               placeholder="Digite sua senha atual"
+              autoComplete="current-password"
             />
           </Box>
           <Box sx={{ mb: 1.5 }}>
-            <TextInput
+            <PasswordInput
               label="Nova Senha"
-              type="password"
               value={newPassword}
               onChange={setNewPassword}
               placeholder="Crie uma nova senha"
+              autoComplete="new-password"
             />
           </Box>
 
@@ -297,12 +296,12 @@ export function ProfileForm({ user, onSave, isEditing, onEditChange, onChangePas
           </Stack>
 
           <Box sx={{ mb: 1 }}>
-            <TextInput
+            <PasswordInput
               label="Confirmar Nova Senha"
-              type="password"
               value={confirmPassword}
               onChange={setConfirmPassword}
               placeholder="Repita a nova senha"
+              autoComplete="new-password"
             />
           </Box>
 

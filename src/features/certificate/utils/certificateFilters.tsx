@@ -36,7 +36,6 @@ export const STATUS_FILTER_OPTIONS = [
   { value: 'Todos', label: 'Todos' },
   { value: 'Pendente', label: 'Pendente de assinatura' },
   { value: 'Assinado', label: 'Assinado' },
-  { value: 'Encaminhado', label: 'Encaminhado' },
 ];
 
 interface FilterParams {
@@ -90,6 +89,5 @@ export function countCertificatesByStatus(certificates: CertificateManagementIte
   return {
     pendente: certificates.filter((c) => c.status === 'Pendente').length,
     assinado: certificates.filter((c) => c.status === 'Assinado').length,
-    encaminhado: certificates.filter((c) => c.status === 'Encaminhado').length,
   };
 }

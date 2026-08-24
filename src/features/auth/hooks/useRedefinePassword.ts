@@ -77,7 +77,6 @@ export function useRedefinePassword() {
     setError(null);
     try {
       await authService.resetPassword(token, data.novaSenha);
-      await new Promise((r) => setTimeout(r, 1000)); // simula request
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch {

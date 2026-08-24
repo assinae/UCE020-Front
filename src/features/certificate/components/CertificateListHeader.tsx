@@ -15,12 +15,26 @@ export function CertificateListHeader({
   onToggleSort,
 }: CertificateListHeaderProps) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <ArticleOutlinedIcon sx={{ fontSize: 18, color: '#0F1D35' }} />
         <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0F1D35' }}>
-          Certificados ({count})
+          Certificados
         </Typography>
+        <Box
+          sx={{
+            minWidth: 22,
+            height: 20,
+            px: 0.75,
+            borderRadius: '999px',
+            bgcolor: '#E8F5F2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#1a6e5a' }}>{count}</Typography>
+        </Box>
       </Box>
       <Tooltip title={sortOrder === 'asc' ? 'Ordenar Z → A' : 'Ordenar A → Z'}>
         <Box

@@ -7,6 +7,8 @@ interface LabelChipProps {
 }
 
 export default function LabelChip({ status }: LabelChipProps) {
+  if (!status?.trim()) return null;
+
   return (
     <Box
       sx={{
@@ -14,16 +16,20 @@ export default function LabelChip({ status }: LabelChipProps) {
         alignItems: 'center',
         justifyContent: 'center',
         width: 'fit-content',
-        px: 'clamp(8px, 2vw, 12px)',
-        height: 'clamp(20px, 5vw, 22px)',
-        bgcolor: 'grey.500',
+        px: 'clamp(10px, 2vw, 14px)',
+        height: 'clamp(22px, 5vw, 24px)',
+        bgcolor: 'rgba(0, 137, 99, 0.12)',
+        border: '1px solid',
+        borderColor: 'rgba(0, 137, 99, 0.25)',
         borderRadius: '99px',
-        color: 'info.contrastText',
-        fontSize: 'clamp(8px, 2vw, 11px)',
+        color: 'secondary.dark',
+        fontSize: 'clamp(9px, 2vw, 11px)',
+        fontWeight: 600,
+        letterSpacing: '0.02em',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        mt: 0.5
+        mt: 0.5,
       }}
     >
       {status}

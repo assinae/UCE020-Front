@@ -11,7 +11,7 @@ const NAV_LINKS: NavLink[] = [
   { icon: <Home />, label: 'Início', href: '/home' },
   { icon: <PostAdd />, label: 'Criar evento', href: '/event/register' },
   { icon: <Event />, label: 'Eventos Criados', href: '/event/list' },
-  { icon: <DocumentScanner />, label: 'Monitoria', href: '/monitoria' },
+  { icon: <DocumentScanner />, label: 'Monitoria', href: '/monitoring/list' },
   { icon: <Article />, label: 'Certificados', href: '/certificate/list' },
 ];
 

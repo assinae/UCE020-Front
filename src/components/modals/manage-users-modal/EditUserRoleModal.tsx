@@ -52,7 +52,7 @@ export function EditUserRoleModal<T extends string>({
               key={role}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
                 selectedRole === role
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  ? 'border-[#008963] bg-[#008963]/10 text-[#008963]'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -62,7 +62,7 @@ export function EditUserRoleModal<T extends string>({
                 value={role}
                 checked={selectedRole === role}
                 onChange={() => setSelectedRole(role)}
-                className="accent-indigo-600"
+                className="accent-[#008963]"
               />
               <span className="text-sm font-medium">{role}</span>
             </label>

@@ -12,7 +12,9 @@ import { GreetingSection, QuickActions, useHomeEvents } from '@/features/home';
 import { useAuth } from '@/providers/auth-provider';
 import { eventService } from '@/services/eventService';
 import { participationService } from '@/services/participationService';
-import { isAxiosError } from 'axios';
+import { extractApiErrorMessage } from '@/utils/apiError';
+import { useQueryClient } from '@tanstack/react-query';
+import { formatBahiaDate } from '@/utils/date';
 
 type SearchState =
   | { status: 'idle' }
@@ -38,7 +40,8 @@ function searchReducer(_: SearchState, action: SearchAction): SearchState {
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { filteredEvents } = useHomeEvents();
+  const { filteredEvents, loading: eventsLoading } = useHomeEvents();
+  const queryClient = useQueryClient();
   const [code, setCode] = useState('');
   const [searchCode, setSearchCode] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -95,17 +98,19 @@ export default function HomePage() {
     isSubscribingRef.current = true;
     try {
       await participationService.subscribe(eventId);
+      queryClient.invalidateQueries({ queryKey: ['home-events'] });
+      queryClient.invalidateQueries({ queryKey: ['participating-events'] });
       setModalOpen(false);
       dispatch({ type: 'RESET' });
       setSearchCode('');
       setCode('');
       router.push(`/event/${eventId}`);
     } catch (error) {
-      const message =
-        isAxiosError(error) && typeof error.response?.data?.message === 'string'
-          ? error.response.data.message
-          : 'Não foi possível concluir a inscrição';
-      setFeedback({ open: true, message, severity: ToastSeverity.Error });
+      setFeedback({
+        open: true,
+        message: extractApiErrorMessage(error, 'Não foi possível concluir a inscrição'),
+        severity: ToastSeverity.Error,
+      });
     } finally {
       isSubscribingRef.current = false;
     }
@@ -132,6 +137,7 @@ export default function HomePage() {
         <QuickActions />
         <EventList
           events={filteredEvents}
+          loading={eventsLoading}
           onEventClick={handleEventClick}
         />
       </Box>
@@ -149,8 +155,8 @@ export default function HomePage() {
           onClose={() => { setModalOpen(false); setSearchCode(''); setCode(''); dispatch({ type: 'RESET' }); }}
           title={searchState.event.nome}
           image={searchState.event.foto ?? undefined}
-          startDate={new Date(searchState.event.dataInicio).toLocaleDateString('pt-BR')}
-          endDate={new Date(searchState.event.dataFim).toLocaleDateString('pt-BR')}
+          startDate={formatBahiaDate(searchState.event.dataInicio)}
+          endDate={formatBahiaDate(searchState.event.dataFim)}
           location={searchState.event.localizacao}
           hours={searchState.event.cargaHoraria}
           participantsCount={0}

@@ -1,5 +1,3 @@
-import { loadParticipants, isParticipantConfirmed } from '@/mocks/participants-storage';
-import { isParticipantRegistered } from '@/mocks/registrations';
 import { parsePresenceQrPayload } from '@/features/participants/presence/utils/presenceQr';
 import { getScanStatusMessage } from '@/features/participants/presence/utils/presenceFeedback';
 import type {
@@ -46,20 +44,6 @@ export function validatePresenceScan(
 
   if (payload.activityId !== context.activityId) {
     return buildResult('wrong_activity', payload);
-  }
-
-  const participant = loadParticipants().find((item) => item.id === payload.participantId);
-
-  if (!participant) {
-    return buildResult('participant_not_found', payload);
-  }
-
-  if (!isParticipantRegistered(payload.eventId, payload.activityId, payload.participantId)) {
-    return buildResult('not_registered', payload);
-  }
-
-  if (isParticipantConfirmed(payload.eventId, payload.activityId, payload.participantId)) {
-    return buildResult('already_confirmed', payload);
   }
 
   return buildResult('ready', payload);
