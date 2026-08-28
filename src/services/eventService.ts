@@ -11,6 +11,8 @@ export interface CreateActivityPayload {
   startDate: string;
   endDate: string;
   eventId?: number;
+  /** Se a atividade deve emitir certificado individual de participante (default: false). */
+  generateCertificate?: boolean;
   guests?: {
     name: string;
     email: string;

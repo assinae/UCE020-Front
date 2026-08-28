@@ -8,6 +8,7 @@ import type {
   CertificateRoleStat,
   CertificateVerification,
   CertificateVerificationResult,
+  GenerateActivityCertificatesResult,
 } from '@/types/certificate-management';
 
 // Erro de verificação com a mensagem retornada pelo backend (ex.: código inexistente
@@ -66,6 +67,26 @@ class CertificateService {
     return { ...data.data, status: DEFAULT_STATUS };
   }
 
+  async getCertificatePdf(id: string): Promise<Blob> {
+    try {
+      const { data } = await api.get<Blob>(`/certificate/${encodeURIComponent(id)}/pdf`, {
+        responseType: 'blob',
+      });
+      return data;
+    } catch (error) {
+      // Com responseType 'blob' o corpo de ERRO também vem como Blob, e chegaria
+      // ilegível em extractApiErrorMessage.
+      if (error instanceof AxiosError && error.response?.data instanceof Blob) {
+        try {
+          error.response.data = JSON.parse(await error.response.data.text());
+        } catch {
+          // corpo não era JSON: deixa como está e cai na mensagem genérica
+        }
+      }
+      throw error;
+    }
+  }
+
   async getCertificateStatsByEvent(eventoId: number): Promise<CertificateRoleStat[]> {
     const { data } = await api.get<CertificateStatsResponse>(
       `/event/${eventoId}/certificate/stats`,
@@ -88,7 +109,7 @@ class CertificateService {
       payload = (payload as { data?: unknown }).data;
     }
     // Assinatura concluída no backend, mas sem corpo reconhecível: não quebra a UI.
-    return { assinados: 0, semArquivo: 0, assinante: '', certificados: [] };
+    return { assinados: 0, assinante: '', certificados: [] };
   }
 
   // Emite os certificados de participante/monitor/organizador do evento (evento precisa
@@ -101,6 +122,19 @@ class CertificateService {
   // atividade (atividade precisa estar finalizada). Também seguro chamar mais de uma vez.
   async generateGuestCertificates(atividadeId: number | string): Promise<void> {
     await api.post(`/activity/${atividadeId}/certificate/guests`);
+  }
+
+  // Emite os certificados de participante de uma atividade específica, para quem tem
+  // presença confirmada nela. Só funciona se a atividade tiver `gerarCertificado: true`
+  // e estiver com status "finalizada" — senão o backend responde 403. Idempotente: quem
+  // já tem certificado entra em `alreadyIssued` e não gera arquivo duplicado.
+  async generateActivityCertificates(
+    atividadeId: number | string,
+  ): Promise<GenerateActivityCertificatesResult> {
+    const { data } = await api.post<{ message?: string; data: GenerateActivityCertificatesResult }>(
+      `/activity/${atividadeId}/certificate/participants`,
+    );
+    return data.data;
   }
 
   // Verifica publicamente a autenticidade de um certificado pelo código de verificação.

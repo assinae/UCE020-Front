@@ -19,6 +19,8 @@ export type ActivityDetails = {
   foto?: string | null;
   eventoId: number;
   isRegistered?: boolean;
+  /** Se a atividade está configurada para emitir certificado individual de participante. */
+  gerarCertificado: boolean;
 };
 
 type ActivityDetailsApiResponse = {
@@ -128,6 +130,10 @@ class ActivityService {
         status: String(normalizedActivityData.status ?? ''),
         foto: normalizedActivityData.foto ?? null,
         eventoId: Number(normalizedActivityData.eventoId ?? 0),
+        gerarCertificado:
+          toBoolean(normalizedActivityData.gerarCertificado) ??
+          toBoolean(normalizedActivityData.generateCertificate) ??
+          false,
         isRegistered:
           toBoolean(normalizedActivityData.isRegistered) ??
           toBoolean(normalizedActivityData.inscrito) ??

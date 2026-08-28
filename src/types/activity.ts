@@ -17,12 +17,16 @@ export interface ActivityModalProps {
   variant: ActivityModalVariant;
   /** Quando o participante já teve a presença confirmada nesta atividade. */
   presenceConfirmed?: boolean;
+  /** Quando a atividade está configurada para emitir certificado individual (campo `gerarCertificado`). */
+  generateCertificate?: boolean;
   onSignup?: AsyncVoidHandler;
   onCancelParticipation?: AsyncVoidHandler;
   onMarkPresence?: AsyncVoidHandler;
   onValidatePresences?: AsyncVoidHandler;
   onListParticipants?: AsyncVoidHandler;
+  onGenerateCertificates?: AsyncVoidHandler;
   isLoading?: boolean;
+  isGeneratingCertificates?: boolean;
 }
 
 export interface ActivityDetailProps {
@@ -47,10 +51,30 @@ export type Activity = {
   createdAt?: string;
   updatedAt?: string;
   photo?: string | null;
+  /** Define se a atividade emite certificado individual de participante. */
+  generateCertificate?: boolean;
 }
 
 export type ActivityGuest = {
   name: string;
   email: string;
   role: string;
+}
+
+/**
+ * Lê a flag de "gerar certificado da atividade" de um objeto vindo da API, aceitando
+ * tanto o nome do DTO de entrada (`generateCertificate`) quanto o nome da coluna que
+ * volta nas respostas de leitura (`gerarCertificado`). Ver relatório do backend em
+ * feature/certificado-por-atividade.
+ */
+export function readGenerateCertificateFlag(source: unknown): boolean {
+  if (!source || typeof source !== 'object') return false;
+  const record = source as Record<string, unknown>;
+  const raw = record.gerarCertificado ?? record.generateCertificate;
+
+  if (typeof raw === 'boolean') return raw;
+  if (typeof raw === 'number') return raw !== 0;
+  if (typeof raw === 'string') return ['true', '1'].includes(raw.trim().toLowerCase());
+
+  return false;
 };

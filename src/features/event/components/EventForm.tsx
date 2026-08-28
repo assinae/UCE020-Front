@@ -31,6 +31,7 @@ import { useCreateEvent } from '../../evento/hooks/useCreateEvent';
 import { useEditEvent } from '../../evento/hooks/useEditEvent';
 import ActivityForm, { ActivityFormState } from '@/features/activities/components/ActivityForm';
 import { Activity, ActivityGuest } from '@/types';
+import { readGenerateCertificateFlag } from '@/types/activity';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 type EventFormMode = 'create' | 'edit';
@@ -219,6 +220,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             endDate: toDate(a.endDate ? new Date(a.endDate) : null),
             startTime: toTime(a.startDate ? new Date(a.startDate) : null),
             endTime: toTime(a.endDate ? new Date(a.endDate) : null),
+            generateCertificate: readGenerateCertificateFlag(a),
           }))
         );
       }
@@ -314,6 +316,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           eventId: isEdit && existingEvent ? existingEvent.id : undefined,
           startDate: toISODateTime(activity.startDate, activity.startTime),
           endDate: toISODateTime(activity.endDate, activity.endTime),
+          generateCertificate: activity.generateCertificate,
         };
       }),
     };
