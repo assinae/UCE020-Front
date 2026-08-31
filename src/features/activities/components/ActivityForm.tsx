@@ -72,9 +72,18 @@ const CATEGORY_OPTIONS = [
 ];
 
 const GUEST_ROLE_OPTIONS = [
-  { value: 'palestrante', label: 'Palestrante' },
-  { value: 'ministrante', label: 'Ministrante' },
-  { value: 'moderador', label: 'Moderador' },
+  {
+    value: 'palestrante',
+    label: 'Palestrante — apresenta o conteúdo e conduz a fala principal da atividade.',
+  },
+  {
+    value: 'ministrante',
+    label: 'Ministrante — lidera a prática e orienta a execução do conteúdo.',
+  },
+  {
+    value: 'moderador',
+    label: 'Moderador — conduz a dinâmica, media perguntas e organiza a discussão.',
+  },
 ];
 
 const EMPTY_FORM: ActivityFormState = {

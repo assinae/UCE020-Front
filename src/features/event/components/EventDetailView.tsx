@@ -2,7 +2,14 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, IconButton, Typography } from '@mui/material';
+import {
+  Box,
+  Drawer,
+  IconButton,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import { PageLoader } from '@/components/ui';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
@@ -34,6 +41,10 @@ import { extractApiErrorMessage } from '@/utils/apiError';
 import { activityService } from '@/services/activityService';
 import { certificateService } from '@/services/certificate.service';
 import { isAxiosError } from 'axios';
+import ActivityForm, {
+  type ActivityFormState,
+} from '@/features/activities/components/ActivityForm';
+import { toBahiaIso } from '@/utils/date';
 
 interface EventDetailViewProps {
   eventId: string;
@@ -129,6 +140,8 @@ function DetailTile({
 
 export function EventDetailView({ eventId }: EventDetailViewProps) {
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
   const numericEventId = Number(eventId);
@@ -144,10 +157,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     enabled: hasValidEventId,
   });
 
-  const loadError = !hasValidEventId 
-    ? 'Evento não encontrado.' 
-    : isEventError 
-      ? 'Não foi possível carregar os dados do evento.' 
+  const loadError = !hasValidEventId
+    ? 'Evento não encontrado.'
+    : isEventError
+      ? 'Não foi possível carregar os dados do evento.'
       : '';
 
   const {
@@ -171,7 +184,11 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   });
 
   useEffect(() => {
-    if (participationError && isAxiosError(participationError) && participationError.response?.status !== 404) {
+    if (
+      participationError &&
+      isAxiosError(participationError) &&
+      participationError.response?.status !== 404
+    ) {
       const timer = setTimeout(() => {
         setToast({
           open: true,
@@ -197,7 +214,9 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const [activityPresenceMap, setActivityPresenceMap] = useState<Record<string, boolean>>({});
 
   const [isActivityCertificateEnabled, setIsActivityCertificateEnabled] = useState(false);
-  const [activityCertificateFlagMap, setActivityCertificateFlagMap] = useState<Record<string, boolean>>({});
+  const [activityCertificateFlagMap, setActivityCertificateFlagMap] = useState<
+    Record<string, boolean>
+  >({});
   const [isGeneratingActivityCertificates, setIsGeneratingActivityCertificates] = useState(false);
 
   // GET /event/:id retorna as atividades num formato sem `status`/`gerarCertificado` —
@@ -211,6 +230,8 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [isActivityDrawerOpen, setIsActivityDrawerOpen] = useState(false);
+  const [isCreatingActivity, setIsCreatingActivity] = useState(false);
 
   const isLoadingEvent = isLoadingEventData || isAuthLoading;
 
@@ -322,7 +343,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     try {
       await participationService.unsubscribeFromActivity(
         Number(selectedActivity.id),
-        Number(user.id),
+        Number(user.id)
       );
       queryClient.invalidateQueries({ queryKey: ['activity-participants'] });
 
@@ -345,7 +366,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         open: true,
         message: extractApiErrorMessage(
           error,
-          'Não foi possível cancelar a inscrição, presença registrada',
+          'Não foi possível cancelar a inscrição, presença registrada'
         ),
         severity: ToastSeverity.Error,
       });
@@ -383,7 +404,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     } catch (error) {
       setToast({
         open: true,
-        message: extractApiErrorMessage(error, 'Não foi possível gerar os certificados da atividade'),
+        message: extractApiErrorMessage(
+          error,
+          'Não foi possível gerar os certificados da atividade'
+        ),
         severity: ToastSeverity.Error,
       });
     } finally {
@@ -395,11 +419,58 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     router.push('/home');
   }
 
+  async function handleCreateActivity(data: ActivityFormState) {
+    if (!event || !Number.isFinite(numericEventId)) return;
+
+    setIsCreatingActivity(true);
+    try {
+      await activityService.create({
+        name: data.name,
+        category: data.category,
+        location: data.location,
+        workload: Number(data.workload),
+        description: data.description,
+        startDate: toBahiaIso(data.startDate, data.startTime),
+        endDate: toBahiaIso(data.endDate, data.endTime),
+        eventId: Number(event.id),
+        generateCertificate: data.generateCertificate,
+        guests: data.guests.map((guest) => ({
+          name: guest.name,
+          email: guest.email,
+          role: guest.role,
+        })),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['event', numericEventId] });
+      queryClient.invalidateQueries({ queryKey: ['home-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events-created'] });
+
+      setIsActivityDrawerOpen(false);
+      setToast({
+        open: true,
+        message: 'Atividade cadastrada com sucesso',
+        severity: ToastSeverity.Success,
+      });
+    } catch (error) {
+      setToast({
+        open: true,
+        message: extractApiErrorMessage(error, 'Não foi possível cadastrar a atividade'),
+        severity: ToastSeverity.Error,
+      });
+    } finally {
+      setIsCreatingActivity(false);
+    }
+  }
+
   function handleEventFinalized() {
     queryClient.setQueryData(['event', numericEventId], (oldData: Event | undefined) => {
       return oldData ? { ...oldData, status: 'finalizada' } : oldData;
     });
-    setToast({ open: true, message: 'Evento finalizado com sucesso', severity: ToastSeverity.Success });
+    setToast({
+      open: true,
+      message: 'Evento finalizado com sucesso',
+      severity: ToastSeverity.Success,
+    });
   }
 
   function handleFinalizeError(message: string) {
@@ -429,7 +500,11 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
       await eventService.deleteEvent(Number(event.id));
       queryClient.invalidateQueries({ queryKey: ['home-events'] });
       queryClient.invalidateQueries({ queryKey: ['events-created'] });
-      setToast({ open: true, message: 'Evento excluído com sucesso!', severity: ToastSeverity.Success });
+      setToast({
+        open: true,
+        message: 'Evento excluído com sucesso!',
+        severity: ToastSeverity.Success,
+      });
       setIsDeleteModalOpen(false);
       setTimeout(() => {
         router.push('/home');
@@ -503,7 +578,12 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             <IconButton
               size="medium"
               onClick={handleDeleteClick}
-              sx={{ color: '#F04438', padding: '8px', bgcolor: '#F044381A', '&:hover': { bgcolor: '#F0443833' } }}
+              sx={{
+                color: '#F04438',
+                padding: '8px',
+                bgcolor: '#F044381A',
+                '&:hover': { bgcolor: '#F0443833' },
+              }}
               aria-label="Excluir evento"
             >
               <DeleteOutlineIcon fontSize="medium" />
@@ -713,6 +793,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           <OrganizerEventActions
             eventId={Number(event.id)}
             isFinalized={event.status.toLowerCase() === 'finalizada'}
+            onAddActivity={() => setIsActivityDrawerOpen(true)}
             onFinalized={handleEventFinalized}
             onFinalizeError={handleFinalizeError}
           />
@@ -745,11 +826,15 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
               const authoritativeStatus = activityDetails?.status ?? '';
 
-              if (Number.isFinite(normalizedEventId) && Number.isFinite(Number(activity.id)) && user?.id) {
+              if (
+                Number.isFinite(normalizedEventId) &&
+                Number.isFinite(Number(activity.id)) &&
+                user?.id
+              ) {
                 try {
                   const participants = await participationService.getActivityParticipants(
                     normalizedEventId,
-                    Number(activity.id),
+                    Number(activity.id)
                   );
                   const me = participants.find((participant) => participant.id === String(user.id));
 
@@ -758,7 +843,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                     presenceConfirmed = me.presenceStatus === 'confirmed';
                   }
                 } catch (participantsError) {
-                  console.error('[ATIVIDADE] erro ao listar participantes para verificar inscrição/presença:', participantsError);
+                  console.error(
+                    '[ATIVIDADE] erro ao listar participantes para verificar inscrição/presença:',
+                    participantsError
+                  );
                 }
               }
 
@@ -812,9 +900,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         status={activityAuthoritativeStatus || selectedActivity?.status || ''}
         description={selectedActivity?.description ?? ''}
         variant={
-          isCheckingActivityEnrollment && role === 'participant'
-            ? 'signup'
-            : activityModalVariant
+          isCheckingActivityEnrollment && role === 'participant' ? 'signup' : activityModalVariant
         }
         presenceConfirmed={isPresenceConfirmed}
         generateCertificate={isActivityCertificateEnabled}
@@ -841,6 +927,49 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           }}
         />
       )}
+
+      <Drawer
+        anchor={isMobile ? 'bottom' : 'right'}
+        open={isActivityDrawerOpen}
+        onClose={() => setIsActivityDrawerOpen(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              width: isMobile ? '100%' : 480,
+              maxWidth: '100vw',
+              height: isMobile ? '92dvh' : '100dvh',
+              borderTopLeftRadius: isMobile ? 20 : 0,
+              borderTopRightRadius: isMobile ? 20 : 0,
+              background: '#FFFFFF',
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          },
+        }}
+      >
+        <Box sx={{ flex: 1, overflowY: 'auto' }}>
+          <ActivityForm
+            mode="create"
+            variant="embedded"
+            eventInfo={{
+              title: event.nome,
+              date: formatActivityDate(event.dataInicio, event.dataFim),
+              location: event.localizacao || 'Localização',
+            }}
+            eventDateRange={
+              event.dataInicio && event.dataFim
+                ? {
+                    start: event.dataInicio,
+                    end: event.dataFim,
+                  }
+                : undefined
+            }
+            maxWorkload={event.cargaHoraria ? Number(event.cargaHoraria) : undefined}
+            onSubmit={handleCreateActivity}
+            onCancel={() => setIsActivityDrawerOpen(false)}
+          />
+        </Box>
+      </Drawer>
 
       <Toast
         open={toast.open}

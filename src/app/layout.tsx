@@ -4,6 +4,7 @@ import './globals.css';
 import ThemeRegistry from '@/providers/theme-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { ReactQueryProvider } from '@/providers/react-query-provider';
+import { GlobalWarmup } from '@/components/GlobalWarmup';
 
 const poppins = Poppins({
   variable: '--font-poppins',
@@ -30,7 +31,10 @@ export default function RootLayout({
       <body className="min-h-full" suppressHydrationWarning>
         <ThemeRegistry>
           <ReactQueryProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <GlobalWarmup />
+              {children}
+            </AuthProvider>
           </ReactQueryProvider>
         </ThemeRegistry>
       </body>

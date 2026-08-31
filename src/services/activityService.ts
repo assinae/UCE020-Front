@@ -23,13 +23,33 @@ export type ActivityDetails = {
   gerarCertificado: boolean;
 };
 
+export interface CreateActivityPayload {
+  name: string;
+  category: string;
+  location: string;
+  workload: number;
+  description: string;
+  startDate: string;
+  endDate: string;
+  eventId?: number;
+  generateCertificate?: boolean;
+  guests?: {
+    name: string;
+    email: string;
+    role: string;
+  }[];
+}
+
 type ActivityDetailsApiResponse = {
   statusCode?: number;
   message?: string;
-  data?: {
-    success?: boolean;
-    data?: ActivityDetails | Record<string, unknown>;
-  } | ActivityDetails | Record<string, unknown>;
+  data?:
+    | {
+        success?: boolean;
+        data?: ActivityDetails | Record<string, unknown>;
+      }
+    | ActivityDetails
+    | Record<string, unknown>;
 };
 
 function toBoolean(value: unknown): boolean | undefined {
@@ -40,7 +60,11 @@ function toBoolean(value: unknown): boolean | undefined {
     if (['true', '1', 'sim', 's', 'yes', 'y', 'ativo', 'inscrito'].includes(normalized)) {
       return true;
     }
-    if (['false', '0', 'nao', 'não', 'n', 'no', 'inativo', 'nao inscrito', 'não inscrito'].includes(normalized)) {
+    if (
+      ['false', '0', 'nao', 'não', 'n', 'no', 'inativo', 'nao inscrito', 'não inscrito'].includes(
+        normalized
+      )
+    ) {
       return false;
     }
   }
@@ -55,7 +79,12 @@ function extractRegistrationFlag(value: unknown): boolean {
   while (stack.length > 0) {
     const current = stack.pop();
 
-    if (current === null || current === undefined || typeof current !== 'object' || visited.has(current)) {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== 'object' ||
+      visited.has(current)
+    ) {
       continue;
     }
 
@@ -76,7 +105,7 @@ function extractRegistrationFlag(value: unknown): boolean {
         record.isParticipating ??
         record.participating ??
         record.hasParticipation ??
-        record.hasSubscription,
+        record.hasSubscription
     );
 
     if (directMatch !== undefined) {
@@ -94,6 +123,39 @@ function extractRegistrationFlag(value: unknown): boolean {
 }
 
 class ActivityService {
+  async create(payload: CreateActivityPayload): Promise<ActivityDetails> {
+    const { data } = await api.post<{
+      message?: string;
+      data?: ActivityDetails | Record<string, unknown>;
+    }>('/activity', payload);
+
+    const activityData =
+      typeof data?.data === 'object' && data.data !== null && !Array.isArray(data.data)
+        ? (data.data as ActivityDetails | Record<string, unknown>)
+        : data;
+
+    const normalizedActivityData = activityData as ActivityDetails & Record<string, unknown>;
+
+    return {
+      id: Number(normalizedActivityData.id ?? 0),
+      nome: String(normalizedActivityData.nome ?? ''),
+      descricao: String(normalizedActivityData.descricao ?? ''),
+      localizacao: String(normalizedActivityData.localizacao ?? ''),
+      dataInicio: String(normalizedActivityData.dataInicio ?? ''),
+      dataFim: String(normalizedActivityData.dataFim ?? ''),
+      categoria: String(normalizedActivityData.categoria ?? ''),
+      cargaHoraria: Number(normalizedActivityData.cargaHoraria ?? 0),
+      status: String(normalizedActivityData.status ?? ''),
+      foto: normalizedActivityData.foto ?? null,
+      eventoId: Number(normalizedActivityData.eventoId ?? payload.eventId ?? 0),
+      gerarCertificado:
+        toBoolean(normalizedActivityData.gerarCertificado) ??
+        toBoolean(normalizedActivityData.generateCertificate) ??
+        Boolean(payload.generateCertificate),
+      isRegistered: toBoolean(normalizedActivityData.isRegistered) ?? false,
+    };
+  }
+
   async findOne(activityId: string | number): Promise<ActivityDetails> {
     const normalizedActivityId = Number(activityId);
 
@@ -103,7 +165,7 @@ class ActivityService {
 
     try {
       const { data } = await api.get<ActivityDetailsApiResponse>(
-        `/activity/${normalizedActivityId}`,
+        `/activity/${normalizedActivityId}`
       );
 
       const payload = data?.data;
@@ -112,8 +174,7 @@ class ActivityService {
           ? (payload as { data?: ActivityDetails | Record<string, unknown> }).data
           : payload;
 
-      const activityData =
-        typeof nestedData === 'object' && nestedData !== null ? nestedData : {};
+      const activityData = typeof nestedData === 'object' && nestedData !== null ? nestedData : {};
 
       const normalizedActivityData = activityData as ActivityDetails & Record<string, unknown>;
       const fallbackRegistrationFlag = extractRegistrationFlag(data);
@@ -144,9 +205,7 @@ class ActivityService {
       const errorData = (error as AxiosError<ApiErrorResponse>).response?.data;
 
       throw new Error(
-        errorData?.error ||
-          errorData?.message ||
-          'Erro ao buscar detalhes da atividade',
+        errorData?.error || errorData?.message || 'Erro ao buscar detalhes da atividade'
       );
     }
   }

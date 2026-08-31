@@ -1,5 +1,5 @@
 export type StaffRole = 'Participante' | 'Monitor' | 'Organizador';
-export type GuestRole = 'Palestrante' | 'Ministrante';
+export type GuestRole = 'Palestrante' | 'Ministrante' | 'Moderador';
 
 export interface ManagedUser {
   id: string;

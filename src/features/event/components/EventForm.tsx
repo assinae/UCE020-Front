@@ -11,6 +11,7 @@ import {
   InputAdornment,
   MenuItem,
   TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -24,6 +25,7 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Button, TextInput, PageLoader } from '@/components/ui';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -75,6 +77,34 @@ const DEFAULT_FORM: FormState = {
   foto: null,
 };
 
+function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Typography
+        component="span"
+        sx={{ fontSize: 12, fontWeight: 500, color: colorTokens.text.primary }}
+      >
+        {label}
+      </Typography>
+      <Tooltip title={helpText} arrow placement="top">
+        <IconButton
+          size="small"
+          aria-label={`Saiba mais sobre ${label}`}
+          sx={{
+            p: 0.25,
+            color: colorTokens.neutral.gray500,
+            '&:hover': {
+              backgroundColor: 'rgba(15, 23, 42, 0.04)',
+            },
+          }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
 function createTouchedState(): TouchedState {
   return {
     nome: false,
@@ -105,16 +135,18 @@ function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
       touched.descricao && form.descricao.trim().length < 10 ? 'Descreva melhor o evento.' : '',
     startDate: (() => {
       if (touched.startDate && !form.startDate) return 'Selecione a data de início.';
-      if (touched.startDate && form.startDate && form.startDate < getTodayString())
+      if (!isEdit && touched.startDate && form.startDate && form.startDate < getTodayString())
         return 'A data de início não pode ser no passado.';
       return '';
     })(),
     endDate: (() => {
       if (touched.endDate && !form.endDate) return 'Selecione a data de término.';
-      const todayStr = getTodayString();
-      const minEndDate = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
-      if (touched.endDate && form.endDate && form.endDate < minEndDate)
-        return 'A data de término inválida.';
+      if (!isEdit) {
+        const todayStr = getTodayString();
+        const minEndDate = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
+        if (touched.endDate && form.endDate && form.endDate < minEndDate)
+          return 'A data de término inválida.';
+      }
       return '';
     })(),
     startTime: touched.startTime && !form.startTime ? 'Selecione o horário de início.' : '',
@@ -236,7 +268,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     form.descricao.trim().length >= 10 &&
     form.startDate.length > 0 &&
     form.endDate.length > 0 &&
-    form.startDate >= getTodayString() &&
+    (!isEdit ? form.startDate >= getTodayString() : true) &&
     form.endDate >= form.startDate &&
     form.startTime.length > 0 &&
     form.endTime.length > 0 &&
@@ -468,7 +500,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             >
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label="Nome"
+                  label={<FieldLabelWithHelp label="Nome" helpText="Nome oficial do evento exibido para participantes e na listagem geral." />}
                   value={form.nome}
                   onChange={(v) => updateField('nome', v)}
                   onBlur={() => markTouched('nome')}
@@ -485,7 +517,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label="Local"
+                  label={<FieldLabelWithHelp label="Local" helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo." />}
                   value={form.localizacao}
                   onChange={(v) => updateField('localizacao', v)}
                   onBlur={() => markTouched('localizacao')}
@@ -513,7 +545,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label="Responsável"
+                  label={<FieldLabelWithHelp label="Responsável" helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento." />}
                   value={form.responsavel}
                   onChange={(v) => updateField('responsavel', v)}
                   onBlur={() => markTouched('responsavel')}
@@ -541,7 +573,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label="Descrição do evento"
+                  label={<FieldLabelWithHelp label="Descrição do evento" helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes." />}
                   value={form.descricao}
                   onChange={(v) => updateField('descricao', v)}
                   onBlur={() => markTouched('descricao')}
@@ -571,7 +603,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <ImageUpload
-                  label="Imagem do Evento"
+                  label={
+                    <FieldLabelWithHelp
+                      label="Imagem do Evento"
+                      helpText="Imagem principal da capa do evento, usada na divulgação, visualização e identificação rápida do evento."
+                    />
+                  }
                   value={form.foto}
                   onChange={(value) => updateField('foto', value)}
                   onBlur={() => markTouched('foto')}
@@ -594,7 +631,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Data de Início"
+                    label={<FieldLabelWithHelp label="Data de Início" helpText="Data em que o evento começa e passa a ficar disponível para participantes." />}
                     value={form.startDate}
                     onChange={(v) => updateField('startDate', v)}
                     onBlur={() => markTouched('startDate')}
@@ -619,7 +656,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Data de Término"
+                    label={<FieldLabelWithHelp label="Data de Término" helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições." />}
                     value={form.endDate}
                     onChange={(v) => updateField('endDate', v)}
                     onBlur={() => markTouched('endDate')}
@@ -644,7 +681,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Horário de Início"
+                    label={<FieldLabelWithHelp label="Horário de Início" helpText="Hora em que o evento ou a primeira atividade começa oficialmente." />}
                     value={form.startTime}
                     onChange={(v) => updateField('startTime', v)}
                     onBlur={() => markTouched('startTime')}
@@ -666,7 +703,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Horário de Término"
+                    label={<FieldLabelWithHelp label="Horário de Término" helpText="Hora em que o evento ou a última atividade deve ser encerrada." />}
                     value={form.endTime}
                     onChange={(v) => updateField('endTime', v)}
                     onBlur={() => markTouched('endTime')}
@@ -697,7 +734,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Carga Horária (h)"
+                    label={<FieldLabelWithHelp label="Carga Horária (h)" helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro." />}
                     value={form.cargaHoraria}
                     onChange={(v) => updateField('cargaHoraria', v)}
                     onBlur={() => markTouched('cargaHoraria')}
@@ -717,7 +754,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                 <Box sx={{ minWidth: 0 }}>
                   <TextField
                     select
-                    label="Status"
+                    label={<FieldLabelWithHelp label="Status" helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada." />}
                     value={form.status}
                     onChange={(e) => updateField('status', e.target.value as FormState['status'])}
                     size="small"
