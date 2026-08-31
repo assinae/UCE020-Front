@@ -8,10 +8,24 @@ export function GlobalWarmup() {
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
 
-    fetch(apiUrl, {
-      method: 'GET',
-      cache: 'no-store',
-    }).catch(() => undefined);
+    const warmupApi = () => {
+      fetch(apiUrl, {
+        method: 'GET',
+        cache: 'no-store',
+      }).catch(() => undefined);
+    };
+
+    warmupApi();
+
+    const handleFocus = () => {
+      warmupApi();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   return null;
