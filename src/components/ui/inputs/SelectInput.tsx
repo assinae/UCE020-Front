@@ -45,6 +45,40 @@ export default function SelectInput({
             const found = options.find((o) => o.value === String(selected));
             return found ? found.label : String(selected);
           },
+          sx: {
+            whiteSpace: 'normal',
+            lineHeight: 1.4,
+            minHeight: 56,
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            textOverflow: 'clip',
+            '& .MuiSelect-select': {
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            },
+          },
+          MenuProps: {
+            slotProps: {
+              paper: {
+                sx: {
+                  mt: 1,
+                  borderRadius: 3,
+                  border: '1px solid rgba(15, 23, 42, 0.08)',
+                  boxShadow: '0 18px 36px rgba(15, 23, 42, 0.14)',
+                  overflow: 'hidden',
+                },
+              },
+              list: {
+                sx: {
+                  p: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                },
+              },
+            },
+          },
         },
       }}
     >
@@ -54,7 +88,35 @@ export default function SelectInput({
         </MenuItem>
       ) : null}
       {options.map((option) => (
-        <MenuItem key={option.value} value={option.value} disabled={option.disabled}>
+        <MenuItem
+          key={option.value}
+          value={option.value}
+          disabled={option.disabled}
+          sx={{
+            whiteSpace: 'normal',
+            lineHeight: 1.45,
+            py: 1.25,
+            px: 1.5,
+            mb: 0.5,
+            borderRadius: 2,
+            border: '1px solid transparent',
+            backgroundColor: 'transparent',
+            wordBreak: 'break-word',
+            overflowWrap: 'anywhere',
+            '&:last-of-type': { mb: 0 },
+            '&:hover': {
+              backgroundColor: 'rgba(0, 137, 99, 0.04)',
+            },
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(0, 137, 99, 0.08)',
+              borderColor: 'rgba(0, 137, 99, 0.18)',
+              color: 'text.primary',
+            },
+            '&.Mui-selected:hover': {
+              backgroundColor: 'rgba(0, 137, 99, 0.12)',
+            },
+          }}
+        >
           {option.label}
         </MenuItem>
       ))}

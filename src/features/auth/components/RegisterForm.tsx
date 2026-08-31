@@ -7,12 +7,14 @@ import {
   Box, Typography, IconButton,
   InputAdornment, Alert,
   FormControl, OutlinedInput, FormHelperText,
+  Tooltip,
 } from "@mui/material";
-import { Button } from "@/components/ui/Button";
 import {
   Visibility, VisibilityOff, ArrowBackIos,
   CheckCircle, RadioButtonUnchecked,
+  InfoOutlined,
 } from "@mui/icons-material";
+import { Button } from "@/components/ui/Button";
 import { useRegister } from "../hooks/useRegister";
 import { UserRegister } from "../types/userRegister";
 import { formatBahiaYear } from "@/utils/date";
@@ -53,6 +55,19 @@ const labelSx = {
   letterSpacing: "0.04em",
   textTransform: "uppercase" as const,
 };
+
+function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
+      <Typography sx={labelSx}>{label}</Typography>
+      <Tooltip title={helpText} arrow placement="top">
+        <IconButton size="small" sx={{ p: 0.25, color: gray400 }}>
+          <InfoOutlined sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
 
 // ── Painel esquerdo (só desktop) ─────────────────────────
 function LeftPanel() {
@@ -135,7 +150,7 @@ function Field({
   label, value, onChange, type = "text",
   placeholder, error, helperText, endAdornment, onBlur,
 }: {
-  label: string; value: string;
+  label: React.ReactNode; value: string;
   onChange: (v: string) => void;
   type?: string; placeholder?: string;
   error?: boolean; helperText?: string;
@@ -144,7 +159,7 @@ function Field({
 }) {
   return (
     <Box>
-      <Typography sx={labelSx}>{label}</Typography>
+      {typeof label === 'string' ? <Typography sx={labelSx}>{label}</Typography> : label}
       <FormControl fullWidth size="small" error={error}>
         <OutlinedInput
           type={type}
@@ -203,18 +218,18 @@ function StepForm({ onSubmit, loading, error }: {
     <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {error && <Alert severity="error" sx={{ borderRadius: "12px" }}>{error}</Alert>}
 
-      <Field label="Nome completo" value={fields.nome} onChange={set("nome")}
+      <Field label={<FieldLabelWithHelp label="Nome completo" helpText="Nome da pessoa que vai usar a conta e aparecer nos registros do sistema." />} value={fields.nome} onChange={set("nome")}
              onBlur={blur("nome")} error={err("nome")} helperText="Nome obrigatório."
              placeholder="Seu nome completo" />
 
-      <Field label="E-mail" value={fields.email} onChange={set("email")} type="email"
+      <Field label={<FieldLabelWithHelp label="E-mail" helpText="Endereço eletrônico usado para login, recuperação de senha e comunicação da conta." />} value={fields.email} onChange={set("email")} type="email"
              onBlur={blur("email")}
              error={err("email") || (touched.email && !validateEmail(fields.email))}
              helperText={err("email") ? "E-mail obrigatório." : "E-mail inválido."}
              placeholder="seu@email.com" />
 
       <Box>
-        <Field label="Senha" value={fields.senha} onChange={set("senha")}
+        <Field label={<FieldLabelWithHelp label="Senha" helpText="Senha usada para acessar sua conta. Deve atender aos requisitos de segurança para proteger seu acesso." />} value={fields.senha} onChange={set("senha")}
                type={showSenha ? "text" : "password"}
                onBlur={blur("senha")} error={err("senha")} helperText="Senha obrigatória."
                endAdornment={<EyeBtn show={showSenha} toggle={() => setShowSenha((p) => !p)} />} />
@@ -249,7 +264,7 @@ function StepForm({ onSubmit, loading, error }: {
         )}
       </Box>
 
-      <Field label="Confirme a senha" value={fields.confirmaSenha} onChange={set("confirmaSenha")}
+      <Field label={<FieldLabelWithHelp label="Confirme a senha" helpText="Repita a mesma senha para validar a criação da conta." />} value={fields.confirmaSenha} onChange={set("confirmaSenha")}
              type={showConfirma ? "text" : "password"}
              onBlur={blur("confirmaSenha")}
              error={err("confirmaSenha") || !!senhasDiferem}

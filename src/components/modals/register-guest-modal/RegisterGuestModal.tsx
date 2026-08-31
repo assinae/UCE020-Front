@@ -1,11 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Box, Typography } from "@mui/material";
+import { useState } from "react";
+import { Box, Typography, Tooltip, IconButton } from "@mui/material";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Button, SelectInput, TextInput } from "@/components/ui";
 import { ModalContainer, CloseButton, ModalContent } from "@/components/modals";
 import { ActivityDetail } from "@/components";
 import type { RegisterGuestModalProps, FieldErrors } from "@/types/registerGuestModal";
+
+function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+        {label}
+      </Typography>
+      <Tooltip title={helpText} arrow placement="top">
+        <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
+          <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
 
 export default function RegisterGuestModal({
   open,
@@ -101,7 +117,12 @@ export default function RegisterGuestModal({
         <Box sx={{ display: 'grid', gap: 2, px: 3 }}>
           <div>
             <TextInput
-              label="Nome Completo"
+              label={
+                <FieldLabelWithHelp
+                  label="Nome Completo"
+                  helpText="Nome completo do participante ou convidado que será registrado no evento."
+                />
+              }
               value={fullName}
               onChange={setFullName}
               onBlur={() => handleBlur('fullName')}
@@ -117,7 +138,12 @@ export default function RegisterGuestModal({
 
           <div>
             <SelectInput
-              label="Função"
+              label={
+                <FieldLabelWithHelp
+                  label="Função"
+                  helpText="Papel do convidado dentro do evento. O palestrante apresenta o conteúdo, o ministrante conduz a prática e o moderador organiza a discussão e media perguntas."
+                />
+              }
               value={role}
               onChange={setRole}
               placeholder="Selecione a função"
@@ -135,7 +161,12 @@ export default function RegisterGuestModal({
 
           <div>
             <TextInput
-              label="E-mail"
+              label={
+                <FieldLabelWithHelp
+                  label="E-mail"
+                  helpText="Endereço eletrônico usado para comunicação, confirmação e organização do participante."
+                />
+              }
               value={email}
               onChange={setEmail}
               onBlur={() => handleBlur('email')}

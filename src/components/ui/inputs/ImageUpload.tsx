@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -8,7 +9,7 @@ import { colorTokens } from '@/lib/colors';
 interface ImageUploadProps {
   value: string | null;
   onChange: (value: string | null) => void;
-  label?: string;
+  label?: ReactNode;
   error?: boolean;
   helperText?: string;
   onBlur?: () => void;
@@ -39,11 +40,7 @@ export default function ImageUpload({
 
   return (
     <Box sx={{ minWidth: 0 }}>
-      {label && (
-        <Typography sx={{ fontSize: 12, fontWeight: 500, color: colorTokens.text.primary, mb: 0.75 }}>
-          {label}
-        </Typography>
-      )}
+      {label && <Box sx={{ mb: 0.75 }}>{label}</Box>}
       <Box
         sx={{
           border: `2px dashed ${error ? 'error.main' : colorTokens.neutral.gray300}`,

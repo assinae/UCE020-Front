@@ -1,12 +1,13 @@
 'use client';
 
-import { Box, Typography, Collapse, Stack, Divider, IconButton } from '@mui/material';
+import { Box, Typography, Collapse, Stack, Divider, IconButton, Tooltip } from '@mui/material';
 import { useState, useMemo } from 'react';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TextInput from '@/components/ui/inputs/TextInput';
 import PasswordInput from '@/components/ui/inputs/PasswordInput';
 import { Button } from '@/components/ui/Button';
@@ -28,6 +29,21 @@ const SECURITY_RULES = [
   { label: 'Pelo menos um número', test: (v: string) => /[0-9]/.test(v) },
   { label: 'Pelo menos um caractere especial', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
 ];
+
+function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+        {label}
+      </Typography>
+      <Tooltip title={helpText} arrow placement="top">
+        <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
+          <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
 
 export function ProfileForm({
   user,
@@ -164,7 +180,7 @@ export function ProfileForm({
         <Box sx={{ mb: 1 }}>
           <Box sx={{ mb: 2.5 }}>
             <TextInput
-              label="Nome Completo"
+              label={<FieldLabelWithHelp label="Nome Completo" helpText="Nome completo usado no perfil e em registros do usuário dentro do sistema." />}
               value={formData.name}
               onChange={(value) => handleInputChange('name', value)}
               disabled={!isEditing}
@@ -173,7 +189,7 @@ export function ProfileForm({
           </Box>
           <Box sx={{ mb: 0.5 }}>
             <TextInput
-              label="Email"
+              label={<FieldLabelWithHelp label="Email" helpText="E-mail principal da conta, usado para login e comunicação do usuário." />}
               type="email"
               value={formData.email}
               onChange={(value) => handleInputChange('email', value)}
@@ -257,7 +273,7 @@ export function ProfileForm({
         <Collapse in={isChangingPassword}>
           <Box sx={{ mb: 2.5 }}>
             <PasswordInput
-              label="Senha Atual"
+              label={<FieldLabelWithHelp label="Senha Atual" helpText="Senha atual da sua conta para confirmar a troca de acesso." />}
               value={currentPassword}
               onChange={setCurrentPassword}
               placeholder="Digite sua senha atual"
@@ -266,7 +282,7 @@ export function ProfileForm({
           </Box>
           <Box sx={{ mb: 1.5 }}>
             <PasswordInput
-              label="Nova Senha"
+              label={<FieldLabelWithHelp label="Nova Senha" helpText="Nova senha que será usada para acessar sua conta no próximo login." />}
               value={newPassword}
               onChange={setNewPassword}
               placeholder="Crie uma nova senha"
@@ -297,7 +313,7 @@ export function ProfileForm({
 
           <Box sx={{ mb: 1 }}>
             <PasswordInput
-              label="Confirmar Nova Senha"
+              label={<FieldLabelWithHelp label="Confirmar Nova Senha" helpText="Repita a nova senha para confirmar que o acesso foi informado corretamente." />}
               value={confirmPassword}
               onChange={setConfirmPassword}
               placeholder="Repita a nova senha"
