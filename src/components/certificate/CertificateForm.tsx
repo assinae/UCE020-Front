@@ -1,6 +1,22 @@
-import { Box, Typography, Card } from "@mui/material";
+import { Box, Typography, Card, Tooltip, IconButton } from "@mui/material";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TextInput from "@/components/ui/inputs/TextInput";
 import type { EditCertificateFormData } from "@/types/certificate";
+
+function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+        {label}
+      </Typography>
+      <Tooltip title={helpText} arrow placement="top">
+        <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
+          <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
 
 interface CertificateFormProps {
   formData: EditCertificateFormData;
@@ -67,16 +83,10 @@ export function CertificateForm({
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Campo Título */}
         <Box>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 500,
-              color: "text.secondary",
-              mb: 1,
-            }}
-          >
-            Título
-          </Typography>
+          <FieldLabelWithHelp
+            label="Título"
+            helpText="Nome principal do certificado, normalmente relacionado ao evento ou atividade concluída."
+          />
           <TextInput
             value={formData.title}
             onChange={(value) => onFieldChange("title", value)}
@@ -87,16 +97,10 @@ export function CertificateForm({
 
         {/* Campo Nome do Participante */}
         <Box>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 500,
-              color: "text.secondary",
-              mb: 1,
-            }}
-          >
-            Nome do Participante
-          </Typography>
+          <FieldLabelWithHelp
+            label="Nome do Participante"
+            helpText="Nome da pessoa que receberá o certificado e que será exibido no documento final."
+          />
           <TextInput
             value={formData.participantName}
             onChange={(value) => onFieldChange("participantName", value)}
@@ -107,16 +111,10 @@ export function CertificateForm({
 
         {/* Campo Carga Horária */}
         <Box>
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 500,
-              color: "text.secondary",
-              mb: 1,
-            }}
-          >
-            Carga Horária
-          </Typography>
+          <FieldLabelWithHelp
+            label="Carga Horária"
+            helpText="Tempo total de atividade ou formação correspondente ao certificado, em horas."
+          />
           <TextInput
             value={formData.hours.toString()}
             onChange={(value) => onFieldChange("hours", value)}
