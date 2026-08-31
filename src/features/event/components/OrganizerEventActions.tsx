@@ -20,6 +20,7 @@ const actionButtonSx = {
 interface OrganizerEventActionsProps {
   eventId: number;
   isFinalized?: boolean;
+  onAddActivity?: () => void;
   onFinalized?: () => void;
   onFinalizeError?: (message: string) => void;
 }
@@ -35,10 +36,7 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 // ninguém a certificar não deve travar a navegação), mas isso não pode significar
 // "falha invisível". Loga cada rejeição com contexto pra aparecer no console em vez
 // de só na aba Network.
-function logSettledFailures(
-  labels: string[],
-  results: PromiseSettledResult<unknown>[],
-): void {
+function logSettledFailures(labels: string[], results: PromiseSettledResult<unknown>[]): void {
   results.forEach((result, index) => {
     if (result.status !== 'rejected') return;
     const label = labels[index] ?? `chamada ${index}`;
@@ -47,7 +45,13 @@ function logSettledFailures(
   });
 }
 
-export function OrganizerEventActions({ eventId, isFinalized = false, onFinalized, onFinalizeError }: OrganizerEventActionsProps) {
+export function OrganizerEventActions({
+  eventId,
+  isFinalized = false,
+  onAddActivity,
+  onFinalized,
+  onFinalizeError,
+}: OrganizerEventActionsProps) {
   const router = useRouter();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
@@ -85,7 +89,9 @@ export function OrganizerEventActions({ eventId, isFinalized = false, onFinalize
       ];
       const certificateResults = await Promise.allSettled([
         certificateService.generateParticipantCertificates(eventId),
-        ...activityIds.map((activityId) => certificateService.generateGuestCertificates(activityId)),
+        ...activityIds.map((activityId) =>
+          certificateService.generateGuestCertificates(activityId)
+        ),
       ]);
       logSettledFailures(certificateLabels, certificateResults);
 
@@ -111,14 +117,17 @@ export function OrganizerEventActions({ eventId, isFinalized = false, onFinalize
         alignItems: { xs: 'stretch', sm: 'center' },
       }}
     >
-      <Button
-        onClick={onManageMembers}
-        variant="contained"
-        color="secondary"
-        sx={{ ...actionButtonSx, minWidth: 160, textTransform: 'none', borderRadius: '10px' }}
-      >
-        Gerenciar usuários
-      </Button>
+      {!isFinalized && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={onAddActivity}
+          sx={{ ...actionButtonSx }}
+        >
+          Adicionar atividade
+        </Button>
+      )}
       {!isFinalized && (
         <Button
           variant="outlined"
@@ -130,6 +139,25 @@ export function OrganizerEventActions({ eventId, isFinalized = false, onFinalize
           Editar
         </Button>
       )}
+      <Button
+        onClick={onManageMembers}
+        variant="contained"
+        color="secondary"
+        sx={{ ...actionButtonSx }}
+      >
+        Gerenciar usuários
+      </Button>
+      {!isFinalized && (
+        <Button
+          variant="contained"
+          color="secondary"
+          fullWidth
+          onClick={() => setIsConfirmOpen(true)}
+          sx={{ ...actionButtonSx }}
+        >
+          Finalizar
+        </Button>
+      )}
       {isFinalized && (
         <Button
           variant="outlined"
@@ -139,17 +167,6 @@ export function OrganizerEventActions({ eventId, isFinalized = false, onFinalize
           sx={{ ...actionButtonSx }}
         >
           Certificados Gerados
-        </Button>
-      )}
-      {!isFinalized && (
-        <Button
-          variant="contained"
-          color="success"
-          fullWidth
-          onClick={() => setIsConfirmOpen(true)}
-          sx={{ ...actionButtonSx }}
-        >
-          Finalizar
         </Button>
       )}
 
