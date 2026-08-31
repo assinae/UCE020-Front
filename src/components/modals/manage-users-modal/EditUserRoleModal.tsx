@@ -8,7 +8,8 @@ import ModalHeader from '@/components/modals/shared/ModalHeader';
 import ModalContent from '@/components/modals/shared/ModalContent';
 import ModalFooter from '@/components/modals/shared/ModalFooter';
 import { Button } from '@/components/ui/Button';
-import { Box } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 export const USER_ROLES: StaffRole[] = ['Organizador', 'Monitor', 'Participante'];
 export const GUEST_ROLES: GuestRole[] = ['Palestrante', 'Ministrante'];
@@ -30,13 +31,27 @@ export function EditUserRoleModal<T extends string>({
   onClose,
   onConfirm,
 }: EditUserRoleModalProps<T>) {
-  
   const [selectedRole, setSelectedRole] = useState<T>(currentRole);
 
   return (
     <ModalContainer open={open} onClose={onClose}>
       <Box sx={{ pt: 1 }}>
         <ModalHeader title="Editar tipo de usuário" onClose={onClose} />
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 3, pb: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          Tipo de usuário
+        </Typography>
+        <Tooltip
+          title="Define as permissões, acessos e visibilidade do usuário dentro do sistema."
+          arrow
+          placement="top"
+        >
+          <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
+            <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <ModalContent>
