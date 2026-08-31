@@ -141,7 +141,7 @@ export default function RegisterGuestModal({
               label={
                 <FieldLabelWithHelp
                   label="Função"
-                  helpText="Papel do convidado dentro do evento, como palestrante, ministrante ou moderador."
+                  helpText="Papel do convidado dentro do evento. O palestrante apresenta o conteúdo, o ministrante conduz a prática e o moderador organiza a discussão e media perguntas."
                 />
               }
               value={role}
