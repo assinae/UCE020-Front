@@ -35,9 +35,22 @@ interface CertificateStatsResponse {
   data: CertificateRoleStat[];
 }
 
-// O backend ainda não tem um fluxo de assinatura — todo certificado real vem
-// como "Pendente de assinatura" até esse fluxo existir de fato.
 const DEFAULT_STATUS = 'Pendente' as const;
+
+function normalizeCertificateStatus(status?: string | null): CertificateManagementItem['status'] {
+  if (status === 'Assinado' || status === 'Pendente') {
+    return status;
+  }
+
+  return DEFAULT_STATUS;
+}
+
+function normalizeCertificateItem(item: Partial<CertificateManagementItem>): CertificateManagementItem {
+  return {
+    ...item,
+    status: normalizeCertificateStatus(item.status),
+  } as CertificateManagementItem;
+}
 
 class CertificateService {
   async getCertificatesByEvent(
@@ -50,7 +63,7 @@ class CertificateService {
         `/event/${eventoId}/certificate`,
         { params: { page, limit } },
       );
-      const items = data.data.map((item) => ({ ...item, status: DEFAULT_STATUS }));
+      const items = data.data.map(normalizeCertificateItem);
       return { items, hasMore: items.length === limit };
     } catch (error) {
       // O backend responde 404 quando o evento ainda não tem nenhum certificado —
@@ -64,7 +77,7 @@ class CertificateService {
 
   async getCertificateById(id: string): Promise<CertificateManagementItem> {
     const { data } = await api.get<CertificateResponse>(`/certificate/${id}`);
-    return { ...data.data, status: DEFAULT_STATUS };
+    return normalizeCertificateItem(data.data);
   }
 
   async getCertificatePdf(id: string): Promise<Blob> {
@@ -167,7 +180,7 @@ class CertificateService {
       const { data } = await api.get<CertificateListResponse>('/certificate/me', {
         params: { page, limit },
       });
-      const items = data.data.map((item) => ({ ...item, status: DEFAULT_STATUS }));
+      const items = data.data.map(normalizeCertificateItem);
       return { items, hasMore: items.length === limit };
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
