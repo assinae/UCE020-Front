@@ -34,6 +34,7 @@ import { useEditEvent } from '../../evento/hooks/useEditEvent';
 import ActivityForm, { ActivityFormState } from '@/features/activities/components/ActivityForm';
 import { Activity, ActivityGuest } from '@/types';
 import { readGenerateCertificateFlag } from '@/types/activity';
+import { resolveCertificateTemplateUrl } from '@/types/event';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 type EventFormMode = 'create' | 'edit';
@@ -52,6 +53,7 @@ type FormState = {
   cargaHoraria: string;
   status: 'pendente' | 'iniciada' | 'andamento' | 'finalizada';
   foto: string | null;
+  certificadoTemplate: string | null;
 };
 
 type TouchedState = Record<keyof FormState, boolean>;
@@ -75,6 +77,7 @@ const DEFAULT_FORM: FormState = {
   cargaHoraria: '',
   status: 'pendente',
   foto: null,
+  certificadoTemplate: null,
 };
 
 function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
@@ -118,6 +121,7 @@ function createTouchedState(): TouchedState {
     cargaHoraria: false,
     status: false,
     foto: false,
+    certificadoTemplate: false,
   };
 }
 
@@ -218,6 +222,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const toDate = (dt: Date | null) => (dt ? getBahiaDateInput(dt) : '');
       const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
+      const templateUrl = resolveCertificateTemplateUrl(existingEvent);
+
       setForm({
         nome: existingEvent.nome ?? '',
         localizacao: existingEvent.localizacao ?? '',
@@ -230,6 +236,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         cargaHoraria: String(existingEvent.cargaHoraria ?? ''),
         status: (existingEvent.status as FormState['status']) ?? 'pendente',
         foto: existingEvent.foto ?? null,
+        certificadoTemplate: templateUrl,
       });
 
       if (Array.isArray(existingEvent.atividades)) {
@@ -323,6 +330,10 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
     if (!isValid) return;
 
+    const hasTemplateUpload = Boolean(
+      form.certificadoTemplate && form.certificadoTemplate.startsWith('data:'),
+    );
+
     const payload = {
       nome: form.nome,
       localizacao: form.localizacao,
@@ -332,7 +343,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       dataFim: toISODateTime(form.endDate, form.endTime),
       cargaHoraria: Number(form.cargaHoraria),
       status: form.status,
-      foto: form.foto ?? undefined,
+      foto: form.foto && form.foto.startsWith('data:') ? form.foto : undefined,
+      ...(hasTemplateUpload ? { template: form.certificadoTemplate } : {}),
       atividades: activities.map(({ id, ...activity }) => {
         const backendId = Number(id);
         const isExistingActivity = isEdit && !Number.isNaN(backendId);
@@ -615,6 +627,19 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   error={Boolean(errors.foto)}
                   helperText={errors.foto}
                 />
+              </Box>
+
+              <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
+                <ImageUpload
+                  label="Template do Certificado (PNG opcional)"
+                  value={form.certificadoTemplate}
+                  onChange={(value) => updateField('certificadoTemplate', value)}
+                  onBlur={() => markTouched('certificadoTemplate')}
+                  accept="image/png"
+                />
+                <Typography sx={{ mt: 0.75, fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                  Preview do template do evento. Se não houver imagem, o sistema usa o padrão visual do Assinaê.
+                </Typography>
               </Box>
 
               <Box

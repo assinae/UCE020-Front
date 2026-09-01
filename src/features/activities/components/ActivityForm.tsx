@@ -72,18 +72,9 @@ const CATEGORY_OPTIONS = [
 ];
 
 const GUEST_ROLE_OPTIONS = [
-  {
-    value: 'palestrante',
-    label: 'Palestrante — apresenta o conteúdo e conduz a fala principal da atividade.',
-  },
-  {
-    value: 'ministrante',
-    label: 'Ministrante — lidera a prática e orienta a execução do conteúdo.',
-  },
-  {
-    value: 'moderador',
-    label: 'Moderador — conduz a dinâmica, media perguntas e organiza a discussão.',
-  },
+  { value: 'palestrante', label: 'Palestrante' },
+  { value: 'ministrante', label: 'Ministrante' },
+  { value: 'moderador', label: 'Moderador' },
 ];
 
 const EMPTY_FORM: ActivityFormState = {
@@ -808,7 +799,17 @@ export default function ActivityForm({
                     onClick={() => handleOpenEditGuest(index)}
                     onDelete={() => handleRemoveGuest(index)}
                     size="small"
-                    sx={{ fontSize: 12, cursor: 'pointer' }}
+                    sx={{
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
+                        textOverflow: 'clip',
+                      },
+                    }}
                   />
                 ))}
               </Box>
