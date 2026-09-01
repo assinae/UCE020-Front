@@ -18,6 +18,9 @@ export interface CertificateManagementItem {
   location?: string;
   issueDate: string;
   imageUrl?: string;
+  templateUrl?: string | null;
+  certificadoTemplate?: string | null;
+  template?: string | null;
 }
 
 export interface CertificatePageResponse {
