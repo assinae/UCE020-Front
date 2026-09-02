@@ -1452,7 +1452,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   <ListAltOutlinedIcon
                     sx={{ fontSize: 20, color: colorTokens.navigation.default }}
                   />
-                  <Typography
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
                     sx={{
                       fontSize: { xs: 12, md: 13 },
                       fontWeight: 600,
@@ -1462,6 +1463,10 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   >
                     Cadastrar Atividades
                   </Typography>
+                  <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                      Opcional - as atividades também podem ser cadastradas após a criação do evento
+                    </Typography>
+                  </Box>
                 </Box>
 
                 <Button
@@ -1487,7 +1492,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     alignSelf: { xs: 'center', sm: 'auto' },
                   }}
                 >
-                  Adicionar atividade
+                  Cadastrar atividade
                 </Button>
               </Box>
 
@@ -1500,7 +1505,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     textAlign: 'center',
                   }}
                 >
-                  Nenhuma atividade cadastrada ainda.
+                  Nenhuma atividade cadastrada no momento
                 </Typography>
               ) : (
                 <Box sx={{ display: 'grid', gap: 1.25 }}>
