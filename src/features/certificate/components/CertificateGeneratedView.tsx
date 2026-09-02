@@ -53,7 +53,7 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     isError,
     loadMore,
     hasMore,
-    refresh,
+    markAsSigned,
   } = useCertificatesGenerated(eventoId);
 
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
@@ -86,6 +86,10 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     setIsSigning(true);
     try {
       const result = await certificateService.signCertificatesBatch(eventoId);
+      markAsSigned(
+        result.certificados.map(certificate => certificate.certificadoId),
+        result.assinante,
+      );
       setToast({
         open: true,
         message:
@@ -94,7 +98,6 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
             : 'Nenhum certificado pendente para assinar.',
         severity: result.assinados > 0 ? ToastSeverity.Success : ToastSeverity.Info,
       });
-      refresh();
     } catch (error) {
       setToast({
         open: true,

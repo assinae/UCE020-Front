@@ -38,18 +38,58 @@ interface CertificateStatsResponse {
 const DEFAULT_STATUS = 'Pendente' as const;
 
 function normalizeCertificateStatus(status?: string | null): CertificateManagementItem['status'] {
-  if (status === 'Assinado' || status === 'Pendente') {
-    return status;
+  const normalized = status?.trim().toLowerCase();
+  if (normalized === 'assinado' || normalized === 'signed' || normalized === 'assinada') {
+    return 'Assinado';
   }
-
   return DEFAULT_STATUS;
 }
 
 function normalizeCertificateItem(item: Partial<CertificateManagementItem>): CertificateManagementItem {
+  const raw = item as Partial<CertificateManagementItem> & Record<string, unknown>;
+  const signature =
+    raw.assinatura && typeof raw.assinatura === 'object'
+      ? (raw.assinatura as Record<string, unknown>)
+      : undefined;
+  const isSigned =
+    raw.assinado === true ||
+    raw.signed === true ||
+    raw.assinaturaDigital === true ||
+    Boolean(
+      raw.assinadoEm ||
+        raw.signedAt ||
+        raw.signature ||
+        signature?.assinadoEm ||
+        signature?.signedAt ||
+        signature?.hash,
+    );
+
   return {
     ...item,
-    status: normalizeCertificateStatus(item.status),
+    status:
+      isSigned
+        ? 'Assinado'
+        : normalizeCertificateStatus(
+            String(raw.status ?? raw.statusAssinatura ?? raw.situacao ?? ''),
+          ),
+    assinadoEm: String(
+      raw.assinadoEm ?? raw.signedAt ?? signature?.assinadoEm ?? signature?.signedAt ?? '',
+    ),
+    assinadoPor: String(
+      raw.assinadoPor ?? raw.signedBy ?? signature?.assinadoPor ?? signature?.signedBy ?? '',
+    ),
   } as CertificateManagementItem;
+}
+
+function unwrapData(value: unknown): unknown {
+  let current = value;
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) return current;
+    const record = current as Record<string, unknown>;
+    if (!('data' in record)) return current;
+    current = record.data;
+  }
+  return current;
 }
 
 class CertificateService {
@@ -63,7 +103,14 @@ class CertificateService {
         `/event/${eventoId}/certificate`,
         { params: { page, limit } },
       );
-      const items = data.data.map(normalizeCertificateItem);
+      const unwrapped = unwrapData(data) as
+        | CertificateManagementItem[]
+        | { items?: CertificateManagementItem[]; certificados?: CertificateManagementItem[] }
+        | undefined;
+      const rawItems = Array.isArray(unwrapped)
+        ? unwrapped
+        : unwrapped?.items ?? unwrapped?.certificados ?? [];
+      const items = (Array.isArray(rawItems) ? rawItems : []).map(normalizeCertificateItem);
       return { items, hasMore: items.length === limit };
     } catch (error) {
       // O backend responde 404 quando o evento ainda não tem nenhum certificado —
@@ -104,7 +151,8 @@ class CertificateService {
     const { data } = await api.get<CertificateStatsResponse>(
       `/event/${eventoId}/certificate/stats`,
     );
-    return data.data;
+    const stats = unwrapData(data);
+    return Array.isArray(stats) ? stats : [];
   }
 
   // Assina em lote todos os certificados ainda não assinados do evento (só organizador).
@@ -116,10 +164,18 @@ class CertificateService {
     // as camadas de `data` até encontrar o objeto que realmente tem `assinados`.
     let payload: unknown = data;
     for (let depth = 0; depth < 4 && payload && typeof payload === 'object'; depth++) {
-      if ('assinados' in (payload as Record<string, unknown>)) {
-        return payload as CertificateBatchSignResult;
+      const record = payload as Record<string, unknown>;
+      const signedCount = record.assinados ?? record.signedCount ?? record.signed;
+      if (signedCount !== undefined || 'assinante' in record || 'signer' in record) {
+        return {
+          assinados: Number(signedCount ?? 0),
+          assinante: String(record.assinante ?? record.signer ?? ''),
+          certificados: Array.isArray(record.certificados)
+            ? (record.certificados as CertificateBatchSignResult['certificados'])
+            : [],
+        };
       }
-      payload = (payload as { data?: unknown }).data;
+      payload = record.data;
     }
     // Assinatura concluída no backend, mas sem corpo reconhecível: não quebra a UI.
     return { assinados: 0, assinante: '', certificados: [] };

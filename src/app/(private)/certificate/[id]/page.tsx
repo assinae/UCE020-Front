@@ -217,10 +217,18 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
                   </Typography>
                 </Box>
               )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Draw sx={{ fontSize: 16, color: cert.status === 'Assinado' ? '#059669' : '#64748b' }} />
+                <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: cert.status === 'Assinado' ? '#059669' : '#64748b' }}>
+                  {cert.status === 'Assinado'
+                    ? `Assinado digitalmente${cert.assinadoPor ? ` por ${cert.assinadoPor}` : ''}`
+                    : 'Pendente de assinatura'}
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: { xs: 4, md: 0 } }}>
-              {isOrganizer && (
+              {isOrganizer && cert.status !== 'Assinado' && (
                 <Button
                   variant="contained"
                   color="primary"

@@ -21,6 +21,9 @@ export interface CertificateManagementItem {
   templateUrl?: string | null;
   certificadoTemplate?: string | null;
   template?: string | null;
+  assinadoEm?: string | null;
+  assinadoPor?: string | null;
+  hash?: string | null;
 }
 
 export interface CertificatePageResponse {

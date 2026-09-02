@@ -52,6 +52,7 @@ export interface CertificateCustomizationTexts {
 
 export interface CertificateCustomizationPayload {
   template?: string | null;
+  templateUrl?: string | null;
   textos?: CertificateCustomizationTexts;
 }
 
@@ -185,7 +186,10 @@ async function parseCertificateCustomizationDefault(
   return { previewPdf: data };
 }
 
-function buildEventFormData(payload: Record<string, unknown>): FormData {
+function buildEventFormData(
+  payload: Record<string, unknown>,
+  preserveRemoteTemplate = false,
+): FormData {
   const formData = new FormData();
 
   const appendValue = (key: string, value: unknown) => {
@@ -211,6 +215,11 @@ function buildEventFormData(payload: Record<string, unknown>): FormData {
         return;
       }
 
+      if (isRemoteAssetUrl(trimmed) && preserveRemoteTemplate && key === 'template') {
+        formData.append('templateUrl', trimmed);
+        return;
+      }
+
       if (isRemoteAssetUrl(trimmed)) {
         return;
       }
@@ -228,10 +237,23 @@ function buildEventFormData(payload: Record<string, unknown>): FormData {
       const customization = value as CertificateCustomizationPayload;
       if (typeof customization.template === 'string' && isDataUrl(customization.template)) {
         formData.append('template', dataUrlToFile(customization.template, 'template.png'));
+      } else if (
+        preserveRemoteTemplate &&
+        typeof customization.template === 'string' &&
+        isRemoteAssetUrl(customization.template)
+      ) {
+        formData.append('templateUrl', customization.template);
       }
       formData.append(
         'certificadoPersonalizacao',
-        JSON.stringify({ textos: customization.textos ?? {} }),
+        JSON.stringify({
+          ...(preserveRemoteTemplate &&
+          typeof customization.template === 'string' &&
+          isRemoteAssetUrl(customization.template)
+            ? { templateUrl: customization.template }
+            : {}),
+          textos: customization.textos ?? {},
+        }),
       );
       return;
     }
@@ -242,7 +264,12 @@ function buildEventFormData(payload: Record<string, unknown>): FormData {
   Object.entries(payload).forEach(([key, value]) => {
     if (key === 'templateUrl' || key === 'certificadoTemplate') return;
 
-    if ((key === 'template' || key === 'foto') && typeof value === 'string' && !isDataUrl(value)) {
+    if (
+      (key === 'template' || key === 'foto') &&
+      typeof value === 'string' &&
+      !isDataUrl(value) &&
+      !(preserveRemoteTemplate && key === 'template')
+    ) {
       return;
     }
 
@@ -306,7 +333,10 @@ class EventService {
   async getDefaultCertificateCustomization(
     payload: CertificateCustomizationDraftPayload,
   ): Promise<CertificateCustomizationDefault> {
-    const requestPayload = buildEventFormData(payload as unknown as Record<string, unknown>);
+    const requestPayload = buildEventFormData(
+      payload as unknown as Record<string, unknown>,
+      true,
+    );
     const response = await api.post<Blob>(
       '/event/certificate/customization/default',
       requestPayload,
@@ -334,7 +364,10 @@ class EventService {
     payload: CertificateCustomizationDraftPayload,
   ): Promise<Blob> {
     try {
-      const requestPayload = buildEventFormData(payload as unknown as Record<string, unknown>);
+      const requestPayload = buildEventFormData(
+        payload as unknown as Record<string, unknown>,
+        true,
+      );
       const { data } = await api.post<Blob>(
         '/event/certificate/customization/preview',
         requestPayload,

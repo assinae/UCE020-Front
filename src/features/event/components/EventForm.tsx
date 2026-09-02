@@ -107,6 +107,14 @@ const DEFAULT_CERTIFICATE_CUSTOMIZATION: CertificateCustomizationState = {
   descricaoCargaHoraria: '',
 };
 
+const CERTIFICATE_TEXT_LIMITS = {
+  titulo: 70,
+  subtitulo: 80,
+  nomeEvento: 60,
+  nomeParticipante: 60,
+  descricaoTotal: 310,
+} as const;
+
 function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -326,6 +334,13 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const errors = useMemo(() => getErrors(form, touched, isEdit), [form, touched, isEdit]);
   const canSubmit =
     Object.values(errors).every((e) => e === '') &&
+    form.nome.length <= CERTIFICATE_TEXT_LIMITS.nomeEvento &&
+    certificateCustomization.titulo.length <= CERTIFICATE_TEXT_LIMITS.titulo &&
+    certificateCustomization.subtitulo.length <= CERTIFICATE_TEXT_LIMITS.subtitulo &&
+    certificateCustomization.descricaoInicio.length +
+      certificateCustomization.descricaoEvento.length +
+      certificateCustomization.descricaoCargaHoraria.length <=
+      CERTIFICATE_TEXT_LIMITS.descricaoTotal &&
     form.nome.trim().length >= 3 &&
     form.localizacao.trim().length >= 3 &&
     form.responsavel.trim().length >= 3 &&
@@ -360,6 +375,21 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   ]
     .filter((part) => part.trim().length > 0)
     .join(' ');
+
+  const certificateDescriptionLength =
+    certificateCustomization.descricaoInicio.length +
+    certificateCustomization.descricaoEvento.length +
+    certificateCustomization.descricaoCargaHoraria.length;
+  const certificateTextError =
+    form.nome.length > CERTIFICATE_TEXT_LIMITS.nomeEvento
+      ? `O nome do evento deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.nomeEvento} caracteres.`
+      : certificateCustomization.titulo.length > CERTIFICATE_TEXT_LIMITS.titulo
+        ? `O título deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.titulo} caracteres.`
+        : certificateCustomization.subtitulo.length > CERTIFICATE_TEXT_LIMITS.subtitulo
+          ? `O subtítulo deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.subtitulo} caracteres.`
+          : certificateDescriptionLength > CERTIFICATE_TEXT_LIMITS.descricaoTotal
+            ? `A descrição deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.descricaoTotal} caracteres no total.`
+            : '';
 
   function buildCertificateCustomizationPayload(): CertificateCustomizationDraftPayload {
     return {
@@ -516,6 +546,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       Number(form.cargaHoraria) >= 0;
 
     if (!isValid) return;
+    if (certificateTextError) return;
 
     const payload = {
       nome: form.nome,
@@ -717,6 +748,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   value={form.nome}
                   onChange={(v) => updateField('nome', v)}
                   onBlur={() => markTouched('nome')}
+                  slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.nomeEvento } }}
                   error={Boolean(errors.nome)}
                   size="small"
                   fullWidth
@@ -1159,6 +1191,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label="Título"
                     value={certificateCustomization.titulo}
                     onChange={(value) => updateCertificateCustomization('titulo', value)}
+                    slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.titulo } }}
                     size="small"
                     fullWidth
                   />
@@ -1167,6 +1200,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label="Subtítulo"
                     value={certificateCustomization.subtitulo}
                     onChange={(value) => updateCertificateCustomization('subtitulo', value)}
+                    slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.subtitulo } }}
                     size="small"
                     fullWidth
                   />
@@ -1303,6 +1337,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       fullWidth={false}
                       sx={{ width: '100%' }}
                     />
+                    {certificateTextError ? (
+                      <Typography sx={{ fontSize: 12, color: 'error.main' }}>
+                        {certificateTextError}
+                      </Typography>
+                    ) : null}
                   </Box>
 
                   <Box
