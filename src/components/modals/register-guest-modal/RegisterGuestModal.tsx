@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Box, Typography, Tooltip, IconButton } from "@mui/material";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Button, SelectInput, TextInput } from "@/components/ui";
@@ -39,19 +39,6 @@ export default function RegisterGuestModal({
   const [email, setEmail] = useState(initialValues?.email ?? "");
   const [touched, setTouched] = useState({ fullName: false, role: false, email: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const nextValues = initialValues ?? {
-      fullName: "",
-      role: "",
-      email: "",
-    };
-
-    setFullName(nextValues.fullName);
-    setRole(nextValues.role);
-    setEmail(nextValues.email);
-    setTouched({ fullName: false, role: false, email: false });
-  }, [initialValues, open]);
 
   const isEditMode = Boolean(initialValues);
 
