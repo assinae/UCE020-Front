@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Box,
@@ -29,6 +29,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { Button, TextInput, PageLoader } from '@/components/ui';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -38,10 +39,7 @@ import ActivityForm, { ActivityFormState } from '@/features/activities/component
 import { Activity, ActivityGuest } from '@/types';
 import { readGenerateCertificateFlag } from '@/types/activity';
 import { resolveCertificateTemplateUrl } from '@/types/event';
-import {
-  eventService,
-  type CertificateCustomizationDraftPayload,
-} from '@/services/eventService';
+import { eventService, type CertificateCustomizationDraftPayload } from '@/services/eventService';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
@@ -221,11 +219,14 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const [showCertificateCustomization, setShowCertificateCustomization] = useState(false);
   const [certificateCustomization, setCertificateCustomization] =
     useState<CertificateCustomizationState>(DEFAULT_CERTIFICATE_CUSTOMIZATION);
+  const [certificateCustomizationBeforeEdit, setCertificateCustomizationBeforeEdit] =
+    useState<CertificateCustomizationState>(DEFAULT_CERTIFICATE_CUSTOMIZATION);
   const [certificateCustomizationSaved, setCertificateCustomizationSaved] = useState(false);
   const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
   const [certificateCustomizationLoading, setCertificateCustomizationLoading] = useState(false);
   const [certificatePreviewLoading, setCertificatePreviewLoading] = useState(false);
   const [certificateCustomizationError, setCertificateCustomizationError] = useState('');
+  const certificateCustomizationRequestRef = useRef(0);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
@@ -326,7 +327,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const subtitle = isEdit
     ? 'Edite as informações do evento abaixo'
     : 'Preencha os dados abaixo para cadastrar um novo evento';
-  const actionLabel = isEdit ? 'Salvar' : 'Cadastrar';
+  const actionLabel = isEdit ? 'Salvar' : 'Cadastrar Evento';
 
   const activityEventInfo = {
     title: form.nome || 'Novo evento',
@@ -369,7 +370,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   function updateCertificateCustomization<K extends keyof CertificateCustomizationState>(
     field: K,
-    value: CertificateCustomizationState[K],
+    value: CertificateCustomizationState[K]
   ) {
     setCertificateCustomization((cur) => ({ ...cur, [field]: value }));
     setCertificateCustomizationSaved(false);
@@ -391,14 +392,18 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   }
 
   async function handleOpenCertificateCustomization() {
+    const requestId = ++certificateCustomizationRequestRef.current;
+    setCertificateCustomizationBeforeEdit(certificateCustomization);
     setShowCertificateCustomization(true);
     setCertificateCustomizationError('');
     setCertificateCustomizationLoading(true);
 
     try {
       const defaultCustomization = await eventService.getDefaultCertificateCustomization(
-        buildCertificateCustomizationPayload(),
+        buildCertificateCustomizationPayload()
       );
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
       const textos = defaultCustomization.textos ?? {};
       setCertificateCustomization((cur) => ({
         ...cur,
@@ -417,38 +422,61 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         });
       }
     } catch (error) {
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
       setCertificateCustomizationError(
-        extractApiErrorMessage(error, 'Não foi possível carregar o certificado padrão.'),
+        extractApiErrorMessage(error, 'Não foi possível carregar o certificado padrão.')
       );
     } finally {
-      setCertificateCustomizationLoading(false);
+      if (requestId === certificateCustomizationRequestRef.current) {
+        setCertificateCustomizationLoading(false);
+      }
     }
   }
 
   async function handlePreviewCertificateCustomization() {
+    const requestId = ++certificateCustomizationRequestRef.current;
     setCertificateCustomizationError('');
     setCertificatePreviewLoading(true);
 
     try {
       const previewPdf = await eventService.previewCertificateCustomization(
-        buildCertificateCustomizationPayload(),
+        buildCertificateCustomizationPayload()
       );
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
       setCertificatePreviewUrl((currentUrl) => {
         if (currentUrl) URL.revokeObjectURL(currentUrl);
         return URL.createObjectURL(previewPdf);
       });
     } catch (error) {
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
       setCertificateCustomizationError(
-        extractApiErrorMessage(error, 'Não foi possível gerar a pré-visualização.'),
+        extractApiErrorMessage(error, 'Não foi possível gerar a pré-visualização.')
       );
     } finally {
-      setCertificatePreviewLoading(false);
+      if (requestId === certificateCustomizationRequestRef.current) {
+        setCertificatePreviewLoading(false);
+      }
     }
   }
 
   function handleSaveCertificateCustomization() {
     setCertificateCustomizationSaved(true);
     setCertificateCustomizationError('');
+  }
+
+  function handleCancelCertificateCustomization() {
+    certificateCustomizationRequestRef.current += 1;
+    setCertificateCustomization(certificateCustomizationBeforeEdit);
+    setCertificateCustomizationSaved(false);
+    setCertificateCustomizationError('');
+    setShowCertificateCustomization(false);
+    setCertificatePreviewUrl((currentUrl) => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+      return null;
+    });
   }
 
   async function handleSubmit() {
@@ -663,7 +691,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             >
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Nome" helpText="Nome oficial do evento exibido para participantes e na listagem geral." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Nome"
+                      helpText="Nome oficial do evento exibido para participantes e na listagem geral."
+                    />
+                  }
                   value={form.nome}
                   onChange={(v) => updateField('nome', v)}
                   onBlur={() => markTouched('nome')}
@@ -680,7 +713,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Local" helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Local"
+                      helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo."
+                    />
+                  }
                   value={form.localizacao}
                   onChange={(v) => updateField('localizacao', v)}
                   onBlur={() => markTouched('localizacao')}
@@ -708,7 +746,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Responsável" helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Responsável"
+                      helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento."
+                    />
+                  }
                   value={form.responsavel}
                   onChange={(v) => updateField('responsavel', v)}
                   onBlur={() => markTouched('responsavel')}
@@ -736,7 +779,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Descrição do evento" helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Descrição do evento"
+                      helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes."
+                    />
+                  }
                   value={form.descricao}
                   onChange={(v) => updateField('descricao', v)}
                   onBlur={() => markTouched('descricao')}
@@ -794,7 +842,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Data de Início" helpText="Data em que o evento começa e passa a ficar disponível para participantes." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Data de Início"
+                        helpText="Data em que o evento começa e passa a ficar disponível para participantes."
+                      />
+                    }
                     value={form.startDate}
                     onChange={(v) => updateField('startDate', v)}
                     onBlur={() => markTouched('startDate')}
@@ -819,7 +872,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Data de Término" helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Data de Término"
+                        helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições."
+                      />
+                    }
                     value={form.endDate}
                     onChange={(v) => updateField('endDate', v)}
                     onBlur={() => markTouched('endDate')}
@@ -844,7 +902,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Horário de Início" helpText="Hora em que o evento ou a primeira atividade começa oficialmente." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Horário de Início"
+                        helpText="Hora em que o evento ou a primeira atividade começa oficialmente."
+                      />
+                    }
                     value={form.startTime}
                     onChange={(v) => updateField('startTime', v)}
                     onBlur={() => markTouched('startTime')}
@@ -866,7 +929,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Horário de Término" helpText="Hora em que o evento ou a última atividade deve ser encerrada." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Horário de Término"
+                        helpText="Hora em que o evento ou a última atividade deve ser encerrada."
+                      />
+                    }
                     value={form.endTime}
                     onChange={(v) => updateField('endTime', v)}
                     onBlur={() => markTouched('endTime')}
@@ -897,7 +965,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Carga Horária (h)" helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Carga Horária (h)"
+                        helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro."
+                      />
+                    }
                     value={form.cargaHoraria}
                     onChange={(v) => updateField('cargaHoraria', v)}
                     onBlur={() => markTouched('cargaHoraria')}
@@ -917,7 +990,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                 <Box sx={{ minWidth: 0 }}>
                   <TextField
                     select
-                    label={<FieldLabelWithHelp label="Status" helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Status"
+                        helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada."
+                      />
+                    }
                     value={form.status}
                     onChange={(e) => updateField('status', e.target.value as FormState['status'])}
                     size="small"
@@ -937,8 +1015,337 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               </Box>
             </Box>
 
+            <Box
+              sx={{
+                pt: { xs: 1.5, md: 2 },
+                display: 'grid',
+                gap: 1.5,
+                borderTop: `1px solid ${colorTokens.neutral.gray300}`,
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                  flexDirection: { xs: 'column', sm: 'row' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <Divider sx={{ borderColor: colorTokens.neutral.gray300, mb: 1.5 }} />
+                  <WorkspacePremiumOutlinedIcon
+                    sx={{ fontSize: 20, color: colorTokens.navigation.default }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 12, md: 13 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                      }}
+                    >
+                      Certificado Personalizado
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                      Opcional - se não personalizar, utilizaremos o certificado padrão
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={
+                    showCertificateCustomization
+                      ? handleCancelCertificateCustomization
+                      : handleOpenCertificateCustomization
+                  }
+                  disabled={
+                    !showCertificateCustomization && (!canSubmit || certificateCustomizationLoading)
+                  }
+                  sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                >
+                  {showCertificateCustomization
+                    ? 'Cancelar personalização'
+                    : certificateCustomizationLoading
+                      ? 'Carregando...'
+                      : 'Personalizar certificado'}
+                </Button>
+              </Box>
+
+              {showCertificateCustomization ? (
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  <ImageUpload
+                    label={
+                      <FieldLabelWithHelp
+                        label="Imagem do template"
+                        helpText="Imagem opcional para personalizar o fundo do certificado."
+                      />
+                    }
+                    value={certificateCustomization.template}
+                    onChange={(value) => updateCertificateCustomization('template', value)}
+                    accept="image/*"
+                  />
+
+                  <TextInput
+                    label="Título"
+                    value={certificateCustomization.titulo}
+                    onChange={(value) => updateCertificateCustomization('titulo', value)}
+                    size="small"
+                    fullWidth
+                  />
+
+                  <TextInput
+                    label="Subtítulo"
+                    value={certificateCustomization.subtitulo}
+                    onChange={(value) => updateCertificateCustomization('subtitulo', value)}
+                    size="small"
+                    fullWidth
+                  />
+
+                  <Box sx={{ display: 'grid', gap: 0.75 }}>
+                    <Typography
+                      sx={{ fontSize: 12, fontWeight: 600, color: colorTokens.text.primary }}
+                    >
+                      Descrição
+                    </Typography>
+                    <TextInput
+                      value={certificateCustomization.descricaoInicio}
+                      onChange={(value) => updateCertificateCustomization('descricaoInicio', value)}
+                      size="small"
+                      fullWidth
+                    />
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        width: 'fit-content',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                      <Typography
+                        sx={{
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: '6px',
+                          bgcolor: colorTokens.surface.background,
+                          fontSize: 12,
+                          color: colorTokens.text.primary,
+                          minWidth: 0,
+                          width: 'fit-content',
+                          maxWidth: '100%',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        <Box component="span" sx={{ color: colorTokens.neutral.gray500 }}>
+                          Nome do Evento:{' '}
+                        </Box>
+                        <Box component="span" sx={{ color: colorTokens.navigation.default }}>
+                          {form.nome || 'nome do evento'}
+                        </Box>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                    </Box>
+                    <TextInput
+                      value={certificateCustomization.descricaoEvento}
+                      onChange={(value) => updateCertificateCustomization('descricaoEvento', value)}
+                      size="small"
+                      fullWidth={false}
+                      sx={{ width: '100%' }}
+                    />
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        width: 'fit-content',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                      <Typography
+                        sx={{
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: '6px',
+                          bgcolor: colorTokens.surface.background,
+                          fontSize: 12,
+                          color: colorTokens.text.primary,
+                          minWidth: 0,
+                          width: 'fit-content',
+                          maxWidth: '100%',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        <Box component="span" sx={{ color: colorTokens.neutral.gray500 }}>
+                          Carga Horária:{' '}
+                        </Box>
+                        <Box component="span" sx={{ color: colorTokens.navigation.default }}>
+                          {form.cargaHoraria ? `${form.cargaHoraria} horas` : 'carga horária'}
+                        </Box>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                    </Box>
+                    <TextInput
+                      value={certificateCustomization.descricaoCargaHoraria}
+                      onChange={(value) =>
+                        updateCertificateCustomization('descricaoCargaHoraria', value)
+                      }
+                      size="small"
+                      fullWidth={false}
+                      sx={{ width: '100%' }}
+                    />
+                  </Box>
+
+                  <Box
+                    sx={{
+                      p: 1.25,
+                      borderRadius: '6px',
+                      bgcolor: colorTokens.surface.background,
+                      border: `1px solid ${colorTokens.neutral.gray300}`,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500, mb: 0.5 }}>
+                      Visualização completa da descrição
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: colorTokens.text.primary }}>
+                      {certificateDescriptionPreview || 'A descrição aparecerá aqui.'}
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      minHeight: 220,
+                      borderRadius: '8px',
+                      border: `1px solid ${colorTokens.neutral.gray300}`,
+                      overflow: 'hidden',
+                      bgcolor: colorTokens.surface.background,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {certificatePreviewLoading || certificateCustomizationLoading ? (
+                      <CircularProgress size={24} />
+                    ) : certificatePreviewUrl ? (
+                      <Box
+                        component="iframe"
+                        src={certificatePreviewUrl}
+                        title="Pré-visualização do certificado"
+                        sx={{ width: '100%', height: 360, border: 0, bgcolor: 'white' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.75,
+                          color: colorTokens.neutral.gray500,
+                        }}
+                      >
+                        <PictureAsPdfOutlinedIcon sx={{ fontSize: 36 }} />
+                        <Typography sx={{ fontSize: 12 }}>Pré-visualização indisponível</Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {certificateCustomizationError ? (
+                    <Typography sx={{ fontSize: 12, color: 'error.main', textAlign: 'center' }}>
+                      {certificateCustomizationError}
+                    </Typography>
+                  ) : null}
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      gap: 1,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                    }}
+                  >
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      leftIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handlePreviewCertificateCustomization}
+                      disabled={!canSubmit || certificatePreviewLoading}
+                      sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                    >
+                      {certificatePreviewLoading
+                        ? 'Gerando...'
+                        : 'Pré-visualizar Meu Certificado Personalizado'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      leftIcon={<CloseOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handleCancelCertificateCustomization}
+                      sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                    >
+                      Cancelar Personalização
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      leftIcon={<SaveOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handleSaveCertificateCustomization}
+                      disabled={!canSubmit}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        textTransform: 'none',
+                      }}
+                    >
+                      {certificateCustomizationSaved
+                        ? 'Personalização salva'
+                        : 'Salvar personalização'}
+                    </Button>
+                  </Box>
+                </Box>
+              ) : null}
+            </Box>
+
             {/* ── Atividades ── */}
             <Box sx={{ pt: { xs: 1, md: 1.5 } }}>
+              <Divider sx={{ borderColor: colorTokens.neutral.gray300, mb: 1.5 }} />
               <Box
                 sx={{
                   display: 'flex',
@@ -946,6 +1353,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   justifyContent: 'space-between',
                   gap: 1,
                   mb: 1.5,
+                  px: 1.5,
                 }}
               >
                 <Typography
@@ -1084,268 +1492,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   ))}
                 </Box>
               )}
-            </Box>
-
-            <Box
-              sx={{
-                pt: { xs: 1.5, md: 2 },
-                display: 'grid',
-                gap: 1.5,
-                borderTop: `1px solid ${colorTokens.neutral.gray300}`,
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                  justifyContent: 'space-between',
-                  gap: 1.5,
-                  flexDirection: { xs: 'column', sm: 'row' },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                  <WorkspacePremiumOutlinedIcon
-                    sx={{ fontSize: 20, color: colorTokens.navigation.default }}
-                  />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      sx={{
-                        fontSize: { xs: 12, md: 13 },
-                        fontWeight: 600,
-                        color: colorTokens.text.primary,
-                      }}
-                    >
-                      Personalização do certificado
-                    </Typography>
-                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
-                      Última etapa opcional antes de cadastrar o evento.
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {!showCertificateCustomization ? (
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handleOpenCertificateCustomization}
-                    disabled={!canSubmit || certificateCustomizationLoading}
-                    sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
-                  >
-                    {certificateCustomizationLoading ? 'Carregando...' : 'Personalizar certificado'}
-                  </Button>
-                ) : null}
-              </Box>
-
-              {showCertificateCustomization ? (
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
-                  <ImageUpload
-                    label={
-                      <FieldLabelWithHelp
-                        label="Imagem do template"
-                        helpText="Imagem opcional para o fundo do certificado. Se ficar em branco, será usado o padrão do Assinaê enviado pelo backend."
-                      />
-                    }
-                    value={certificateCustomization.template}
-                    onChange={(value) => updateCertificateCustomization('template', value)}
-                    accept="image/*"
-                  />
-
-                  <TextInput
-                    label="Título"
-                    value={certificateCustomization.titulo}
-                    onChange={(value) => updateCertificateCustomization('titulo', value)}
-                    size="small"
-                    fullWidth
-                  />
-
-                  <TextInput
-                    label="Subtítulo"
-                    value={certificateCustomization.subtitulo}
-                    onChange={(value) => updateCertificateCustomization('subtitulo', value)}
-                    size="small"
-                    fullWidth
-                  />
-
-                  <Box sx={{ display: 'grid', gap: 0.75 }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: colorTokens.text.primary }}>
-                      Descrição
-                    </Typography>
-                    <TextInput
-                      value={certificateCustomization.descricaoInicio}
-                      onChange={(value) => updateCertificateCustomization('descricaoInicio', value)}
-                      size="small"
-                      fullWidth
-                    />
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', sm: 'auto minmax(0, 1fr) auto' },
-                        alignItems: 'center',
-                        gap: 0.75,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: 18, fontWeight: 700, color: colorTokens.navigation.default }}>
-                        +
-                      </Typography>
-                      <Typography
-                        sx={{
-                          px: 1,
-                          py: 0.75,
-                          borderRadius: '6px',
-                          bgcolor: colorTokens.surface.background,
-                          fontSize: 12,
-                          color: colorTokens.text.primary,
-                          minWidth: 0,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {form.nome || 'nome do evento'}
-                      </Typography>
-                      <Typography sx={{ fontSize: 18, fontWeight: 700, color: colorTokens.navigation.default }}>
-                        +
-                      </Typography>
-                    </Box>
-                    <TextInput
-                      value={certificateCustomization.descricaoEvento}
-                      onChange={(value) => updateCertificateCustomization('descricaoEvento', value)}
-                      size="small"
-                      fullWidth
-                    />
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', sm: 'auto minmax(0, 1fr) auto' },
-                        alignItems: 'center',
-                        gap: 0.75,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: 18, fontWeight: 700, color: colorTokens.navigation.default }}>
-                        +
-                      </Typography>
-                      <Typography
-                        sx={{
-                          px: 1,
-                          py: 0.75,
-                          borderRadius: '6px',
-                          bgcolor: colorTokens.surface.background,
-                          fontSize: 12,
-                          color: colorTokens.text.primary,
-                          minWidth: 0,
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {form.cargaHoraria ? `${form.cargaHoraria} horas` : 'carga horária'}
-                      </Typography>
-                      <Typography sx={{ fontSize: 18, fontWeight: 700, color: colorTokens.navigation.default }}>
-                        +
-                      </Typography>
-                    </Box>
-                    <TextInput
-                      value={certificateCustomization.descricaoCargaHoraria}
-                      onChange={(value) =>
-                        updateCertificateCustomization('descricaoCargaHoraria', value)
-                      }
-                      size="small"
-                      fullWidth
-                    />
-                  </Box>
-
-                  <Box
-                    sx={{
-                      p: 1.25,
-                      borderRadius: '6px',
-                      bgcolor: colorTokens.surface.background,
-                      border: `1px solid ${colorTokens.neutral.gray300}`,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500, mb: 0.5 }}>
-                      Visualização completa da descrição
-                    </Typography>
-                    <Typography sx={{ fontSize: 12, color: colorTokens.text.primary }}>
-                      {certificateDescriptionPreview || 'A descrição aparecerá aqui.'}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      minHeight: 220,
-                      borderRadius: '8px',
-                      border: `1px solid ${colorTokens.neutral.gray300}`,
-                      overflow: 'hidden',
-                      bgcolor: colorTokens.surface.background,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {certificatePreviewLoading || certificateCustomizationLoading ? (
-                      <CircularProgress size={24} />
-                    ) : certificatePreviewUrl ? (
-                      <Box
-                        component="iframe"
-                        src={certificatePreviewUrl}
-                        title="Pré-visualização do certificado"
-                        sx={{ width: '100%', height: 360, border: 0, bgcolor: 'white' }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 0.75,
-                          color: colorTokens.neutral.gray500,
-                        }}
-                      >
-                        <PictureAsPdfOutlinedIcon sx={{ fontSize: 36 }} />
-                        <Typography sx={{ fontSize: 12 }}>Pré-visualização indisponível</Typography>
-                      </Box>
-                    )}
-                  </Box>
-
-                  {certificateCustomizationError ? (
-                    <Typography sx={{ fontSize: 12, color: 'error.main', textAlign: 'center' }}>
-                      {certificateCustomizationError}
-                    </Typography>
-                  ) : null}
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'flex-end',
-                      gap: 1,
-                      flexDirection: { xs: 'column', sm: 'row' },
-                    }}
-                  >
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      leftIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 17 }} />}
-                      onClick={handlePreviewCertificateCustomization}
-                      disabled={!canSubmit || certificatePreviewLoading}
-                      sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
-                    >
-                      {certificatePreviewLoading ? 'Gerando...' : 'Pré-visualizar'}
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      leftIcon={<SaveOutlinedIcon sx={{ fontSize: 17 }} />}
-                      onClick={handleSaveCertificateCustomization}
-                      disabled={!canSubmit}
-                      sx={{
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        backgroundColor: colorTokens.navigation.default,
-                        '&:hover': { backgroundColor: colorTokens.navigation.hover },
-                      }}
-                    >
-                      {certificateCustomizationSaved ? 'Personalização salva' : 'Salvar personalização'}
-                    </Button>
-                  </Box>
-                </Box>
-              ) : null}
             </Box>
 
             {submitError && (
