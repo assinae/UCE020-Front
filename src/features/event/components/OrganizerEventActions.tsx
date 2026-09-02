@@ -125,7 +125,7 @@ export function OrganizerEventActions({
           onClick={onAddActivity}
           sx={{ ...actionButtonSx }}
         >
-          Adicionar atividade
+          Cadastrar Atividade
         </Button>
       )}
       {!isFinalized && (
@@ -136,7 +136,7 @@ export function OrganizerEventActions({
           onClick={onEditEvent}
           sx={{ ...actionButtonSx }}
         >
-          Editar
+          Editar Evento
         </Button>
       )}
       <Button
@@ -145,7 +145,7 @@ export function OrganizerEventActions({
         color="secondary"
         sx={{ ...actionButtonSx }}
       >
-        Gerenciar usuários
+        Gerenciar Usuários
       </Button>
       {!isFinalized && (
         <Button
@@ -155,7 +155,18 @@ export function OrganizerEventActions({
           onClick={() => setIsConfirmOpen(true)}
           sx={{ ...actionButtonSx }}
         >
-          Finalizar
+          Finalizar Evento
+        </Button>
+      )}
+      {isFinalized && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={onViewCertificates}
+          sx={{ ...actionButtonSx }}
+        >
+          Certificados Gerados
         </Button>
       )}
       {isFinalized && (

@@ -90,6 +90,7 @@ export function CertificateForm({
           <TextInput
             value={formData.title}
             onChange={(value) => onFieldChange("title", value)}
+            slotProps={{ htmlInput: { maxLength: 70 } }}
             placeholder="Digite o título do certificado"
             fullWidth
           />
@@ -104,6 +105,7 @@ export function CertificateForm({
           <TextInput
             value={formData.participantName}
             onChange={(value) => onFieldChange("participantName", value)}
+            slotProps={{ htmlInput: { maxLength: 60 } }}
             placeholder="Digite o nome do participante"
             fullWidth
           />

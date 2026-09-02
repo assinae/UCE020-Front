@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Box,
@@ -25,7 +25,14 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
+import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import { Button, TextInput, PageLoader } from '@/components/ui';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -34,6 +41,9 @@ import { useEditEvent } from '../../evento/hooks/useEditEvent';
 import ActivityForm, { ActivityFormState } from '@/features/activities/components/ActivityForm';
 import { Activity, ActivityGuest } from '@/types';
 import { readGenerateCertificateFlag } from '@/types/activity';
+import { resolveCertificateTemplateUrl } from '@/types/event';
+import { eventService, type CertificateCustomizationDraftPayload } from '@/services/eventService';
+import { extractApiErrorMessage } from '@/utils/apiError';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 type EventFormMode = 'create' | 'edit';
@@ -52,6 +62,16 @@ type FormState = {
   cargaHoraria: string;
   status: 'pendente' | 'iniciada' | 'andamento' | 'finalizada';
   foto: string | null;
+  certificadoTemplate: string | null;
+};
+
+type CertificateCustomizationState = {
+  template: string | null;
+  titulo: string;
+  subtitulo: string;
+  descricaoInicio: string;
+  descricaoEvento: string;
+  descricaoCargaHoraria: string;
 };
 
 type TouchedState = Record<keyof FormState, boolean>;
@@ -75,7 +95,25 @@ const DEFAULT_FORM: FormState = {
   cargaHoraria: '',
   status: 'pendente',
   foto: null,
+  certificadoTemplate: null,
 };
+
+const DEFAULT_CERTIFICATE_CUSTOMIZATION: CertificateCustomizationState = {
+  template: null,
+  titulo: '',
+  subtitulo: '',
+  descricaoInicio: '',
+  descricaoEvento: '',
+  descricaoCargaHoraria: '',
+};
+
+const CERTIFICATE_TEXT_LIMITS = {
+  titulo: 70,
+  subtitulo: 80,
+  nomeEvento: 60,
+  nomeParticipante: 60,
+  descricaoTotal: 310,
+} as const;
 
 function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
   return (
@@ -118,6 +156,7 @@ function createTouchedState(): TouchedState {
     cargaHoraria: false,
     status: false,
     foto: false,
+    certificadoTemplate: false,
   };
 }
 
@@ -188,6 +227,18 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [touched, setTouched] = useState<TouchedState>(createTouchedState);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [showCertificateCustomization, setShowCertificateCustomization] = useState(false);
+  const [certificateCustomizationCollapsed, setCertificateCustomizationCollapsed] = useState(false);
+  const [certificateCustomization, setCertificateCustomization] =
+    useState<CertificateCustomizationState>(DEFAULT_CERTIFICATE_CUSTOMIZATION);
+  const [certificateCustomizationBeforeEdit, setCertificateCustomizationBeforeEdit] =
+    useState<CertificateCustomizationState>(DEFAULT_CERTIFICATE_CUSTOMIZATION);
+  const [certificateCustomizationSaved, setCertificateCustomizationSaved] = useState(false);
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState<string | null>(null);
+  const [certificateCustomizationLoading, setCertificateCustomizationLoading] = useState(false);
+  const [certificatePreviewLoading, setCertificatePreviewLoading] = useState(false);
+  const [certificateCustomizationError, setCertificateCustomizationError] = useState('');
+  const certificateCustomizationRequestRef = useRef(0);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
@@ -218,6 +269,14 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const toDate = (dt: Date | null) => (dt ? getBahiaDateInput(dt) : '');
       const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
+      const savedCustomization =
+        existingEvent.certificadoPersonalizacao ?? existingEvent.certificateCustomization;
+      const templateUrl =
+        savedCustomization?.templateUrl ??
+        savedCustomization?.template ??
+        resolveCertificateTemplateUrl(existingEvent);
+      const savedTexts = savedCustomization?.textos ?? {};
+
       setForm({
         nome: existingEvent.nome ?? '',
         localizacao: existingEvent.localizacao ?? '',
@@ -230,6 +289,16 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         cargaHoraria: String(existingEvent.cargaHoraria ?? ''),
         status: (existingEvent.status as FormState['status']) ?? 'pendente',
         foto: existingEvent.foto ?? null,
+        certificadoTemplate: templateUrl,
+      });
+
+      setCertificateCustomization({
+        template: savedCustomization?.template ?? savedCustomization?.templateUrl ?? templateUrl,
+        titulo: savedTexts.titulo ?? '',
+        subtitulo: savedTexts.subtitulo ?? '',
+        descricaoInicio: savedTexts.descricaoInicio ?? '',
+        descricaoEvento: savedTexts.descricaoEvento ?? '',
+        descricaoCargaHoraria: savedTexts.descricaoCargaHoraria ?? '',
       });
 
       if (Array.isArray(existingEvent.atividades)) {
@@ -259,9 +328,22 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     });
   }, [existingEvent]);
 
+  useEffect(() => {
+    return () => {
+      if (certificatePreviewUrl) URL.revokeObjectURL(certificatePreviewUrl);
+    };
+  }, [certificatePreviewUrl]);
+
   const errors = useMemo(() => getErrors(form, touched, isEdit), [form, touched, isEdit]);
   const canSubmit =
     Object.values(errors).every((e) => e === '') &&
+    form.nome.length <= CERTIFICATE_TEXT_LIMITS.nomeEvento &&
+    certificateCustomization.titulo.length <= CERTIFICATE_TEXT_LIMITS.titulo &&
+    certificateCustomization.subtitulo.length <= CERTIFICATE_TEXT_LIMITS.subtitulo &&
+    certificateCustomization.descricaoInicio.length +
+      certificateCustomization.descricaoEvento.length +
+      certificateCustomization.descricaoCargaHoraria.length <=
+      CERTIFICATE_TEXT_LIMITS.descricaoTotal &&
     form.nome.trim().length >= 3 &&
     form.localizacao.trim().length >= 3 &&
     form.responsavel.trim().length >= 3 &&
@@ -279,13 +361,71 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const subtitle = isEdit
     ? 'Edite as informações do evento abaixo'
     : 'Preencha os dados abaixo para cadastrar um novo evento';
-  const actionLabel = isEdit ? 'Salvar' : 'Cadastrar';
+  const actionLabel = isEdit ? 'Salvar' : 'Cadastrar Evento';
 
   const activityEventInfo = {
     title: form.nome || 'Novo evento',
     date: form.startDate ? formatDateBR(form.startDate) : 'dd/mm/yyyy',
     location: form.localizacao || 'localização',
   };
+
+  const certificateDescriptionPreview = [
+    certificateCustomization.descricaoInicio,
+    form.nome,
+    certificateCustomization.descricaoEvento,
+    form.cargaHoraria ? `${form.cargaHoraria} h` : '',
+    certificateCustomization.descricaoCargaHoraria,
+  ]
+    .filter((part) => part.trim().length > 0)
+    .join(' ');
+
+  const certificateDescriptionLength =
+    certificateCustomization.descricaoInicio.length +
+    certificateCustomization.descricaoEvento.length +
+    certificateCustomization.descricaoCargaHoraria.length;
+  const certificateTextError =
+    form.nome.length > CERTIFICATE_TEXT_LIMITS.nomeEvento
+      ? `O nome do evento deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.nomeEvento} caracteres.`
+      : certificateCustomization.titulo.length > CERTIFICATE_TEXT_LIMITS.titulo
+        ? `O título deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.titulo} caracteres.`
+        : certificateCustomization.subtitulo.length > CERTIFICATE_TEXT_LIMITS.subtitulo
+          ? `O subtítulo deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.subtitulo} caracteres.`
+          : certificateDescriptionLength > CERTIFICATE_TEXT_LIMITS.descricaoTotal
+            ? `A descrição deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.descricaoTotal} caracteres no total.`
+            : '';
+
+  function buildCertificateCustomizationPayload(
+    customization: CertificateCustomizationState = certificateCustomization,
+  ): CertificateCustomizationDraftPayload {
+    return {
+      evento: {
+        nome: form.nome,
+        descricao: form.descricao,
+        localizacao: form.localizacao,
+        responsavel: form.responsavel,
+        cargaHoraria: Number(form.cargaHoraria) || 0,
+        dataInicio: toISODateTime(form.startDate, form.startTime),
+        dataFim: toISODateTime(form.endDate, form.endTime),
+        status: form.status,
+      },
+      template: customization.template,
+      textos: {
+        titulo: customization.titulo,
+        subtitulo: customization.subtitulo,
+        descricaoInicio: customization.descricaoInicio,
+        descricaoEvento: customization.descricaoEvento,
+        descricaoCargaHoraria: customization.descricaoCargaHoraria,
+      },
+    };
+  }
+
+  function updateCertificateCustomization<K extends keyof CertificateCustomizationState>(
+    field: K,
+    value: CertificateCustomizationState[K]
+  ) {
+    setCertificateCustomization((cur) => ({ ...cur, [field]: value }));
+    setCertificateCustomizationSaved(false);
+  }
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((cur) => {
@@ -300,6 +440,117 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   function markTouched(field: keyof FormState) {
     setTouched((cur) => ({ ...cur, [field]: true }));
+  }
+
+  async function handleOpenCertificateCustomization() {
+    const requestId = ++certificateCustomizationRequestRef.current;
+    setCertificateCustomizationBeforeEdit(certificateCustomization);
+    setCertificateCustomizationCollapsed(false);
+    setShowCertificateCustomization(true);
+    setCertificateCustomizationError('');
+    setCertificateCustomizationLoading(true);
+
+    try {
+      let customization = certificateCustomization;
+
+      if (!isEdit) {
+        const textos = await eventService.getDefaultCertificateTexts(form.nome);
+        if (requestId !== certificateCustomizationRequestRef.current) return;
+
+        customization = {
+          ...certificateCustomization,
+          titulo: textos.titulo ?? '',
+          subtitulo: textos.subtitulo ?? form.nome,
+          descricaoInicio: textos.descricaoInicio ?? '',
+          descricaoEvento: textos.descricaoEvento ?? '',
+          descricaoCargaHoraria: textos.descricaoCargaHoraria ?? '',
+        };
+        setCertificateCustomization(customization);
+      } else if (!existingEvent?.certificadoPersonalizacao) {
+        const defaultCustomization = await eventService.getDefaultCertificateCustomization(
+          buildCertificateCustomizationPayload(),
+        );
+        if (requestId !== certificateCustomizationRequestRef.current) return;
+
+        const textos = defaultCustomization.textos ?? {};
+        customization = {
+          ...certificateCustomization,
+          template: defaultCustomization.templateUrl ?? certificateCustomization.template,
+          titulo: certificateCustomization.titulo || textos.titulo || '',
+          subtitulo: certificateCustomization.subtitulo || textos.subtitulo || '',
+          descricaoInicio: certificateCustomization.descricaoInicio || textos.descricaoInicio || '',
+          descricaoEvento: certificateCustomization.descricaoEvento || textos.descricaoEvento || '',
+          descricaoCargaHoraria:
+            certificateCustomization.descricaoCargaHoraria || textos.descricaoCargaHoraria || '',
+        };
+        setCertificateCustomization(() => customization);
+      }
+
+      const previewPdf = await eventService.previewCertificateCustomization(
+        buildCertificateCustomizationPayload(customization),
+      );
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
+      setCertificatePreviewUrl((currentUrl) => {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        return URL.createObjectURL(previewPdf);
+      });
+    } catch (error) {
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
+      setCertificateCustomizationError(
+        extractApiErrorMessage(error, 'Não foi possível carregar o certificado padrão.')
+      );
+    } finally {
+      if (requestId === certificateCustomizationRequestRef.current) {
+        setCertificateCustomizationLoading(false);
+      }
+    }
+  }
+
+  async function handlePreviewCertificateCustomization() {
+    const requestId = ++certificateCustomizationRequestRef.current;
+    setCertificateCustomizationError('');
+    setCertificatePreviewLoading(true);
+
+    try {
+      const previewPdf = await eventService.previewCertificateCustomization(
+        buildCertificateCustomizationPayload()
+      );
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
+      setCertificatePreviewUrl((currentUrl) => {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        return URL.createObjectURL(previewPdf);
+      });
+    } catch (error) {
+      if (requestId !== certificateCustomizationRequestRef.current) return;
+
+      setCertificateCustomizationError(
+        extractApiErrorMessage(error, 'Não foi possível gerar a pré-visualização.')
+      );
+    } finally {
+      if (requestId === certificateCustomizationRequestRef.current) {
+        setCertificatePreviewLoading(false);
+      }
+    }
+  }
+
+  function handleSaveCertificateCustomization() {
+    setCertificateCustomizationSaved(true);
+    setCertificateCustomizationError('');
+  }
+
+  function handleCancelCertificateCustomization() {
+    certificateCustomizationRequestRef.current += 1;
+    setCertificateCustomization(certificateCustomizationBeforeEdit);
+    setCertificateCustomizationSaved(false);
+    setCertificateCustomizationError('');
+    setShowCertificateCustomization(false);
+    setCertificatePreviewUrl((currentUrl) => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+      return null;
+    });
   }
 
   async function handleSubmit() {
@@ -322,6 +573,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       Number(form.cargaHoraria) >= 0;
 
     if (!isValid) return;
+    if (certificateTextError) return;
 
     const payload = {
       nome: form.nome,
@@ -332,7 +584,21 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       dataFim: toISODateTime(form.endDate, form.endTime),
       cargaHoraria: Number(form.cargaHoraria),
       status: form.status,
-      foto: form.foto ?? undefined,
+      foto: form.foto === null ? null : form.foto.startsWith('data:') ? form.foto : undefined,
+      ...(certificateCustomizationSaved
+        ? {
+            certificadoPersonalizacao: {
+              template: certificateCustomization.template,
+              textos: {
+                titulo: certificateCustomization.titulo,
+                subtitulo: certificateCustomization.subtitulo,
+                descricaoInicio: certificateCustomization.descricaoInicio,
+                descricaoEvento: certificateCustomization.descricaoEvento,
+                descricaoCargaHoraria: certificateCustomization.descricaoCargaHoraria,
+              },
+            },
+          }
+        : {}),
       atividades: activities.map(({ id, ...activity }) => {
         const backendId = Number(id);
         const isExistingActivity = isEdit && !Number.isNaN(backendId);
@@ -500,10 +766,16 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             >
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Nome" helpText="Nome oficial do evento exibido para participantes e na listagem geral." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Nome"
+                      helpText="Nome oficial do evento exibido para participantes e na listagem geral."
+                    />
+                  }
                   value={form.nome}
                   onChange={(v) => updateField('nome', v)}
                   onBlur={() => markTouched('nome')}
+                  slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.nomeEvento } }}
                   error={Boolean(errors.nome)}
                   size="small"
                   fullWidth
@@ -517,7 +789,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Local" helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Local"
+                      helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo."
+                    />
+                  }
                   value={form.localizacao}
                   onChange={(v) => updateField('localizacao', v)}
                   onBlur={() => markTouched('localizacao')}
@@ -545,7 +822,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Responsável" helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Responsável"
+                      helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento."
+                    />
+                  }
                   value={form.responsavel}
                   onChange={(v) => updateField('responsavel', v)}
                   onBlur={() => markTouched('responsavel')}
@@ -573,7 +855,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
               <Box sx={{ minWidth: 0, gridColumn: { xs: 'auto', md: 'span 2' } }}>
                 <TextInput
-                  label={<FieldLabelWithHelp label="Descrição do evento" helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes." />}
+                  label={
+                    <FieldLabelWithHelp
+                      label="Descrição do evento"
+                      helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes."
+                    />
+                  }
                   value={form.descricao}
                   onChange={(v) => updateField('descricao', v)}
                   onBlur={() => markTouched('descricao')}
@@ -631,7 +918,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Data de Início" helpText="Data em que o evento começa e passa a ficar disponível para participantes." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Data de Início"
+                        helpText="Data em que o evento começa e passa a ficar disponível para participantes."
+                      />
+                    }
                     value={form.startDate}
                     onChange={(v) => updateField('startDate', v)}
                     onBlur={() => markTouched('startDate')}
@@ -656,7 +948,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Data de Término" helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Data de Término"
+                        helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições."
+                      />
+                    }
                     value={form.endDate}
                     onChange={(v) => updateField('endDate', v)}
                     onBlur={() => markTouched('endDate')}
@@ -681,7 +978,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Horário de Início" helpText="Hora em que o evento ou a primeira atividade começa oficialmente." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Horário de Início"
+                        helpText="Hora em que o evento ou a primeira atividade começa oficialmente."
+                      />
+                    }
                     value={form.startTime}
                     onChange={(v) => updateField('startTime', v)}
                     onBlur={() => markTouched('startTime')}
@@ -703,7 +1005,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Horário de Término" helpText="Hora em que o evento ou a última atividade deve ser encerrada." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Horário de Término"
+                        helpText="Hora em que o evento ou a última atividade deve ser encerrada."
+                      />
+                    }
                     value={form.endTime}
                     onChange={(v) => updateField('endTime', v)}
                     onBlur={() => markTouched('endTime')}
@@ -734,7 +1041,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label={<FieldLabelWithHelp label="Carga Horária (h)" helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Carga Horária (h)"
+                        helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro."
+                      />
+                    }
                     value={form.cargaHoraria}
                     onChange={(v) => updateField('cargaHoraria', v)}
                     onBlur={() => markTouched('cargaHoraria')}
@@ -754,7 +1066,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                 <Box sx={{ minWidth: 0 }}>
                   <TextField
                     select
-                    label={<FieldLabelWithHelp label="Status" helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada." />}
+                    label={
+                      <FieldLabelWithHelp
+                        label="Status"
+                        helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada."
+                      />
+                    }
                     value={form.status}
                     onChange={(e) => updateField('status', e.target.value as FormState['status'])}
                     size="small"
@@ -774,29 +1091,464 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               </Box>
             </Box>
 
-            {/* ── Atividades ── */}
-            <Box sx={{ pt: { xs: 1, md: 1.5 } }}>
+            <Box
+              sx={{
+                pt: { xs: 1.5, md: 2 },
+                display: 'grid',
+                gap: 1.5,
+                borderTop: `1px solid ${colorTokens.neutral.gray300}`,
+              }}
+            >
               <Box
                 sx={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                  flexDirection: { xs: 'column', sm: 'row' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <Divider sx={{ borderColor: colorTokens.neutral.gray300, mb: 1.5 }} />
+                  <WorkspacePremiumOutlinedIcon
+                    sx={{ fontSize: 20, color: colorTokens.navigation.default }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 12, md: 13 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                      }}
+                    >
+                      Certificado Personalizado
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                      Opcional - se não personalizar, utilizaremos o certificado padrão
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: { xs: 'center', sm: 'flex-end' },
+                    gap: 1,
+                    width: { xs: '100%', sm: 'auto' },
+                    position: 'relative',
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={
+                      showCertificateCustomization
+                        ? handleCancelCertificateCustomization
+                        : handleOpenCertificateCustomization
+                    }
+                    disabled={
+                      !showCertificateCustomization &&
+                      (!canSubmit || certificateCustomizationLoading)
+                    }
+                    sx={{
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: { xs: 10, sm: 14 },
+                      textTransform: 'none',
+                    }}
+                  >
+                    {showCertificateCustomization
+                      ? 'Cancelar personalização'
+                      : certificateCustomizationLoading
+                        ? 'Carregando...'
+                        : 'Personalizar certificado'}
+                  </Button>
+                  {showCertificateCustomization ? (
+                    <Tooltip
+                      title={
+                        certificateCustomizationCollapsed
+                          ? 'Expandir personalização'
+                          : 'Retrair personalização'
+                      }
+                      arrow
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label={
+                          certificateCustomizationCollapsed
+                            ? 'Expandir personalização'
+                            : 'Retrair personalização'
+                        }
+                        onClick={() =>
+                          setCertificateCustomizationCollapsed((collapsed) => !collapsed)
+                        }
+                        sx={{
+                          color: colorTokens.navigation.default,
+                          position: { xs: 'absolute', sm: 'static' },
+                          right: { xs: 0, sm: 'auto' },
+                        }}
+                      >
+                        {certificateCustomizationCollapsed ? (
+                          <ExpandMoreOutlinedIcon />
+                        ) : (
+                          <ExpandLessOutlinedIcon />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
+                </Box>
+              </Box>
+
+              {showCertificateCustomization && !certificateCustomizationCollapsed ? (
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  <ImageUpload
+                    label={
+                      <FieldLabelWithHelp
+                        label="Imagem do template"
+                        helpText="Imagem opcional para personalizar o fundo do certificado."
+                      />
+                    }
+                    value={certificateCustomization.template}
+                    onChange={(value) => updateCertificateCustomization('template', value)}
+                    accept="image/*"
+                  />
+
+                  <TextInput
+                    label="Título"
+                    value={certificateCustomization.titulo}
+                    onChange={(value) => updateCertificateCustomization('titulo', value)}
+                    slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.titulo } }}
+                    size="small"
+                    fullWidth
+                  />
+
+                  <TextInput
+                    label="Subtítulo"
+                    value={certificateCustomization.subtitulo}
+                    onChange={(value) => updateCertificateCustomization('subtitulo', value)}
+                    slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.subtitulo } }}
+                    size="small"
+                    fullWidth
+                  />
+
+                  <Box sx={{ display: 'grid', gap: 0.75 }}>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 11, sm: 12 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                      }}
+                    >
+                      Descrição
+                    </Typography>
+                    <TextInput
+                      value={certificateCustomization.descricaoInicio}
+                      onChange={(value) => updateCertificateCustomization('descricaoInicio', value)}
+                      size="small"
+                      fullWidth
+                    />
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        width: 'fit-content',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                      <Typography
+                        sx={{
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: '6px',
+                          bgcolor: colorTokens.surface.background,
+                          fontSize: { xs: 10, sm: 12 },
+                          color: colorTokens.text.primary,
+                          minWidth: 0,
+                          width: 'fit-content',
+                          maxWidth: '100%',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        <Box component="span" sx={{ color: colorTokens.neutral.gray500 }}>
+                          Nome do Evento:{' '}
+                        </Box>
+                        <Box component="span" sx={{ color: colorTokens.navigation.default }}>
+                          {form.nome || 'nome do evento'}
+                        </Box>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: { xs: 16, sm: 18 },
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                    </Box>
+                    <TextInput
+                      value={certificateCustomization.descricaoEvento}
+                      onChange={(value) => updateCertificateCustomization('descricaoEvento', value)}
+                      size="small"
+                      fullWidth={false}
+                      sx={{ width: '100%' }}
+                    />
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        width: 'fit-content',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: { xs: 16, sm: 18 },
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                      <Typography
+                        sx={{
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: '6px',
+                          bgcolor: colorTokens.surface.background,
+                          fontSize: { xs: 10, sm: 12 },
+                          color: colorTokens.text.primary,
+                          minWidth: 0,
+                          width: 'fit-content',
+                          maxWidth: '100%',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        <Box component="span" sx={{ color: colorTokens.neutral.gray500 }}>
+                          Carga Horária:{' '}
+                        </Box>
+                        <Box component="span" sx={{ color: colorTokens.navigation.default }}>
+                          {form.cargaHoraria ? `${form.cargaHoraria} h` : 'carga horária'}
+                        </Box>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: { xs: 16, sm: 18 },
+                          fontWeight: 700,
+                          color: colorTokens.navigation.default,
+                        }}
+                      >
+                        +
+                      </Typography>
+                    </Box>
+                    <TextInput
+                      value={certificateCustomization.descricaoCargaHoraria}
+                      onChange={(value) =>
+                        updateCertificateCustomization('descricaoCargaHoraria', value)
+                      }
+                      size="small"
+                      fullWidth={false}
+                      sx={{ width: '100%' }}
+                    />
+                    {certificateTextError ? (
+                      <Typography sx={{ fontSize: 12, color: 'error.main' }}>
+                        {certificateTextError}
+                      </Typography>
+                    ) : null}
+                  </Box>
+
+                  <Box
+                    sx={{
+                      p: 1.25,
+                      borderRadius: '6px',
+                      bgcolor: colorTokens.surface.background,
+                      border: `1px solid ${colorTokens.neutral.gray300}`,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 10, sm: 11 },
+                        color: colorTokens.neutral.gray500,
+                        mb: 0.5,
+                      }}
+                    >
+                      Visualização completa da descrição
+                    </Typography>
+                    <Typography
+                      sx={{ fontSize: { xs: 11, sm: 12 }, color: colorTokens.text.primary }}
+                    >
+                      {certificateDescriptionPreview || 'A descrição aparecerá aqui.'}
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      minHeight: 220,
+                      borderRadius: '8px',
+                      border: `1px solid ${colorTokens.neutral.gray300}`,
+                      overflow: 'hidden',
+                      bgcolor: colorTokens.surface.background,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {certificatePreviewLoading || certificateCustomizationLoading ? (
+                      <CircularProgress size={24} />
+                    ) : certificatePreviewUrl ? (
+                      <Box
+                        component="iframe"
+                        src={certificatePreviewUrl}
+                        title="Pré-visualização do certificado"
+                        sx={{ width: '100%', height: 360, border: 0, bgcolor: 'white' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.75,
+                          color: colorTokens.neutral.gray500,
+                        }}
+                      >
+                        <PictureAsPdfOutlinedIcon sx={{ fontSize: 36 }} />
+                        <Typography sx={{ fontSize: 12 }}>Pré-visualização indisponível</Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {certificateCustomizationError ? (
+                    <Typography sx={{ fontSize: 12, color: 'error.main', textAlign: 'center' }}>
+                      {certificateCustomizationError}
+                    </Typography>
+                  ) : null}
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      gap: 1,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                    }}
+                  >
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      leftIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handlePreviewCertificateCustomization}
+                      disabled={!canSubmit || certificatePreviewLoading}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
+                        textTransform: 'none',
+                      }}
+                    >
+                      {certificatePreviewLoading
+                        ? 'Gerando...'
+                        : 'Pré-visualizar Meu Certificado Personalizado'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      leftIcon={<CloseOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handleCancelCertificateCustomization}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
+                        textTransform: 'none',
+                      }}
+                    >
+                      Cancelar Personalização
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      leftIcon={<SaveOutlinedIcon sx={{ fontSize: 14 }} />}
+                      onClick={handleSaveCertificateCustomization}
+                      disabled={!canSubmit}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
+                        textTransform: 'none',
+                      }}
+                    >
+                      {certificateCustomizationSaved
+                        ? 'Personalização salva'
+                        : 'Salvar personalização'}
+                    </Button>
+                    <Tooltip title="Retrair personalização" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="Retrair personalização"
+                        onClick={() => setCertificateCustomizationCollapsed(true)}
+                        sx={{
+                          color: colorTokens.navigation.default,
+                          alignSelf: 'center',
+                        }}
+                      >
+                        <ExpandLessOutlinedIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              ) : null}
+            </Box>
+
+            {/* ── Atividades ── */}
+            <Box sx={{ pt: { xs: 1, md: 1.5 } }}>
+              <Divider sx={{ borderColor: colorTokens.neutral.gray300, mb: 1.5 }} />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'stretch', sm: 'center' },
                   justifyContent: 'space-between',
                   gap: 1,
                   mb: 1.5,
+                  px: 1,
+                  flexDirection: { xs: 'column', sm: 'row' },
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: { xs: 12, md: 13 },
-                    fontWeight: 600,
-                    color: colorTokens.text.primary,
-                  }}
-                >
-                  Atividades Cadastradas
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <ListAltOutlinedIcon
+                    sx={{ fontSize: 20, color: colorTokens.navigation.default }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 12, md: 13 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                        textAlign: 'left',
+                      }}
+                    >
+                      Cadastrar Atividades
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                      Opcional - as atividades também podem ser cadastradas após a criação do evento
+                    </Typography>
+                  </Box>
+                </Box>
 
                 <Button
-                  variant="text"
+                  variant="outlined"
                   color="secondary"
                   leftIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
                   onClick={handleOpenNewActivity}
@@ -809,19 +1561,16 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   }
                   sx={{
                     minWidth: 0,
-                    px: 0,
-                    py: 0,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: '6px',
                     fontSize: { xs: 11, md: 12 },
-                    fontWeight: 600,
-                    color: colorTokens.navigation.default,
+                    fontWeight: 700,
                     textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'transparent',
-                      color: colorTokens.navigation.hover,
-                    },
+                    alignSelf: { xs: 'center', sm: 'auto' },
                   }}
                 >
-                  Adicionar atividade
+                  Cadastrar atividade
                 </Button>
               </Box>
 
@@ -834,7 +1583,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     textAlign: 'center',
                   }}
                 >
-                  Nenhuma atividade cadastrada ainda.
+                  Nenhuma atividade cadastrada no momento
                 </Typography>
               ) : (
                 <Box sx={{ display: 'grid', gap: 1.25 }}>
@@ -934,7 +1683,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             >
               <Button
                 variant="contained"
-                color="secondary"
+                color="primary"
                 onClick={handleSubmit}
                 disabled={!canSubmit || isSubmitting}
                 sx={{

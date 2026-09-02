@@ -85,6 +85,23 @@ export function useCertificatesGenerated(eventoId: number) {
     setReloadToken(token => token + 1);
   };
 
+  const markAsSigned = (certificateIds: number[], signer?: string) => {
+    const signedAt = new Date().toISOString();
+    const ids = new Set(certificateIds.map(String));
+    setCertificates(current =>
+      current.map(certificate =>
+        ids.has(String(certificate.id))
+          ? {
+              ...certificate,
+              status: 'Assinado',
+              assinadoEm: certificate.assinadoEm ?? signedAt,
+              assinadoPor: certificate.assinadoPor ?? signer ?? null,
+            }
+          : certificate,
+      ),
+    );
+  };
+
   useEffect(() => {
     if (!eventoId) return;
 
@@ -153,5 +170,6 @@ export function useCertificatesGenerated(eventoId: number) {
     hasMore,
     loadMore,
     refresh,
+    markAsSigned,
   };
 }

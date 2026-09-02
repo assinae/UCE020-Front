@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import { useId } from 'react';
 import { colorTokens } from '@/lib/colors';
 
 interface ImageUploadProps {
@@ -13,6 +14,7 @@ interface ImageUploadProps {
   error?: boolean;
   helperText?: string;
   onBlur?: () => void;
+  accept?: string;
 }
 
 export default function ImageUpload({
@@ -22,7 +24,10 @@ export default function ImageUpload({
   error = false,
   helperText,
   onBlur,
+  accept = 'image/*',
 }: ImageUploadProps) {
+  const inputId = useId();
+
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) {
@@ -57,12 +62,12 @@ export default function ImageUpload({
             borderColor: colorTokens.navigation.default,
           },
         }}
-        onClick={() => document.getElementById('image-upload-input')?.click()}
+        onClick={() => document.getElementById(inputId)?.click()}
       >
         <input
-          id="image-upload-input"
+          id={inputId}
           type="file"
-          accept="image/*"
+          accept={accept}
           onChange={handleFileUpload}
           onBlur={onBlur}
           style={{ display: 'none' }}

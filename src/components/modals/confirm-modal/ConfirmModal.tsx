@@ -66,7 +66,7 @@ export default function ConfirmModal({
             textAlign: 'center',
             color: 'text.secondary',
             mb: 1,
-            fontSize: 'clamp(14px, 4vw, 16px)',
+            fontSize: 'clamp(12px, 2vw, 14px)',
             lineHeight: 1.5,
           }}
         >

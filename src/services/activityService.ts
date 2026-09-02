@@ -40,6 +40,8 @@ export interface CreateActivityPayload {
   }[];
 }
 
+export type UpdateActivityPayload = Partial<CreateActivityPayload>;
+
 type ActivityDetailsApiResponse = {
   statusCode?: number;
   message?: string;
@@ -123,6 +125,32 @@ function extractRegistrationFlag(value: unknown): boolean {
 }
 
 class ActivityService {
+  private normalizeActivityData(
+    value: ActivityDetails | Record<string, unknown> | undefined,
+    fallback: Partial<CreateActivityPayload> & { id?: number } = {}
+  ): ActivityDetails {
+    const normalizedActivityData = (value ?? {}) as ActivityDetails & Record<string, unknown>;
+
+    return {
+      id: Number(normalizedActivityData.id ?? fallback.id ?? 0),
+      nome: String(normalizedActivityData.nome ?? fallback.name ?? ''),
+      descricao: String(normalizedActivityData.descricao ?? fallback.description ?? ''),
+      localizacao: String(normalizedActivityData.localizacao ?? fallback.location ?? ''),
+      dataInicio: String(normalizedActivityData.dataInicio ?? fallback.startDate ?? ''),
+      dataFim: String(normalizedActivityData.dataFim ?? fallback.endDate ?? ''),
+      categoria: String(normalizedActivityData.categoria ?? fallback.category ?? ''),
+      cargaHoraria: Number(normalizedActivityData.cargaHoraria ?? fallback.workload ?? 0),
+      status: String(normalizedActivityData.status ?? ''),
+      foto: normalizedActivityData.foto ?? null,
+      eventoId: Number(normalizedActivityData.eventoId ?? fallback.eventId ?? 0),
+      gerarCertificado:
+        toBoolean(normalizedActivityData.gerarCertificado) ??
+        toBoolean(normalizedActivityData.generateCertificate) ??
+        Boolean(fallback.generateCertificate),
+      isRegistered: toBoolean(normalizedActivityData.isRegistered) ?? false,
+    };
+  }
+
   async create(payload: CreateActivityPayload): Promise<ActivityDetails> {
     const { data } = await api.post<{
       message?: string;
@@ -134,26 +162,37 @@ class ActivityService {
         ? (data.data as ActivityDetails | Record<string, unknown>)
         : data;
 
-    const normalizedActivityData = activityData as ActivityDetails & Record<string, unknown>;
+    return this.normalizeActivityData(activityData, payload);
+  }
 
-    return {
-      id: Number(normalizedActivityData.id ?? 0),
-      nome: String(normalizedActivityData.nome ?? ''),
-      descricao: String(normalizedActivityData.descricao ?? ''),
-      localizacao: String(normalizedActivityData.localizacao ?? ''),
-      dataInicio: String(normalizedActivityData.dataInicio ?? ''),
-      dataFim: String(normalizedActivityData.dataFim ?? ''),
-      categoria: String(normalizedActivityData.categoria ?? ''),
-      cargaHoraria: Number(normalizedActivityData.cargaHoraria ?? 0),
-      status: String(normalizedActivityData.status ?? ''),
-      foto: normalizedActivityData.foto ?? null,
-      eventoId: Number(normalizedActivityData.eventoId ?? payload.eventId ?? 0),
-      gerarCertificado:
-        toBoolean(normalizedActivityData.gerarCertificado) ??
-        toBoolean(normalizedActivityData.generateCertificate) ??
-        Boolean(payload.generateCertificate),
-      isRegistered: toBoolean(normalizedActivityData.isRegistered) ?? false,
-    };
+  async update(
+    activityId: string | number,
+    payload: UpdateActivityPayload
+  ): Promise<ActivityDetails> {
+    const normalizedActivityId = Number(activityId);
+    if (Number.isNaN(normalizedActivityId)) {
+      throw new Error(`ID de atividade inválido: ${activityId}`);
+    }
+
+    const { data } = await api.patch<ActivityDetailsApiResponse>(
+      `/activity/${normalizedActivityId}`,
+      payload
+    );
+    const responseData = data?.data;
+    const activityData =
+      typeof responseData === 'object' && responseData !== null && 'data' in responseData
+        ? (responseData as { data?: ActivityDetails | Record<string, unknown> }).data
+        : responseData;
+
+    return this.normalizeActivityData(activityData, { ...payload, id: normalizedActivityId });
+  }
+
+  async remove(activityId: string | number): Promise<void> {
+    const normalizedActivityId = Number(activityId);
+    if (Number.isNaN(normalizedActivityId)) {
+      throw new Error(`ID de atividade inválido: ${activityId}`);
+    }
+    await api.delete(`/activity/${normalizedActivityId}`);
   }
 
   async findOne(activityId: string | number): Promise<ActivityDetails> {
