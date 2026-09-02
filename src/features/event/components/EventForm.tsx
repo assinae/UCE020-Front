@@ -25,6 +25,7 @@ import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
+import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
@@ -1061,9 +1062,10 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                    justifyContent: { xs: 'center', sm: 'flex-end' },
                     gap: 1,
                     width: { xs: '100%', sm: 'auto' },
+                    position: 'relative',
                   }}
                 >
                   <Button
@@ -1110,7 +1112,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                         onClick={() =>
                           setCertificateCustomizationCollapsed((collapsed) => !collapsed)
                         }
-                        sx={{ color: colorTokens.navigation.default }}
+                        sx={{
+                          color: colorTokens.navigation.default,
+                          position: { xs: 'absolute', sm: 'static' },
+                          right: { xs: 0, sm: 'auto' },
+                        }}
                       >
                         {certificateCustomizationCollapsed ? (
                           <ExpandMoreOutlinedIcon />
@@ -1434,25 +1440,32 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               <Box
                 sx={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: { xs: 'stretch', sm: 'center' },
                   justifyContent: 'space-between',
                   gap: 1,
                   mb: 1.5,
-                  px: 1.5,
+                  px: 1,
+                  flexDirection: { xs: 'column', sm: 'row' },
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: { xs: 12, md: 13 },
-                    fontWeight: 600,
-                    color: colorTokens.text.primary,
-                  }}
-                >
-                  Atividades Cadastradas
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <ListAltOutlinedIcon
+                    sx={{ fontSize: 20, color: colorTokens.navigation.default }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: { xs: 12, md: 13 },
+                      fontWeight: 600,
+                      color: colorTokens.text.primary,
+                      textAlign: 'left',
+                    }}
+                  >
+                    Cadastrar Atividades
+                  </Typography>
+                </Box>
 
                 <Button
-                  variant="text"
+                  variant="outlined"
                   color="secondary"
                   leftIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
                   onClick={handleOpenNewActivity}
@@ -1465,16 +1478,13 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   }
                   sx={{
                     minWidth: 0,
-                    px: 0,
-                    py: 0,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: '6px',
                     fontSize: { xs: 11, md: 12 },
-                    fontWeight: 600,
-                    color: colorTokens.navigation.default,
+                    fontWeight: 700,
                     textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'transparent',
-                      color: colorTokens.navigation.hover,
-                    },
+                    alignSelf: { xs: 'center', sm: 'auto' },
                   }}
                 >
                   Adicionar atividade
@@ -1590,7 +1600,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             >
               <Button
                 variant="contained"
-                color="secondary"
+                color="primary"
                 onClick={handleSubmit}
                 disabled={!canSubmit || isSubmitting}
                 sx={{
