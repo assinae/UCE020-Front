@@ -1,5 +1,6 @@
+import { AxiosError } from 'axios';
 import { api } from './api';
-import { Event, resolveCertificateTemplateUrl } from '../types/event';
+import { Event } from '../types/event';
 
 export interface CreateActivityPayload {
   id?: number;
@@ -34,11 +35,44 @@ export interface CreateEventPayload {
   templateUrl?: string | null;
   certificadoTemplate?: string | null;
   template?: string | null;
+  certificadoPersonalizacao?: CertificateCustomizationPayload | null;
   atividades?: CreateActivityPayload[];
 }
 
 export type UpdateEventPayload = Partial<CreateEventPayload>;
 export type TipoParticipante = 'participante' | 'monitor' | 'organizador';
+
+export interface CertificateCustomizationTexts {
+  titulo?: string;
+  subtitulo?: string;
+  descricaoInicio?: string;
+  descricaoEvento?: string;
+  descricaoCargaHoraria?: string;
+}
+
+export interface CertificateCustomizationPayload {
+  template?: string | null;
+  textos?: CertificateCustomizationTexts;
+}
+
+export interface CertificateCustomizationDraftPayload extends CertificateCustomizationPayload {
+  evento: {
+    nome: string;
+    descricao: string;
+    localizacao: string;
+    responsavel: string;
+    cargaHoraria: number;
+    dataInicio: string;
+    dataFim: string;
+    status: CreateEventPayload['status'];
+  };
+}
+
+export interface CertificateCustomizationDefault {
+  templateUrl?: string | null;
+  textos?: CertificateCustomizationTexts;
+  previewPdf?: Blob;
+}
 
 interface EventResponse {
   message: string;
@@ -111,6 +145,46 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
   return new File([byteArray], filename, { type: mimeType });
 }
 
+function hasCustomizationTemplateUpload(value: unknown): boolean {
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    typeof (value as CertificateCustomizationPayload).template === 'string' &&
+    isDataUrl((value as CertificateCustomizationPayload).template as string)
+  );
+}
+
+function base64ToBlob(base64: string, type = 'application/pdf'): Blob {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+
+  for (let index = 0; index < byteCharacters.length; index += 1) {
+    byteNumbers[index] = byteCharacters.charCodeAt(index);
+  }
+
+  return new Blob([new Uint8Array(byteNumbers)], { type });
+}
+
+async function parseCertificateCustomizationDefault(
+  data: Blob,
+): Promise<CertificateCustomizationDefault> {
+  if (data.type.includes('application/json')) {
+    const parsed = JSON.parse(await data.text()) as CertificateCustomizationDefault & {
+      pdfBase64?: string;
+      previewPdfBase64?: string;
+    };
+    const pdfBase64 = parsed.previewPdfBase64 ?? parsed.pdfBase64;
+
+    return {
+      templateUrl: parsed.templateUrl,
+      textos: parsed.textos,
+      previewPdf: pdfBase64 ? base64ToBlob(pdfBase64) : undefined,
+    };
+  }
+
+  return { previewPdf: data };
+}
+
 function buildEventFormData(payload: Record<string, unknown>): FormData {
   const formData = new FormData();
 
@@ -150,6 +224,18 @@ function buildEventFormData(payload: Record<string, unknown>): FormData {
       return;
     }
 
+    if (key === 'certificadoPersonalizacao' && typeof value === 'object') {
+      const customization = value as CertificateCustomizationPayload;
+      if (typeof customization.template === 'string' && isDataUrl(customization.template)) {
+        formData.append('template', dataUrlToFile(customization.template, 'template.png'));
+      }
+      formData.append(
+        'certificadoPersonalizacao',
+        JSON.stringify({ textos: customization.textos ?? {} }),
+      );
+      return;
+    }
+
     formData.append(key, JSON.stringify(value));
   };
 
@@ -172,6 +258,7 @@ class EventService {
     const hasFileUpload = Boolean(
       (typeof sanitizedPayload.foto === 'string' && isDataUrl(sanitizedPayload.foto)) ||
       (typeof sanitizedPayload.template === 'string' && isDataUrl(sanitizedPayload.template)) ||
+      hasCustomizationTemplateUpload(sanitizedPayload.certificadoPersonalizacao) ||
       sanitizedPayload.foto instanceof File ||
       sanitizedPayload.template instanceof File,
     );
@@ -201,6 +288,7 @@ class EventService {
     const hasFileUpload = Boolean(
       (typeof sanitizedPayload.foto === 'string' && isDataUrl(sanitizedPayload.foto)) ||
       (typeof sanitizedPayload.template === 'string' && isDataUrl(sanitizedPayload.template)) ||
+      hasCustomizationTemplateUpload(sanitizedPayload.certificadoPersonalizacao) ||
       sanitizedPayload.foto instanceof File ||
       sanitizedPayload.template instanceof File,
     );
@@ -213,6 +301,56 @@ class EventService {
       hasFileUpload ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
     );
     return data.data;
+  }
+
+  async getDefaultCertificateCustomization(
+    payload: CertificateCustomizationDraftPayload,
+  ): Promise<CertificateCustomizationDefault> {
+    const requestPayload = buildEventFormData(payload as unknown as Record<string, unknown>);
+    const response = await api.post<Blob>(
+      '/event/certificate/customization/default',
+      requestPayload,
+      { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'blob' },
+    );
+
+    const defaultTextsHeader = response.headers['x-certificate-default-texts'];
+    const fallback = await parseCertificateCustomizationDefault(response.data);
+
+    if (!defaultTextsHeader || typeof defaultTextsHeader !== 'string') {
+      return fallback;
+    }
+
+    try {
+      return {
+        ...fallback,
+        textos: JSON.parse(decodeURIComponent(defaultTextsHeader)),
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async previewCertificateCustomization(
+    payload: CertificateCustomizationDraftPayload,
+  ): Promise<Blob> {
+    try {
+      const requestPayload = buildEventFormData(payload as unknown as Record<string, unknown>);
+      const { data } = await api.post<Blob>(
+        '/event/certificate/customization/preview',
+        requestPayload,
+        { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'blob' },
+      );
+      return data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.data instanceof Blob) {
+        try {
+          error.response.data = JSON.parse(await error.response.data.text());
+        } catch {
+          // corpo não era JSON: deixa como está e cai na mensagem genérica
+        }
+      }
+      throw error;
+    }
   }
 
   async remove(id: number): Promise<Event> {
