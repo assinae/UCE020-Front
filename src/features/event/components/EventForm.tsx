@@ -262,6 +262,9 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
       const templateUrl = resolveCertificateTemplateUrl(existingEvent);
+      const savedCustomization =
+        existingEvent.certificadoPersonalizacao ?? existingEvent.certificateCustomization;
+      const savedTexts = savedCustomization?.textos ?? {};
 
       setForm({
         nome: existingEvent.nome ?? '',
@@ -276,6 +279,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         status: (existingEvent.status as FormState['status']) ?? 'pendente',
         foto: existingEvent.foto ?? null,
         certificadoTemplate: templateUrl,
+      });
+
+      setCertificateCustomization({
+        template: savedCustomization?.template ?? templateUrl,
+        titulo: savedTexts.titulo ?? '',
+        subtitulo: savedTexts.subtitulo ?? '',
+        descricaoInicio: savedTexts.descricaoInicio ?? '',
+        descricaoEvento: savedTexts.descricaoEvento ?? '',
+        descricaoCargaHoraria: savedTexts.descricaoCargaHoraria ?? '',
       });
 
       if (Array.isArray(existingEvent.atividades)) {
@@ -343,7 +355,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     certificateCustomization.descricaoInicio,
     form.nome,
     certificateCustomization.descricaoEvento,
-    form.cargaHoraria ? `${form.cargaHoraria} horas` : '',
+    form.cargaHoraria ? `${form.cargaHoraria} h` : '',
     certificateCustomization.descricaoCargaHoraria,
   ]
     .filter((part) => part.trim().length > 0)
@@ -413,11 +425,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       setCertificateCustomization((cur) => ({
         ...cur,
         template: defaultCustomization.templateUrl ?? cur.template,
-        titulo: textos.titulo ?? '',
-        subtitulo: textos.subtitulo ?? '',
-        descricaoInicio: textos.descricaoInicio ?? '',
-        descricaoEvento: textos.descricaoEvento ?? '',
-        descricaoCargaHoraria: textos.descricaoCargaHoraria ?? '',
+        titulo: cur.titulo || textos.titulo || '',
+        subtitulo: cur.subtitulo || textos.subtitulo || '',
+        descricaoInicio: cur.descricaoInicio || textos.descricaoInicio || '',
+        descricaoEvento: cur.descricaoEvento || textos.descricaoEvento || '',
+        descricaoCargaHoraria: cur.descricaoCargaHoraria || textos.descricaoCargaHoraria || '',
       }));
 
       if (defaultCustomization.previewPdf) {
@@ -514,7 +526,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       dataFim: toISODateTime(form.endDate, form.endTime),
       cargaHoraria: Number(form.cargaHoraria),
       status: form.status,
-      foto: form.foto && form.foto.startsWith('data:') ? form.foto : undefined,
+      foto: form.foto === null ? null : form.foto.startsWith('data:') ? form.foto : undefined,
       ...(certificateCustomizationSaved
         ? {
             certificadoPersonalizacao: {
@@ -1269,7 +1281,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                           Carga Horária:{' '}
                         </Box>
                         <Box component="span" sx={{ color: colorTokens.navigation.default }}>
-                          {form.cargaHoraria ? `${form.cargaHoraria} horas` : 'carga horária'}
+                          {form.cargaHoraria ? `${form.cargaHoraria} h` : 'carga horária'}
                         </Box>
                       </Typography>
                       <Typography
@@ -1454,16 +1466,16 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography
-                    sx={{
-                      fontSize: { xs: 12, md: 13 },
-                      fontWeight: 600,
-                      color: colorTokens.text.primary,
-                      textAlign: 'left',
-                    }}
-                  >
-                    Cadastrar Atividades
-                  </Typography>
-                  <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
+                      sx={{
+                        fontSize: { xs: 12, md: 13 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                        textAlign: 'left',
+                      }}
+                    >
+                      Cadastrar Atividades
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
                       Opcional - as atividades também podem ser cadastradas após a criação do evento
                     </Typography>
                   </Box>

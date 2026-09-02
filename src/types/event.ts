@@ -1,5 +1,16 @@
 import type { Activity } from '@/types/activity';
 
+export interface CertificateCustomization {
+  template?: string | null;
+  textos?: {
+    titulo?: string;
+    subtitulo?: string;
+    descricaoInicio?: string;
+    descricaoEvento?: string;
+    descricaoCargaHoraria?: string;
+  };
+}
+
 export interface Event {
   id: number;
   nome: string;
@@ -15,6 +26,8 @@ export interface Event {
   templateUrl?: string | null;
   certificadoTemplate?: string | null;
   template?: string | null;
+  certificadoPersonalizacao?: CertificateCustomization | null;
+  certificateCustomization?: CertificateCustomization | null;
   atividades?: Activity[];
   createdAt: string;
   updatedAt: string;
