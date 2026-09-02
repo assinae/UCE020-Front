@@ -75,6 +75,12 @@ export interface CertificateCustomizationDefault {
   previewPdf?: Blob;
 }
 
+interface CertificateDefaultTextsResponse {
+  data?: {
+    textos?: CertificateCustomizationTexts;
+  };
+}
+
 interface EventResponse {
   message: string;
   data: Event;
@@ -168,19 +174,59 @@ function base64ToBlob(base64: string, type = 'application/pdf'): Blob {
 
 async function parseCertificateCustomizationDefault(
   data: Blob,
+  headers?: Record<string, unknown>,
 ): Promise<CertificateCustomizationDefault> {
-  if (data.type.includes('application/json')) {
-    const parsed = JSON.parse(await data.text()) as CertificateCustomizationDefault & {
-      pdfBase64?: string;
-      previewPdfBase64?: string;
-    };
+  const content = await data.text();
+  type ParsedDefault = CertificateCustomizationDefault & {
+    pdfBase64?: string;
+    previewPdfBase64?: string;
+    data?: unknown;
+  };
+
+  function findCustomization(value: unknown): CertificateCustomizationDefault | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+
+    const record = value as Record<string, unknown>;
+    const nestedCustomization = record.certificadoPersonalizacao ?? record.certificateCustomization;
+    if (nestedCustomization && typeof nestedCustomization === 'object') {
+      const found = findCustomization(nestedCustomization);
+      if (found) return found;
+    }
+
+    if (record.textos && typeof record.textos === 'object') {
+      return {
+        templateUrl: typeof record.templateUrl === 'string' ? record.templateUrl : undefined,
+        textos: record.textos as CertificateCustomizationTexts,
+      };
+    }
+
+    if (record.data) return findCustomization(record.data);
+    return undefined;
+  }
+
+  if (data.type.includes('application/json') || content.trimStart().startsWith('{')) {
+    const parsed = JSON.parse(content) as ParsedDefault;
+    const customization = findCustomization(parsed);
+    const textos = parsed.textos ?? customization?.textos;
+    const templateUrl = parsed.templateUrl ?? customization?.templateUrl;
     const pdfBase64 = parsed.previewPdfBase64 ?? parsed.pdfBase64;
 
     return {
-      templateUrl: parsed.templateUrl,
-      textos: parsed.textos,
+      templateUrl,
+      textos,
       previewPdf: pdfBase64 ? base64ToBlob(pdfBase64) : undefined,
     };
+  }
+
+  const headerText = Object.entries(headers ?? {}).find(([key]) =>
+    ['x-certificate-default-texts', 'x-certificate-texts'].includes(key.toLowerCase()),
+  )?.[1];
+  if (typeof headerText === 'string') {
+    try {
+      return { previewPdf: data, textos: JSON.parse(decodeURIComponent(headerText)) };
+    } catch {
+      // mantém o PDF mesmo quando o header não contém JSON válido
+    }
   }
 
   return { previewPdf: data };
@@ -280,6 +326,14 @@ function buildEventFormData(
 }
 
 class EventService {
+  async getDefaultCertificateTexts(nomeEvento: string): Promise<CertificateCustomizationTexts> {
+    const { data } = await api.get<CertificateDefaultTextsResponse>(
+      '/event/certificate/customization/default-texts',
+      { params: { nomeEvento } },
+    );
+    return data.data?.textos ?? {};
+  }
+
   async create(payload: CreateEventPayload): Promise<Event> {
     const sanitizedPayload = sanitizePayloadForSubmit(payload as unknown as Record<string, unknown>);
     const hasFileUpload = Boolean(
@@ -344,7 +398,7 @@ class EventService {
     );
 
     const defaultTextsHeader = response.headers['x-certificate-default-texts'];
-    const fallback = await parseCertificateCustomizationDefault(response.data);
+    const fallback = await parseCertificateCustomizationDefault(response.data, response.headers);
 
     if (!defaultTextsHeader || typeof defaultTextsHeader !== 'string') {
       return fallback;

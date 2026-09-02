@@ -98,6 +98,7 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
             : 'Nenhum certificado pendente para assinar.',
         severity: result.assinados > 0 ? ToastSeverity.Success : ToastSeverity.Info,
       });
+      window.location.reload();
     } catch (error) {
       setToast({
         open: true,

@@ -269,9 +269,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const toDate = (dt: Date | null) => (dt ? getBahiaDateInput(dt) : '');
       const toTime = (dt: Date | null) => (dt ? getBahiaTimeInput(dt) : '');
 
-      const templateUrl = resolveCertificateTemplateUrl(existingEvent);
       const savedCustomization =
         existingEvent.certificadoPersonalizacao ?? existingEvent.certificateCustomization;
+      const templateUrl =
+        savedCustomization?.templateUrl ??
+        savedCustomization?.template ??
+        resolveCertificateTemplateUrl(existingEvent);
       const savedTexts = savedCustomization?.textos ?? {};
 
       setForm({
@@ -290,7 +293,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       });
 
       setCertificateCustomization({
-        template: savedCustomization?.template ?? templateUrl,
+        template: savedCustomization?.template ?? savedCustomization?.templateUrl ?? templateUrl,
         titulo: savedTexts.titulo ?? '',
         subtitulo: savedTexts.subtitulo ?? '',
         descricaoInicio: savedTexts.descricaoInicio ?? '',
@@ -391,7 +394,9 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
             ? `A descrição deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.descricaoTotal} caracteres no total.`
             : '';
 
-  function buildCertificateCustomizationPayload(): CertificateCustomizationDraftPayload {
+  function buildCertificateCustomizationPayload(
+    customization: CertificateCustomizationState = certificateCustomization,
+  ): CertificateCustomizationDraftPayload {
     return {
       evento: {
         nome: form.nome,
@@ -403,13 +408,13 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
         dataFim: toISODateTime(form.endDate, form.endTime),
         status: form.status,
       },
-      template: certificateCustomization.template,
+      template: customization.template,
       textos: {
-        titulo: certificateCustomization.titulo,
-        subtitulo: certificateCustomization.subtitulo,
-        descricaoInicio: certificateCustomization.descricaoInicio,
-        descricaoEvento: certificateCustomization.descricaoEvento,
-        descricaoCargaHoraria: certificateCustomization.descricaoCargaHoraria,
+        titulo: customization.titulo,
+        subtitulo: customization.subtitulo,
+        descricaoInicio: customization.descricaoInicio,
+        descricaoEvento: customization.descricaoEvento,
+        descricaoCargaHoraria: customization.descricaoCargaHoraria,
       },
     };
   }
@@ -446,28 +451,50 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     setCertificateCustomizationLoading(true);
 
     try {
-      const defaultCustomization = await eventService.getDefaultCertificateCustomization(
-        buildCertificateCustomizationPayload()
+      let customization = certificateCustomization;
+
+      if (!isEdit) {
+        const textos = await eventService.getDefaultCertificateTexts(form.nome);
+        if (requestId !== certificateCustomizationRequestRef.current) return;
+
+        customization = {
+          ...certificateCustomization,
+          titulo: textos.titulo ?? '',
+          subtitulo: textos.subtitulo ?? form.nome,
+          descricaoInicio: textos.descricaoInicio ?? '',
+          descricaoEvento: textos.descricaoEvento ?? '',
+          descricaoCargaHoraria: textos.descricaoCargaHoraria ?? '',
+        };
+        setCertificateCustomization(customization);
+      } else if (!existingEvent?.certificadoPersonalizacao) {
+        const defaultCustomization = await eventService.getDefaultCertificateCustomization(
+          buildCertificateCustomizationPayload(),
+        );
+        if (requestId !== certificateCustomizationRequestRef.current) return;
+
+        const textos = defaultCustomization.textos ?? {};
+        customization = {
+          ...certificateCustomization,
+          template: defaultCustomization.templateUrl ?? certificateCustomization.template,
+          titulo: certificateCustomization.titulo || textos.titulo || '',
+          subtitulo: certificateCustomization.subtitulo || textos.subtitulo || '',
+          descricaoInicio: certificateCustomization.descricaoInicio || textos.descricaoInicio || '',
+          descricaoEvento: certificateCustomization.descricaoEvento || textos.descricaoEvento || '',
+          descricaoCargaHoraria:
+            certificateCustomization.descricaoCargaHoraria || textos.descricaoCargaHoraria || '',
+        };
+        setCertificateCustomization(() => customization);
+      }
+
+      const previewPdf = await eventService.previewCertificateCustomization(
+        buildCertificateCustomizationPayload(customization),
       );
       if (requestId !== certificateCustomizationRequestRef.current) return;
 
-      const textos = defaultCustomization.textos ?? {};
-      setCertificateCustomization((cur) => ({
-        ...cur,
-        template: defaultCustomization.templateUrl ?? cur.template,
-        titulo: cur.titulo || textos.titulo || '',
-        subtitulo: cur.subtitulo || textos.subtitulo || '',
-        descricaoInicio: cur.descricaoInicio || textos.descricaoInicio || '',
-        descricaoEvento: cur.descricaoEvento || textos.descricaoEvento || '',
-        descricaoCargaHoraria: cur.descricaoCargaHoraria || textos.descricaoCargaHoraria || '',
-      }));
-
-      if (defaultCustomization.previewPdf) {
-        setCertificatePreviewUrl((currentUrl) => {
-          if (currentUrl) URL.revokeObjectURL(currentUrl);
-          return URL.createObjectURL(defaultCustomization.previewPdf as Blob);
-        });
-      }
+      setCertificatePreviewUrl((currentUrl) => {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        return URL.createObjectURL(previewPdf);
+      });
     } catch (error) {
       if (requestId !== certificateCustomizationRequestRef.current) return;
 

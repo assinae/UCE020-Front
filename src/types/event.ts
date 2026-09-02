@@ -2,6 +2,7 @@ import type { Activity } from '@/types/activity';
 
 export interface CertificateCustomization {
   template?: string | null;
+  templateUrl?: string | null;
   textos?: {
     titulo?: string;
     subtitulo?: string;
