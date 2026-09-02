@@ -12,6 +12,7 @@ import { Toast } from '@/components/ui/Toast';
 import { ToastSeverity } from '@/types/toast';
 import { useCertificatePdfPreview } from '@/features/certificate/hooks/useCertificatePdfPreview';
 import { baixarCertificadoPdf } from '@/features/certificate/utils/certificatePdf';
+import { resolveCertificateTemplateUrl } from '@/types/event';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { formatBahiaDate } from '@/utils/date';
 
@@ -80,6 +81,8 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   }
 
   const isOrganizer = mockUser.role === 'organizer';
+  const templateUrl = resolveCertificateTemplateUrl(cert as Parameters<typeof resolveCertificateTemplateUrl>[0]);
+  const hasCustomTemplate = Boolean(templateUrl);
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
@@ -141,6 +144,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              position: 'relative',
             }}
           >
             {pdf.isLoading ? (
@@ -150,7 +154,14 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
                 component="iframe"
                 src={pdf.url}
                 title={`Certificado - ${cert.title}`}
-                sx={{ width: '100%', height: '100%', border: 0 }}
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  border: 0,
+                  position: 'relative',
+                  zIndex: 1,
+                  backgroundColor: 'rgba(255,255,255,0.7)',
+                }}
               />
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: '#94a3b8' }}>
@@ -206,10 +217,18 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
                   </Typography>
                 </Box>
               )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Draw sx={{ fontSize: 16, color: cert.status === 'Assinado' ? '#059669' : '#64748b' }} />
+                <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: cert.status === 'Assinado' ? '#059669' : '#64748b' }}>
+                  {cert.status === 'Assinado'
+                    ? `Assinado digitalmente${cert.assinadoPor ? ` por ${cert.assinadoPor}` : ''}`
+                    : 'Pendente de assinatura'}
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: { xs: 4, md: 0 } }}>
-              {isOrganizer && (
+              {isOrganizer && cert.status !== 'Assinado' && (
                 <Button
                   variant="contained"
                   color="primary"

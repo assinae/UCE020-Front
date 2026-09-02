@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Box,
@@ -52,7 +52,10 @@ export type ActivityFormState = {
   generateCertificate: boolean;
 };
 
-type TouchedState = Record<Exclude<keyof ActivityFormState, 'guests' | 'generateCertificate'>, boolean>;
+type TouchedState = Record<
+  Exclude<keyof ActivityFormState, 'guests' | 'generateCertificate'>,
+  boolean
+>;
 
 export type ActivityEventInfo = {
   title: string;
@@ -72,18 +75,9 @@ const CATEGORY_OPTIONS = [
 ];
 
 const GUEST_ROLE_OPTIONS = [
-  {
-    value: 'palestrante',
-    label: 'Palestrante — apresenta o conteúdo e conduz a fala principal da atividade.',
-  },
-  {
-    value: 'ministrante',
-    label: 'Ministrante — lidera a prática e orienta a execução do conteúdo.',
-  },
-  {
-    value: 'moderador',
-    label: 'Moderador — conduz a dinâmica, media perguntas e organiza a discussão.',
-  },
+  { value: 'palestrante', label: 'Palestrante' },
+  { value: 'ministrante', label: 'Ministrante' },
+  { value: 'moderador', label: 'Moderador' },
 ];
 
 const EMPTY_FORM: ActivityFormState = {
@@ -190,18 +184,33 @@ function getErrors(
     })(),
     startTime: (() => {
       if (touched.startTime && !form.startTime) return 'Selecione o horário de início.';
-      if (touched.startTime && eventDateRange && startDT && new Date(startDT) < new Date(eventDateRange.start)) {
+      if (
+        touched.startTime &&
+        eventDateRange &&
+        startDT &&
+        new Date(startDT) < new Date(eventDateRange.start)
+      ) {
         const hora = getBahiaTimeInput(eventDateRange.start);
         return `A atividade não pode começar antes das ${hora} (início do evento).`;
       }
-      if (touched.startTime && eventDateRange && startDT && new Date(startDT) > new Date(eventDateRange.end)) {
+      if (
+        touched.startTime &&
+        eventDateRange &&
+        startDT &&
+        new Date(startDT) > new Date(eventDateRange.end)
+      ) {
         return 'O horário de início ultrapassa o término do evento.';
       }
       return '';
     })(),
     endTime: (() => {
       if (touched.endTime && !form.endTime) return 'Selecione o horário de término.';
-      if (touched.endTime && eventDateRange && endDT && new Date(endDT) > new Date(eventDateRange.end)) {
+      if (
+        touched.endTime &&
+        eventDateRange &&
+        endDT &&
+        new Date(endDT) > new Date(eventDateRange.end)
+      ) {
         const hora = getBahiaTimeInput(eventDateRange.end);
         return `A atividade não pode terminar depois das ${hora} (término do evento).`;
       }
@@ -295,6 +304,18 @@ export default function ActivityForm({
     guests: initialValues?.guests ?? [],
   });
   const [touched, setTouched] = useState<TouchedState>(createTouchedState);
+
+  useEffect(() => {
+    if (!initialValues) return;
+    Promise.resolve().then(() => {
+      setForm({
+        ...EMPTY_FORM,
+        ...initialValues,
+        guests: initialValues.guests ?? [],
+      });
+      setTouched(createTouchedState());
+    });
+  }, [initialValues]);
 
   const [guestModalOpen, setGuestModalOpen] = useState(false);
   const [editingGuestIndex, setEditingGuestIndex] = useState<number | null>(null);
@@ -743,7 +764,9 @@ export default function ActivityForm({
                 }}
               >
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: colorTokens.text.primary }}>
+                  <Typography
+                    sx={{ fontSize: 13, fontWeight: 600, color: colorTokens.text.primary }}
+                  >
                     Gerar Certificado da Atividade
                   </Typography>
                   <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500 }}>
@@ -808,7 +831,17 @@ export default function ActivityForm({
                     onClick={() => handleOpenEditGuest(index)}
                     onDelete={() => handleRemoveGuest(index)}
                     size="small"
-                    sx={{ fontSize: 12, cursor: 'pointer' }}
+                    sx={{
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
+                        textOverflow: 'clip',
+                      },
+                    }}
                   />
                 ))}
               </Box>
@@ -865,7 +898,7 @@ export default function ActivityForm({
       </Box>
 
       <RegisterGuestModal
-        key={editingGuestIndex ?? 'new'}
+        key={`${editingGuestIndex ?? 'new'}-${guestModalOpen}`}
         open={guestModalOpen}
         onClose={() => setGuestModalOpen(false)}
         activityTitle={form.name || 'Nova atividade'}

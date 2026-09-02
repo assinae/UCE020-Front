@@ -25,6 +25,7 @@ export default function ActivityDetail({ title, date, location }: ActivityDetail
             gap: 1.5,
             alignItems: 'flex-start',
             mb: 2,
+            minWidth: 0,
         }}
     >
         <Box
@@ -41,19 +42,44 @@ export default function ActivityDetail({ title, date, location }: ActivityDetail
         >
             <CalendarTodayOutlinedIcon sx={{ fontSize: 30, color: 'text.secondary' }} />
         </Box>
-        <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: 12, color: 'text.primary', mb: 0.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+                sx={{
+                    fontSize: 12,
+                    color: 'text.primary',
+                    mb: 0.5,
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                }}
+            >
                 {title}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', minWidth: 0 }}>
             <CalendarTodayOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+            <Typography
+                sx={{
+                    fontSize: 12,
+                    color: 'text.secondary',
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                }}
+            >
                 {displayActivityDate}
             </Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5, minWidth: 0 }}>
             <PlaceOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+            <Typography
+                sx={{
+                    fontSize: 12,
+                    color: 'text.secondary',
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                }}
+            >
                 {location}
             </Typography>
             </Box>
