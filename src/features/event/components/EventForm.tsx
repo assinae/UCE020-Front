@@ -30,6 +30,8 @@ import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOu
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
+import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import { Button, TextInput, PageLoader } from '@/components/ui';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -217,6 +219,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   const [touched, setTouched] = useState<TouchedState>(createTouchedState);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [showCertificateCustomization, setShowCertificateCustomization] = useState(false);
+  const [certificateCustomizationCollapsed, setCertificateCustomizationCollapsed] = useState(false);
   const [certificateCustomization, setCertificateCustomization] =
     useState<CertificateCustomizationState>(DEFAULT_CERTIFICATE_CUSTOMIZATION);
   const [certificateCustomizationBeforeEdit, setCertificateCustomizationBeforeEdit] =
@@ -394,6 +397,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   async function handleOpenCertificateCustomization() {
     const requestId = ++certificateCustomizationRequestRef.current;
     setCertificateCustomizationBeforeEdit(certificateCustomization);
+    setCertificateCustomizationCollapsed(false);
     setShowCertificateCustomization(true);
     setCertificateCustomizationError('');
     setCertificateCustomizationLoading(true);
@@ -1053,28 +1057,73 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   </Box>
                 </Box>
 
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={
-                    showCertificateCustomization
-                      ? handleCancelCertificateCustomization
-                      : handleOpenCertificateCustomization
-                  }
-                  disabled={
-                    !showCertificateCustomization && (!canSubmit || certificateCustomizationLoading)
-                  }
-                  sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                    gap: 1,
+                    width: { xs: '100%', sm: 'auto' },
+                  }}
                 >
-                  {showCertificateCustomization
-                    ? 'Cancelar personalização'
-                    : certificateCustomizationLoading
-                      ? 'Carregando...'
-                      : 'Personalizar certificado'}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={
+                      showCertificateCustomization
+                        ? handleCancelCertificateCustomization
+                        : handleOpenCertificateCustomization
+                    }
+                    disabled={
+                      !showCertificateCustomization &&
+                      (!canSubmit || certificateCustomizationLoading)
+                    }
+                    sx={{
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: { xs: 10, sm: 14 },
+                      textTransform: 'none',
+                    }}
+                  >
+                    {showCertificateCustomization
+                      ? 'Cancelar personalização'
+                      : certificateCustomizationLoading
+                        ? 'Carregando...'
+                        : 'Personalizar certificado'}
+                  </Button>
+                  {showCertificateCustomization ? (
+                    <Tooltip
+                      title={
+                        certificateCustomizationCollapsed
+                          ? 'Expandir personalização'
+                          : 'Retrair personalização'
+                      }
+                      arrow
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label={
+                          certificateCustomizationCollapsed
+                            ? 'Expandir personalização'
+                            : 'Retrair personalização'
+                        }
+                        onClick={() =>
+                          setCertificateCustomizationCollapsed((collapsed) => !collapsed)
+                        }
+                        sx={{ color: colorTokens.navigation.default }}
+                      >
+                        {certificateCustomizationCollapsed ? (
+                          <ExpandMoreOutlinedIcon />
+                        ) : (
+                          <ExpandLessOutlinedIcon />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
+                </Box>
               </Box>
 
-              {showCertificateCustomization ? (
+              {showCertificateCustomization && !certificateCustomizationCollapsed ? (
                 <Box sx={{ display: 'grid', gap: 1.5 }}>
                   <ImageUpload
                     label={
@@ -1106,7 +1155,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
                   <Box sx={{ display: 'grid', gap: 0.75 }}>
                     <Typography
-                      sx={{ fontSize: 12, fontWeight: 600, color: colorTokens.text.primary }}
+                      sx={{
+                        fontSize: { xs: 11, sm: 12 },
+                        fontWeight: 600,
+                        color: colorTokens.text.primary,
+                      }}
                     >
                       Descrição
                     </Typography>
@@ -1141,7 +1194,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                           py: 0.75,
                           borderRadius: '6px',
                           bgcolor: colorTokens.surface.background,
-                          fontSize: 12,
+                          fontSize: { xs: 10, sm: 12 },
                           color: colorTokens.text.primary,
                           minWidth: 0,
                           width: 'fit-content',
@@ -1158,7 +1211,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       </Typography>
                       <Typography
                         sx={{
-                          fontSize: 18,
+                          fontSize: { xs: 16, sm: 18 },
                           fontWeight: 700,
                           color: colorTokens.navigation.default,
                         }}
@@ -1185,7 +1238,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     >
                       <Typography
                         sx={{
-                          fontSize: 18,
+                          fontSize: { xs: 16, sm: 18 },
                           fontWeight: 700,
                           color: colorTokens.navigation.default,
                         }}
@@ -1198,7 +1251,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                           py: 0.75,
                           borderRadius: '6px',
                           bgcolor: colorTokens.surface.background,
-                          fontSize: 12,
+                          fontSize: { xs: 10, sm: 12 },
                           color: colorTokens.text.primary,
                           minWidth: 0,
                           width: 'fit-content',
@@ -1215,7 +1268,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       </Typography>
                       <Typography
                         sx={{
-                          fontSize: 18,
+                          fontSize: { xs: 16, sm: 18 },
                           fontWeight: 700,
                           color: colorTokens.navigation.default,
                         }}
@@ -1242,10 +1295,18 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       border: `1px solid ${colorTokens.neutral.gray300}`,
                     }}
                   >
-                    <Typography sx={{ fontSize: 11, color: colorTokens.neutral.gray500, mb: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: 10, sm: 11 },
+                        color: colorTokens.neutral.gray500,
+                        mb: 0.5,
+                      }}
+                    >
                       Visualização completa da descrição
                     </Typography>
-                    <Typography sx={{ fontSize: 12, color: colorTokens.text.primary }}>
+                    <Typography
+                      sx={{ fontSize: { xs: 11, sm: 12 }, color: colorTokens.text.primary }}
+                    >
                       {certificateDescriptionPreview || 'A descrição aparecerá aqui.'}
                     </Typography>
                   </Box>
@@ -1307,7 +1368,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       leftIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 14 }} />}
                       onClick={handlePreviewCertificateCustomization}
                       disabled={!canSubmit || certificatePreviewLoading}
-                      sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
+                        textTransform: 'none',
+                      }}
                     >
                       {certificatePreviewLoading
                         ? 'Gerando...'
@@ -1318,7 +1384,12 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       color="secondary"
                       leftIcon={<CloseOutlinedIcon sx={{ fontSize: 14 }} />}
                       onClick={handleCancelCertificateCustomization}
-                      sx={{ borderRadius: '6px', fontWeight: 700, textTransform: 'none' }}
+                      sx={{
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
+                        textTransform: 'none',
+                      }}
                     >
                       Cancelar Personalização
                     </Button>
@@ -1331,6 +1402,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       sx={{
                         borderRadius: '6px',
                         fontWeight: 700,
+                        fontSize: { xs: 10, sm: 14 },
                         textTransform: 'none',
                       }}
                     >
@@ -1338,6 +1410,19 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                         ? 'Personalização salva'
                         : 'Salvar personalização'}
                     </Button>
+                    <Tooltip title="Retrair personalização" arrow>
+                      <IconButton
+                        size="small"
+                        aria-label="Retrair personalização"
+                        onClick={() => setCertificateCustomizationCollapsed(true)}
+                        sx={{
+                          color: colorTokens.navigation.default,
+                          alignSelf: 'center',
+                        }}
+                      >
+                        <ExpandLessOutlinedIcon />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 </Box>
               ) : null}
