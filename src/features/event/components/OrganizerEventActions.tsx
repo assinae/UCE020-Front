@@ -169,17 +169,6 @@ export function OrganizerEventActions({
           Certificados Gerados
         </Button>
       )}
-      {isFinalized && (
-        <Button
-          variant="outlined"
-          color="secondary"
-          fullWidth
-          onClick={onViewCertificates}
-          sx={{ ...actionButtonSx }}
-        >
-          Certificados Gerados
-        </Button>
-      )}
 
       <ConfirmModal
         open={isConfirmOpen}
