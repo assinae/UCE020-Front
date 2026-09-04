@@ -57,7 +57,7 @@ export function HowItWorksSection() {
       sx={{
         width: '100%',
         py: { xs: 8, md: 14 },
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#F2F6F7',
         position: 'relative',
         overflow: 'hidden',
       }}

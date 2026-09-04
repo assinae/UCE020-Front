@@ -37,7 +37,8 @@ function HamburgerIcon({ color }: { color: string }) {
 export function Header({ user = null, onMenuClick }: HeaderProps) {
   const isLoggedIn = !!user;
   const pathname = usePathname();
-  const isPageLearnMore = pathname.includes('/landing-page/learn-more');
+  const isSimpleHeaderPage =
+    pathname.includes('/landing-page/learn-more') || pathname.includes('/landing-page/tutorial');
 
   if (isLoggedIn) {
     return (
@@ -55,7 +56,7 @@ export function Header({ user = null, onMenuClick }: HeaderProps) {
     );
   }
 
-  if (isPageLearnMore) {
+  if (isSimpleHeaderPage) {
     return (
       <AppBar
         position="fixed"
