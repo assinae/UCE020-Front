@@ -1310,8 +1310,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       value={certificateCustomization.descricaoEvento}
                       onChange={(value) => updateCertificateCustomization('descricaoEvento', value)}
                       size="small"
-                      fullWidth={false}
-                      sx={{ width: '100%' }}
+                      fullWidth
                       slotProps={{
                         htmlInput: {
                           maxLength:
@@ -1380,8 +1379,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                         updateCertificateCustomization('descricaoCargaHoraria', value)
                       }
                       size="small"
-                      fullWidth={false}
-                      sx={{ width: '100%' }}
+                      fullWidth
                       slotProps={{
                         htmlInput: {
                           maxLength:
