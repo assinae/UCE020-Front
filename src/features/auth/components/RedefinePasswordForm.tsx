@@ -31,13 +31,13 @@ export function RedefinePasswordForm() {
     repetirSenha: false,
   });
 
-  const errors = touched.novaSenha || touched.repetirSenha
+  const errors = touched.novaSenha || touched.repetirSenha || novaSenha.length > 0 || repetirSenha.length > 0
     ? validate({ novaSenha, repetirSenha })
     : {};
 
-  const novaSenhaError    = touched.novaSenha    && !!errors.novaSenha;
-  const repetirSenhaError = touched.repetirSenha && !!errors.repetirSenha;
-  const showSecurityTips = novaSenhaError;
+  const novaSenhaError    = !!errors.novaSenha;
+  const repetirSenhaError = !!errors.repetirSenha;
+  const showSecurityTips = novaSenhaError || novaSenha.length > 0;
 
   function onSubmit(e: React.FormEvent) {
     const token = searchParams.get("token") || "";

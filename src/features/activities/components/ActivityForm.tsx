@@ -75,18 +75,9 @@ const CATEGORY_OPTIONS = [
 ];
 
 const GUEST_ROLE_OPTIONS = [
-  {
-    value: 'palestrante',
-    label: 'Palestrante — apresenta o conteúdo e conduz a fala principal da atividade.',
-  },
-  {
-    value: 'ministrante',
-    label: 'Ministrante — lidera a prática e orienta a execução do conteúdo.',
-  },
-  {
-    value: 'moderador',
-    label: 'Moderador — conduz a dinâmica, media perguntas e organiza a discussão.',
-  },
+  { value: 'palestrante', label: 'Palestrante' },
+  { value: 'ministrante', label: 'Ministrante' },
+  { value: 'moderador', label: 'Moderador' },
 ];
 
 const EMPTY_FORM: ActivityFormState = {
@@ -153,16 +144,16 @@ function getErrors(
   const endDT = toDateTime(form.endDate, form.endTime);
   return {
     name:
-      touched.name && form.name.trim().length < 3
+      (touched.name || form.name.length > 0) && form.name.trim().length < 3
         ? 'Informe um nome com pelo menos 3 caracteres.'
         : '',
     category: touched.category && !form.category ? 'Selecione uma categoria.' : '',
     location:
-      touched.location && form.location.trim().length < 1
+      (touched.location || form.location.length > 0) && form.location.trim().length < 1
         ? 'Informe a localização da atividade.'
         : '',
     workload: (() => {
-      if (!touched.workload) return '';
+      if (!touched.workload && !form.workload) return '';
       if (!form.workload.trim()) return 'Informe a carga horária.';
       const num = Number(form.workload);
       if (isNaN(num) || num <= 0) return 'Informe um número válido de horas.';
@@ -171,30 +162,30 @@ function getErrors(
       return '';
     })(),
     description:
-      touched.description && form.description.trim().length < 10
+      (touched.description || form.description.length > 0) && form.description.trim().length < 10
         ? 'Descreva melhor a atividade (mínimo 10 caracteres).'
         : '',
     startDate: (() => {
       if (touched.startDate && !form.startDate) return 'Selecione a data de início.';
-      if (touched.startDate && form.startDate && form.startDate < minDate)
+      if ((touched.startDate || Boolean(form.startDate)) && form.startDate && form.startDate < minDate)
         return `A data de início deve ser a partir de ${formatDateBR(minDate)}.`;
-      if (touched.startDate && form.startDate && maxDate && form.startDate > maxDate)
+      if ((touched.startDate || Boolean(form.startDate)) && form.startDate && maxDate && form.startDate > maxDate)
         return `A data de início deve ser até ${formatDateBR(maxDate)}.`;
       return '';
     })(),
     endDate: (() => {
       if (touched.endDate && !form.endDate) return 'Selecione a data de término.';
       const effectiveMin = form.startDate && form.startDate > minDate ? form.startDate : minDate;
-      if (touched.endDate && form.endDate && form.endDate < effectiveMin)
+      if ((touched.endDate || Boolean(form.endDate)) && form.endDate && form.endDate < effectiveMin)
         return 'A data de término inválida.';
-      if (touched.endDate && form.endDate && maxDate && form.endDate > maxDate)
+      if ((touched.endDate || Boolean(form.endDate)) && form.endDate && maxDate && form.endDate > maxDate)
         return `A data de término deve ser até ${formatDateBR(maxDate)}.`;
       return '';
     })(),
     startTime: (() => {
       if (touched.startTime && !form.startTime) return 'Selecione o horário de início.';
       if (
-        touched.startTime &&
+        (touched.startTime || Boolean(form.startTime)) &&
         eventDateRange &&
         startDT &&
         new Date(startDT) < new Date(eventDateRange.start)
@@ -203,7 +194,7 @@ function getErrors(
         return `A atividade não pode começar antes das ${hora} (início do evento).`;
       }
       if (
-        touched.startTime &&
+        (touched.startTime || Boolean(form.startTime)) &&
         eventDateRange &&
         startDT &&
         new Date(startDT) > new Date(eventDateRange.end)
@@ -215,7 +206,7 @@ function getErrors(
     endTime: (() => {
       if (touched.endTime && !form.endTime) return 'Selecione o horário de término.';
       if (
-        touched.endTime &&
+        (touched.endTime || Boolean(form.endTime)) &&
         eventDateRange &&
         endDT &&
         new Date(endDT) > new Date(eventDateRange.end)
@@ -223,7 +214,7 @@ function getErrors(
         const hora = getBahiaTimeInput(eventDateRange.end);
         return `A atividade não pode terminar depois das ${hora} (término do evento).`;
       }
-      if (touched.endTime && startDT && endDT && new Date(endDT) < new Date(startDT)) {
+      if ((touched.endTime || Boolean(form.endTime)) && startDT && endDT && new Date(endDT) < new Date(startDT)) {
         return 'O término não pode ser antes do início.';
       }
       return '';
@@ -546,7 +537,7 @@ export default function ActivityForm({
             <Box sx={{ display: 'grid', gap: 1.5 }}>
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label="Nome da Atividade"
+                  label="Nome da Atividade *"
                   value={form.name}
                   onChange={(value) => updateField('name', value)}
                   onBlur={() => markTouched('name')}
@@ -565,11 +556,11 @@ export default function ActivityForm({
                 <Box sx={{ minWidth: 0 }}>
                   <FormControl fullWidth size="small" error={Boolean(errors.category)}>
                     <InputLabel sx={{ fontSize: 14, color: colorTokens.neutral.gray500 }}>
-                      Categoria
+                      Categoria *
                     </InputLabel>
                     <Select
                       value={form.category}
-                      label="Categoria"
+                      label="Categoria *"
                       onChange={(e) => updateField('category', e.target.value)}
                       onBlur={() => markTouched('category')}
                       sx={{ borderRadius: '6px' }}
@@ -590,7 +581,7 @@ export default function ActivityForm({
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Localização"
+                    label="Localização *"
                     value={form.location}
                     onChange={(value) => updateField('location', value)}
                     onBlur={() => markTouched('location')}
@@ -620,7 +611,7 @@ export default function ActivityForm({
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label="Descrição da atividade"
+                  label="Descrição da atividade *"
                   value={form.description}
                   onChange={(value) => updateField('description', value)}
                   onBlur={() => markTouched('description')}
@@ -646,7 +637,7 @@ export default function ActivityForm({
               >
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Data de Início"
+                    label="Data de Início *"
                     value={form.startDate}
                     onChange={(value) => updateField('startDate', value)}
                     onBlur={() => markTouched('startDate')}
@@ -673,7 +664,7 @@ export default function ActivityForm({
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Data de Término"
+                    label="Data de Término *"
                     value={form.endDate}
                     onChange={(value) => updateField('endDate', value)}
                     onBlur={() => markTouched('endDate')}
@@ -700,7 +691,7 @@ export default function ActivityForm({
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Horário de Início"
+                    label="Horário de Início *"
                     value={form.startTime}
                     onChange={(value) => updateField('startTime', value)}
                     onBlur={() => markTouched('startTime')}
@@ -719,7 +710,7 @@ export default function ActivityForm({
 
                 <Box sx={{ minWidth: 0 }}>
                   <TextInput
-                    label="Horário de Término"
+                    label="Horário de Término *"
                     value={form.endTime}
                     onChange={(value) => updateField('endTime', value)}
                     onBlur={() => markTouched('endTime')}
@@ -739,7 +730,7 @@ export default function ActivityForm({
 
               <Box sx={{ minWidth: 0 }}>
                 <TextInput
-                  label="Carga horária (h)"
+                  label="Carga horária (h) *"
                   value={form.workload}
                   onChange={(value) => updateField('workload', value)}
                   onBlur={() => markTouched('workload')}
