@@ -3,6 +3,7 @@ import type { Participant, PresenceFilter } from '@/types/participant';
 import { ManagementListCard } from '@/features/management/components/ManagementListCard';
 import { ParticipantsSearchBar } from './ParticipantsSearchBar';
 import { ParticipantRow } from './ParticipantRow';
+import { PresenceSummary } from './PresenceSummary';
 
 interface ParticipantsListCardProps {
   participants: Participant[];
@@ -12,6 +13,8 @@ interface ParticipantsListCardProps {
   onFilterToggle: (filter: Exclude<PresenceFilter, 'all'>) => void;
   onBack?: () => void;
   renderParticipantActions?: (participant: Participant) => ReactNode;
+  confirmedCount?: number;
+  pendingCount?: number;
 }
 
 export function ParticipantsListCard({
@@ -22,10 +25,17 @@ export function ParticipantsListCard({
   onFilterToggle,
   onBack,
   renderParticipantActions,
+  confirmedCount,
+  pendingCount,
 }: ParticipantsListCardProps) {
   return (
     <ManagementListCard
       title="Participantes"
+      subtitle={
+        confirmedCount !== undefined && pendingCount !== undefined ? (
+          <PresenceSummary confirmed={confirmedCount} pending={pendingCount} />
+        ) : undefined
+      }
       onBack={onBack}
       searchRow={
         <ParticipantsSearchBar

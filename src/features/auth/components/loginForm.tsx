@@ -7,10 +7,9 @@ import {
   Box, Typography, IconButton,
   InputAdornment, Alert,
   FormControl, OutlinedInput, FormHelperText,
-  Tooltip,
 } from "@mui/material";
 import { Button } from "@/components/ui/Button";
-import { Visibility, VisibilityOff, ArrowBackIos, InfoOutlined } from "@mui/icons-material";
+import { Visibility, VisibilityOff, ArrowBackIos } from "@mui/icons-material";
 import { useLogin } from "../hooks/useLogin";
 import { formatBahiaYear } from "@/utils/date";
 
@@ -41,19 +40,6 @@ const labelSx = {
   letterSpacing: "0.04em",
   textTransform: "uppercase" as const,
 };
-
-function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-      <Typography sx={labelSx}>{label}</Typography>
-      <Tooltip title={helpText} arrow placement="top">
-        <IconButton size="small" sx={{ p: 0.25, color: gray400 }}>
-          <InfoOutlined sx={{ fontSize: 15 }} />
-        </IconButton>
-      </Tooltip>
-    </Box>
-  );
-}
 
 // ── Painel esquerdo (só desktop) ─────────────────────────
 function LeftPanel() {
@@ -145,7 +131,7 @@ export function LoginForm() {
 
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailEmpty   = touched.email    && email.trim() === "";
-  const emailInvalid = touched.email    && email.trim() !== "" && !EMAIL_REGEX.test(email.trim());
+  const emailInvalid = email.trim() !== "" && !EMAIL_REGEX.test(email.trim());
   const emailError   = emailEmpty || emailInvalid;
   const passwordError = touched.password && password.trim() === "";
 
@@ -218,12 +204,14 @@ export function LoginForm() {
           <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {/* E-mail */}
             <Box sx={{ mb: 2.5 }}>
-              <FieldLabelWithHelp label="E-mail" helpText="Endereço usado para entrar na sua conta e receber comunicações do sistema." />
+              <Typography sx={labelSx}>E-mail</Typography>
               <FormControl fullWidth size="small" error={emailError}>
                 <OutlinedInput
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
+                  required
+                  aria-required="true"
                   onChange={(e) => setEmail(e.target.value)}
                   onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                   sx={inputSx(emailError)}
@@ -235,12 +223,14 @@ export function LoginForm() {
 
             {/* Senha */}
             <Box sx={{ mb: 1 }}>
-              <FieldLabelWithHelp label="Senha" helpText="Senha da sua conta de acesso ao sistema." />
+              <Typography sx={labelSx}>Senha</Typography>
               <FormControl fullWidth size="small" error={passwordError}>
                 <OutlinedInput
                   type={showPass ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
+                  required
+                  aria-required="true"
                   onChange={(e) => setPassword(e.target.value)}
                   onBlur={() => setTouched((t) => ({ ...t, password: true }))}
                   sx={inputSx(passwordError)}

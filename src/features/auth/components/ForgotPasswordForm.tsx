@@ -61,7 +61,7 @@ function StepForm({ email, setEmail, onSubmit, loading, error }: {
 
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmpty    = touched && email.trim() === "";
-  const isInvalid  = touched && email.trim() !== "" && !EMAIL_REGEX.test(email.trim());
+  const isInvalid  = email.trim() !== "" && !EMAIL_REGEX.test(email.trim());
   const hasError   = isEmpty || isInvalid;
 
   function handleSubmit(e: React.FormEvent) {
