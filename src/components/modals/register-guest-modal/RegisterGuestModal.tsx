@@ -7,12 +7,13 @@ import { Button, SelectInput, TextInput } from "@/components/ui";
 import { ModalContainer, CloseButton, ModalContent } from "@/components/modals";
 import { ActivityDetail } from "@/components";
 import type { RegisterGuestModalProps, FieldErrors } from "@/types/registerGuestModal";
+import { CERTIFICATE_TEXT_LIMITS } from '@/lib/certificateTextLimits';
 
 function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
       <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-        {label}
+        {label} <Box component="span" sx={{ color: 'error.main' }} aria-hidden="true">*</Box>
       </Typography>
       <Tooltip title={helpText} arrow placement="top">
         <IconButton size="small" sx={{ p: 0.25, color: 'text.secondary' }}>
@@ -49,6 +50,8 @@ export default function RegisterGuestModal({
       newErrors.fullName = "Nome completo é obrigatório";
     } else if (touched.fullName && fullName.trim().length < 3) {
       newErrors.fullName = "Nome deve ter no mínimo 3 caracteres";
+    } else if (fullName.length > CERTIFICATE_TEXT_LIMITS.nomeParticipante) {
+      newErrors.fullName = `Nome deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.nomeParticipante} caracteres`;
     }
 
     if (touched.role && role.trim().length === 0) {
@@ -57,7 +60,7 @@ export default function RegisterGuestModal({
 
     if (touched.email && email.trim().length === 0) {
       newErrors.email = "E-mail é obrigatório";
-    } else if (touched.email && !email.includes("@")) {
+    } else if ((touched.email || email.length > 0) && !email.includes("@")) {
       newErrors.email = "E-mail inválido";
     }
 
@@ -101,11 +104,7 @@ export default function RegisterGuestModal({
               : 'Preencha os dados abaixo para cadastrar palestrantes ou ministrantes do evento'}
           </Typography>
 
-          <ActivityDetail
-            title={activityTitle}
-            date={activityDate}
-            location={activityLocation}
-          />
+          <ActivityDetail title={activityTitle} date={activityDate} location={activityLocation} />
         </Box>
 
         <Box sx={{ px: 3 }}>
@@ -120,7 +119,7 @@ export default function RegisterGuestModal({
               label={
                 <FieldLabelWithHelp
                   label="Nome Completo"
-                  helpText="Nome completo do participante ou convidado que será registrado no evento."
+                  helpText="Utilizado na emissão de certificados"
                 />
               }
               value={fullName}
@@ -128,6 +127,8 @@ export default function RegisterGuestModal({
               onBlur={() => handleBlur('fullName')}
               size="small"
               error={Boolean(errors.fullName)}
+              aria-required="true"
+              slotProps={{ htmlInput: { maxLength: CERTIFICATE_TEXT_LIMITS.nomeParticipante } }}
             />
             {errors.fullName && (
               <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>
@@ -139,10 +140,7 @@ export default function RegisterGuestModal({
           <div>
             <SelectInput
               label={
-                <FieldLabelWithHelp
-                  label="Função"
-                  helpText="Papel do convidado dentro do evento. O palestrante apresenta o conteúdo, o ministrante conduz a prática e o moderador organiza a discussão e media perguntas."
-                />
+                <FieldLabelWithHelp label="Função" helpText="Define a atuação na atividade" />
               }
               value={role}
               onChange={setRole}
@@ -150,6 +148,7 @@ export default function RegisterGuestModal({
               options={roleOptions}
               size="small"
               error={Boolean(errors.role)}
+              aria-required="true"
               onBlur={() => handleBlur('role')}
             />
             {errors.role && (
@@ -161,18 +160,14 @@ export default function RegisterGuestModal({
 
           <div>
             <TextInput
-              label={
-                <FieldLabelWithHelp
-                  label="E-mail"
-                  helpText="Endereço eletrônico usado para comunicação, confirmação e organização do participante."
-                />
-              }
+              label="E-mail *"
               value={email}
               onChange={setEmail}
               onBlur={() => handleBlur('email')}
               type="email"
               size="small"
               error={Boolean(errors.email)}
+              aria-required="true"
             />
             {errors.email && (
               <Typography sx={{ fontSize: 12, color: 'error.main', mt: 0.5 }}>

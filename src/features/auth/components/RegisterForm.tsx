@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { useRegister } from "../hooks/useRegister";
 import { UserRegister } from "../types/userRegister";
 import { formatBahiaYear } from "@/utils/date";
+import { CERTIFICATE_TEXT_LIMITS } from '@/lib/certificateTextLimits';
 
 // ── Design tokens ────────────────────────────────────────
 const navy   = "#13284D";
@@ -59,7 +60,7 @@ const labelSx = {
 function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-      <Typography sx={labelSx}>{label}</Typography>
+      <Typography sx={labelSx}>{label} <Box component="span" sx={{ color: '#EF4444' }} aria-hidden="true">*</Box></Typography>
       <Tooltip title={helpText} arrow placement="top">
         <IconButton size="small" sx={{ p: 0.25, color: gray400 }}>
           <InfoOutlined sx={{ fontSize: 15 }} />
@@ -149,6 +150,7 @@ function LeftPanel() {
 function Field({
   label, value, onChange, type = "text",
   placeholder, error, helperText, endAdornment, onBlur,
+  maxLength,
 }: {
   label: React.ReactNode; value: string;
   onChange: (v: string) => void;
@@ -156,6 +158,7 @@ function Field({
   error?: boolean; helperText?: string;
   endAdornment?: React.ReactNode;
   onBlur?: () => void;
+  maxLength?: number;
 }) {
   return (
     <Box>
@@ -168,6 +171,9 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           endAdornment={endAdornment}
+          inputProps={maxLength ? { maxLength } : undefined}
+          required
+          aria-required="true"
           sx={inputSx(error)}
         />
         {error && helperText && <FormHelperText>{helperText}</FormHelperText>}
@@ -202,58 +208,116 @@ function StepForm({ onSubmit, loading, error }: {
   const set  = (k: string) => (v: string) => setFields((f) => ({ ...f, [k]: v }));
   const blur = (k: string) => () => setTouched((t) => ({ ...t, [k]: true }));
   const err  = (k: string) => touched[k] && fields[k as keyof typeof fields].trim() === "";
+  const nomeInvalido = fields.nome.length > CERTIFICATE_TEXT_LIMITS.nomeParticipante;
 
   const validateEmail = (e: string) => /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(e);
-  const senhasDiferem = touched.confirmaSenha && fields.confirmaSenha !== "" && fields.senha !== fields.confirmaSenha;
+  const senhasDiferem = (touched.confirmaSenha || fields.confirmaSenha.length > 0) && fields.confirmaSenha !== "" && fields.senha !== fields.confirmaSenha;
   const isSenhaValid  = SECURITY_RULES.every((r) => r.test(fields.senha));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setTouched(Object.fromEntries(Object.keys(fields).map((k) => [k, true])));
-    if (Object.values(fields).some((v) => v.trim() === "") || senhasDiferem || !validateEmail(fields.email) || !isSenhaValid) return;
+    if (Object.values(fields).some((v) => v.trim() === "") || nomeInvalido || senhasDiferem || !validateEmail(fields.email) || !isSenhaValid) return;
     onSubmit({ name: fields.nome, email: fields.email, password: fields.senha });
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {error && <Alert severity="error" sx={{ borderRadius: "12px" }}>{error}</Alert>}
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      noValidate
+      sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
+    >
+      {error && (
+        <Alert severity="error" sx={{ borderRadius: '12px' }}>
+          {error}
+        </Alert>
+      )}
 
-      <Field label={<FieldLabelWithHelp label="Nome completo" helpText="Nome da pessoa que vai usar a conta e aparecer nos registros do sistema." />} value={fields.nome} onChange={set("nome")}
-             onBlur={blur("nome")} error={err("nome")} helperText="Nome obrigatório."
-             placeholder="Seu nome completo" />
+      <Field
+        label={
+          <FieldLabelWithHelp
+            label="Nome completo"
+            helpText="Utilizado na emissão de certificados"
+          />
+        }
+        value={fields.nome}
+        onChange={set('nome')}
+        onBlur={blur('nome')}
+        error={err('nome') || nomeInvalido}
+        helperText={
+          nomeInvalido
+            ? `Nome deve ter no máximo ${CERTIFICATE_TEXT_LIMITS.nomeParticipante} caracteres.`
+            : 'Nome obrigatório.'
+        }
+        placeholder="Seu nome completo"
+        maxLength={CERTIFICATE_TEXT_LIMITS.nomeParticipante}
+      />
 
-      <Field label={<FieldLabelWithHelp label="E-mail" helpText="Endereço eletrônico usado para login, recuperação de senha e comunicação da conta." />} value={fields.email} onChange={set("email")} type="email"
-             onBlur={blur("email")}
-             error={err("email") || (touched.email && !validateEmail(fields.email))}
-             helperText={err("email") ? "E-mail obrigatório." : "E-mail inválido."}
-             placeholder="seu@email.com" />
+      <Field
+        label="E-mail"
+        value={fields.email}
+        onChange={set('email')}
+        type="email"
+        onBlur={blur('email')}
+        error={err('email') || (fields.email.length > 0 && !validateEmail(fields.email))}
+        helperText={
+          err('email')
+            ? 'E-mail obrigatório.'
+            : fields.email.length > 0 && !validateEmail(fields.email)
+              ? 'Informe um e-mail válido.'
+              : undefined
+        }
+        placeholder="seu@email.com"
+      />
 
       <Box>
-        <Field label={<FieldLabelWithHelp label="Senha" helpText="Senha usada para acessar sua conta. Deve atender aos requisitos de segurança para proteger seu acesso." />} value={fields.senha} onChange={set("senha")}
-               type={showSenha ? "text" : "password"}
-               onBlur={blur("senha")} error={err("senha")} helperText="Senha obrigatória."
-               endAdornment={<EyeBtn show={showSenha} toggle={() => setShowSenha((p) => !p)} />} />
+        <Field
+          label="Senha"
+          value={fields.senha}
+          onChange={set('senha')}
+          type={showSenha ? 'text' : 'password'}
+          onBlur={blur('senha')}
+          error={err('senha')}
+          helperText="Senha obrigatória."
+          endAdornment={<EyeBtn show={showSenha} toggle={() => setShowSenha((p) => !p)} />}
+        />
 
         {/* Requisitos de senha */}
-        {touched.senha && (
-          <Box sx={{
-            mt: 1.5,
-            p: 2,
-            bgcolor: gray50,
-            border: `1px solid ${gray200}`,
-            borderRadius: "12px",
-          }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: navy, mb: 1, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+        {(touched.senha || fields.senha.length > 0) && (
+          <Box
+            sx={{
+              mt: 1.5,
+              p: 2,
+              bgcolor: gray50,
+              border: `1px solid ${gray200}`,
+              borderRadius: '12px',
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: navy,
+                mb: 1,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+            >
               Requisitos
             </Typography>
             {SECURITY_RULES.map((rule) => {
               const valid = rule.test(fields.senha);
               return (
-                <Box key={rule.label} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                  {valid
-                    ? <CheckCircle sx={{ fontSize: 13, color: green, flexShrink: 0 }} />
-                    : <RadioButtonUnchecked sx={{ fontSize: 13, color: gray400, flexShrink: 0 }} />
-                  }
+                <Box
+                  key={rule.label}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}
+                >
+                  {valid ? (
+                    <CheckCircle sx={{ fontSize: 13, color: green, flexShrink: 0 }} />
+                  ) : (
+                    <RadioButtonUnchecked sx={{ fontSize: 13, color: gray400, flexShrink: 0 }} />
+                  )}
                   <Typography sx={{ fontSize: 12, color: valid ? navy : gray400, lineHeight: 1.4 }}>
                     {rule.label}
                   </Typography>
@@ -264,12 +328,16 @@ function StepForm({ onSubmit, loading, error }: {
         )}
       </Box>
 
-      <Field label={<FieldLabelWithHelp label="Confirme a senha" helpText="Repita a mesma senha para validar a criação da conta." />} value={fields.confirmaSenha} onChange={set("confirmaSenha")}
-             type={showConfirma ? "text" : "password"}
-             onBlur={blur("confirmaSenha")}
-             error={err("confirmaSenha") || !!senhasDiferem}
-             helperText={senhasDiferem ? "As senhas não coincidem." : "Obrigatório."}
-             endAdornment={<EyeBtn show={showConfirma} toggle={() => setShowConfirma((p) => !p)} />} />
+      <Field
+        label="Confirme a senha"
+        value={fields.confirmaSenha}
+        onChange={set('confirmaSenha')}
+        type={showConfirma ? 'text' : 'password'}
+        onBlur={blur('confirmaSenha')}
+        error={err('confirmaSenha') || !!senhasDiferem}
+        helperText={senhasDiferem ? 'As senhas não coincidem.' : 'Obrigatório.'}
+        endAdornment={<EyeBtn show={showConfirma} toggle={() => setShowConfirma((p) => !p)} />}
+      />
 
       <Button
         type="submit"
@@ -278,44 +346,47 @@ function StepForm({ onSubmit, loading, error }: {
         sx={{
           mt: 0.5,
           py: 1.6,
-          borderRadius: "14px",
+          borderRadius: '14px',
           bgcolor: navy,
-          color: "#fff",
+          color: '#fff',
           fontWeight: 700,
           fontSize: 15,
-          letterSpacing: "0.01em",
+          letterSpacing: '0.01em',
           boxShadow: `0 8px 24px rgba(19,40,77,0.2)`,
-          transition: "0.2s ease",
-          "&:hover": { bgcolor: green, boxShadow: `0 8px 24px rgba(5,150,105,0.3)` },
-          "&.Mui-disabled": { bgcolor: gray200, color: gray400, boxShadow: "none" },
+          transition: '0.2s ease',
+          '&:hover': { bgcolor: green, boxShadow: `0 8px 24px rgba(5,150,105,0.3)` },
+          '&.Mui-disabled': { bgcolor: gray200, color: gray400, boxShadow: 'none' },
         }}
       >
         Criar conta
       </Button>
 
       {/* Já tem conta */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <Box sx={{ flex: 1, height: "1px", bgcolor: gray200 }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ flex: 1, height: '1px', bgcolor: gray200 }} />
         <Typography sx={{ fontSize: 12, color: gray400, fontWeight: 500 }}>ou</Typography>
-        <Box sx={{ flex: 1, height: "1px", bgcolor: gray200 }} />
+        <Box sx={{ flex: 1, height: '1px', bgcolor: gray200 }} />
       </Box>
 
       <Box
-        onClick={() => router.push("/login")}
+        onClick={() => router.push('/login')}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           py: 1.5,
-          borderRadius: "14px",
+          borderRadius: '14px',
           border: `1.5px solid ${gray200}`,
-          cursor: "pointer",
-          transition: "0.2s ease",
-          "&:hover": { borderColor: teal, bgcolor: gray50 },
+          cursor: 'pointer',
+          transition: '0.2s ease',
+          '&:hover': { borderColor: teal, bgcolor: gray50 },
         }}
       >
         <Typography sx={{ fontSize: 14, color: navy, fontWeight: 600 }}>
-          Já tem conta? <Box component="span" sx={{ color: green, fontWeight: 700 }}>Fazer login</Box>
+          Já tem conta?{' '}
+          <Box component="span" sx={{ color: green, fontWeight: 700 }}>
+            Fazer login
+          </Box>
         </Typography>
       </Box>
     </Box>

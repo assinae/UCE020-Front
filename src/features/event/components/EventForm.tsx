@@ -45,6 +45,7 @@ import { resolveCertificateTemplateUrl } from '@/types/event';
 import { eventService, type CertificateCustomizationDraftPayload } from '@/services/eventService';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
+import { CERTIFICATE_TEXT_LIMITS } from '@/lib/certificateTextLimits';
 
 type EventFormMode = 'create' | 'edit';
 
@@ -107,22 +108,14 @@ const DEFAULT_CERTIFICATE_CUSTOMIZATION: CertificateCustomizationState = {
   descricaoCargaHoraria: '',
 };
 
-const CERTIFICATE_TEXT_LIMITS = {
-  titulo: 70,
-  subtitulo: 80,
-  nomeEvento: 60,
-  nomeParticipante: 60,
-  descricaoTotal: 310,
-} as const;
-
-function FieldLabelWithHelp({ label, helpText }: { label: string; helpText: string }) {
+function FieldLabelWithHelp({ label, helpText, required = true }: { label: string; helpText: string; required?: boolean }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
       <Typography
         component="span"
         sx={{ fontSize: 12, fontWeight: 500, color: colorTokens.text.primary }}
       >
-        {label}
+        {label}{required ? <Box component="span" sx={{ color: 'error.main', ml: 0.25 }} aria-hidden="true">*</Box> : null}
       </Typography>
       <Tooltip title={helpText} arrow placement="top">
         <IconButton
@@ -163,18 +156,20 @@ function createTouchedState(): TouchedState {
 function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
   return {
     nome:
-      touched.nome && form.nome.trim().length < 3
+      (touched.nome || form.nome.length > 0) && form.nome.trim().length < 3
         ? 'Informe um nome com pelo menos 3 caracteres.'
         : '',
     localizacao:
-      touched.localizacao && form.localizacao.trim().length < 3 ? 'Informe o local do evento.' : '',
+      (touched.localizacao || form.localizacao.length > 0) && form.localizacao.trim().length < 3 ? 'Informe o local do evento.' : '',
     responsavel:
-      touched.responsavel && form.responsavel.trim().length < 3 ? 'Informe o responsável.' : '',
+      (touched.responsavel || form.responsavel.length > 0) && form.responsavel.trim().length < 3 ? 'Informe o responsável.' : '',
     descricao:
-      touched.descricao && form.descricao.trim().length < 10 ? 'Descreva melhor o evento.' : '',
+      (touched.descricao || form.descricao.length > 0) && form.descricao.trim().length < 10
+        ? 'Descreva melhor o evento (mínimo 10 caracteres).'
+        : '',
     startDate: (() => {
       if (touched.startDate && !form.startDate) return 'Selecione a data de início.';
-      if (!isEdit && touched.startDate && form.startDate && form.startDate < getTodayString())
+      if (!isEdit && (touched.startDate || Boolean(form.startDate)) && form.startDate && form.startDate < getTodayString())
         return 'A data de início não pode ser no passado.';
       return '';
     })(),
@@ -183,7 +178,7 @@ function getErrors(form: FormState, touched: TouchedState, isEdit: boolean) {
       if (!isEdit) {
         const todayStr = getTodayString();
         const minEndDate = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
-        if (touched.endDate && form.endDate && form.endDate < minEndDate)
+        if ((touched.endDate || Boolean(form.endDate)) && form.endDate && form.endDate < minEndDate)
           return 'A data de término inválida.';
       }
       return '';
@@ -769,7 +764,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   label={
                     <FieldLabelWithHelp
                       label="Nome"
-                      helpText="Nome oficial do evento exibido para participantes e na listagem geral."
+                      helpText="Exibido no certificado e listagens"
                     />
                   }
                   value={form.nome}
@@ -792,7 +787,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   label={
                     <FieldLabelWithHelp
                       label="Local"
-                      helpText="Local onde o evento acontecerá, como sala, campus, auditório ou endereço completo."
+                      helpText="Local do evento, como sala, campus ou endereço."
                     />
                   }
                   value={form.localizacao}
@@ -825,7 +820,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   label={
                     <FieldLabelWithHelp
                       label="Responsável"
-                      helpText="Pessoa ou equipe responsável pela organização, coordenação e comunicação do evento."
+                      helpText="Pessoa ou equipe responsável pelo evento"
                     />
                   }
                   value={form.responsavel}
@@ -858,7 +853,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   label={
                     <FieldLabelWithHelp
                       label="Descrição do evento"
-                      helpText="Resumo do evento, objetivo, público-alvo e qualquer informação importante para os participantes."
+                      helpText="Resumo, objetivo e informações importantes"
                     />
                   }
                   value={form.descricao}
@@ -893,7 +888,8 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                   label={
                     <FieldLabelWithHelp
                       label="Imagem do Evento"
-                      helpText="Imagem principal da capa do evento, usada na divulgação, visualização e identificação rápida do evento."
+                      helpText="Capa do evento"
+                      required={false}
                     />
                   }
                   value={form.foto}
@@ -921,7 +917,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Data de Início"
-                        helpText="Data em que o evento começa e passa a ficar disponível para participantes."
+                        helpText="Início do período do evento"
                       />
                     }
                     value={form.startDate}
@@ -951,7 +947,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Data de Término"
-                        helpText="Data em que o evento encerra, definindo o período final de atividades e inscrições."
+                        helpText="Fim do período do evento"
                       />
                     }
                     value={form.endDate}
@@ -981,7 +977,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Horário de Início"
-                        helpText="Hora em que o evento ou a primeira atividade começa oficialmente."
+                        helpText="Horário de início do evento"
                       />
                     }
                     value={form.startTime}
@@ -1008,7 +1004,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Horário de Término"
-                        helpText="Hora em que o evento ou a última atividade deve ser encerrada."
+                        helpText="Horário de término do evento"
                       />
                     }
                     value={form.endTime}
@@ -1044,7 +1040,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Carga Horária (h)"
-                        helpText="Tempo total estimado de duração do evento em horas, para fins de organização e registro."
+                        helpText="Duração total do evento em horas"
                       />
                     }
                     value={form.cargaHoraria}
@@ -1069,7 +1065,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                     label={
                       <FieldLabelWithHelp
                         label="Status"
-                        helpText="Etapa atual do evento: pendente, iniciada, em andamento ou finalizada."
+                        helpText="Atualizado automaticamente pela data de início"
                       />
                     }
                     value={form.status}
@@ -1207,6 +1203,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       <FieldLabelWithHelp
                         label="Imagem do template"
                         helpText="Imagem opcional para personalizar o fundo do certificado."
+                        required={false}
                       />
                     }
                     value={certificateCustomization.template}
@@ -1247,6 +1244,17 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       onChange={(value) => updateCertificateCustomization('descricaoInicio', value)}
                       size="small"
                       fullWidth
+                      slotProps={{
+                        htmlInput: {
+                          maxLength:
+                            Math.max(
+                              0,
+                              CERTIFICATE_TEXT_LIMITS.descricaoTotal -
+                                certificateCustomization.descricaoEvento.length -
+                                certificateCustomization.descricaoCargaHoraria.length
+                            ),
+                        },
+                      }}
                     />
                     <Box
                       sx={{
@@ -1302,8 +1310,18 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                       value={certificateCustomization.descricaoEvento}
                       onChange={(value) => updateCertificateCustomization('descricaoEvento', value)}
                       size="small"
-                      fullWidth={false}
-                      sx={{ width: '100%' }}
+                      fullWidth
+                      slotProps={{
+                        htmlInput: {
+                          maxLength:
+                            Math.max(
+                              0,
+                              CERTIFICATE_TEXT_LIMITS.descricaoTotal -
+                                certificateCustomization.descricaoInicio.length -
+                                certificateCustomization.descricaoCargaHoraria.length
+                            ),
+                        },
+                      }}
                     />
                     <Box
                       sx={{
@@ -1361,8 +1379,18 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                         updateCertificateCustomization('descricaoCargaHoraria', value)
                       }
                       size="small"
-                      fullWidth={false}
-                      sx={{ width: '100%' }}
+                      fullWidth
+                      slotProps={{
+                        htmlInput: {
+                          maxLength:
+                            Math.max(
+                              0,
+                              CERTIFICATE_TEXT_LIMITS.descricaoTotal -
+                                certificateCustomization.descricaoInicio.length -
+                                certificateCustomization.descricaoEvento.length
+                            ),
+                        },
+                      }}
                     />
                     {certificateTextError ? (
                       <Typography sx={{ fontSize: 12, color: 'error.main' }}>

@@ -77,7 +77,7 @@ export function EditUserRoleModal<T extends string>({
           Tipo de usuário
         </Typography>
         <Tooltip
-          title="Define as permissões, acessos e visibilidade do usuário dentro do sistema."
+          title="Define permissões e acessos no evento."
           arrow
           placement="top"
         >
