@@ -205,7 +205,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CalendarToday sx={{ fontSize: 16, color: '#64748b' }} />
                 <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                  Emitido em {formatBahiaDate(cert.issueDate)}
+                  Data de emissão: {formatBahiaDate(cert.issueDate)}
                 </Typography>
               </Box>
 
@@ -213,7 +213,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AccessTime sx={{ fontSize: 16, color: '#64748b' }} />
                   <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                    {cert.hours} horas de carga horária
+                    Carga Horária: {cert.hours} horas
                   </Typography>
                 </Box>
               )}
