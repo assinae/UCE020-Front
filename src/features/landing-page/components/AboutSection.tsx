@@ -36,7 +36,8 @@ export function AboutSection() {
       id="about-section"
       sx={{
         width: '100%',
-        py: { xs: 8, md: 14 },
+        pt: { xs: 4, sm: 5, md: 6 },
+        pb: { xs: 8, md: 14 },
         backgroundColor: 'white',
         overflow: 'hidden',
       }}
