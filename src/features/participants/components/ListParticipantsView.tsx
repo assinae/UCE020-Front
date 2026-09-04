@@ -18,6 +18,7 @@ import { ParticipantsListCard } from '@/features/participants/components/Partici
 import { ParticipantPresenceActions } from '@/features/participants/components/ParticipantPresenceActions';
 import { ValidatePresencesButton } from '@/features/participants/components/ValidatePresencesButton';
 import {
+  countByPresenceStatus,
   filterParticipants,
   togglePresenceFilter,
 } from '@/features/participants/utils/filterParticipants';
@@ -134,6 +135,7 @@ export function ListParticipantsView() {
   const isMonitor = role === 'monitor';
   const canEditPresence = isMonitor || role === 'organizer';
   const filteredParticipants = filterParticipants(participants, search, presenceFilter);
+  const { confirmed: confirmedCount, pending: pendingCount } = countByPresenceStatus(participants);
 
   function handleFilterToggle(filter: Exclude<PresenceFilter, 'all'>) {
     setPresenceFilter((current) => togglePresenceFilter(current, filter));
@@ -199,6 +201,8 @@ export function ListParticipantsView() {
           onFilterToggle={handleFilterToggle}
           onBack={handleBack}
           renderParticipantActions={renderParticipantActions}
+          confirmedCount={confirmedCount}
+          pendingCount={pendingCount}
         />
       )}
 

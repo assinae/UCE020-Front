@@ -7,6 +7,7 @@ import { ManagementSearchBar } from './ManagementSearchBar';
 
 interface ManagementListCardProps {
   title: string;
+  subtitle?: ReactNode;
   search?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
@@ -20,6 +21,7 @@ interface ManagementListCardProps {
 
 export function ManagementListCard({
   title,
+  subtitle,
   search = '',
   onSearchChange,
   searchPlaceholder,
@@ -53,6 +55,8 @@ export function ManagementListCard({
           {title}
         </Typography>
       </Box>
+
+      {subtitle}
 
       {searchRow ??
         (onSearchChange ? (
