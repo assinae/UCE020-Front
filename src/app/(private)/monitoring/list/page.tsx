@@ -24,8 +24,8 @@ export default function EventCreatedPage() {
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
-      <Container sx={{ py: { xs: 3, md: 4 } }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mb: 2 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2.5, md: 4 }, px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'stretch', width: '100%', minWidth: 0, mb: 2 }}>
           {isFetchingEvents ? (
             <PageLoader minHeight="calc(100dvh - 160px)" />
           ) : (
