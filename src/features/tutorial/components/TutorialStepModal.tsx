@@ -19,13 +19,11 @@ interface TutorialStepModalProps {
 export function TutorialStepModal({ open, content, onClose }: TutorialStepModalProps) {
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Sempre reabre na primeira página (ao abrir ou ao trocar de papel).
-  // Ajuste de estado durante o render, no lugar de um effect:
-  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
   const sessionKey = open ? (content?.role ?? null) : null;
   const [prevSessionKey, setPrevSessionKey] = useState(sessionKey);
+  const isNewSession = sessionKey !== prevSessionKey;
 
-  if (sessionKey !== prevSessionKey) {
+  if (isNewSession) {
     setPrevSessionKey(sessionKey);
     if (open) setPageIndex(0);
   }
@@ -33,10 +31,12 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
   if (!content) return null;
 
   const totalSteps = content.steps.length;
-  const step = content.steps[pageIndex];
+
+  const currentIndex = isNewSession ? 0 : Math.min(pageIndex, totalSteps - 1);
+  const step = content.steps[currentIndex];
   const StepIcon = step.icon;
-  const isFirst = pageIndex === 0;
-  const isLast = pageIndex === totalSteps - 1;
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === totalSteps - 1;
 
   function goPrev() {
     setPageIndex((current) => Math.max(0, current - 1));
@@ -51,15 +51,16 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
       open={open}
       onClose={onClose}
       paperSx={{
-        maxWidth: 880,
+        maxWidth: { xs: '100%', md: 1180 },
         width: '100%',
         borderRadius: { xs: '18px', md: '28px' },
         overflow: 'hidden',
         m: { xs: 1, sm: 2, md: 3 },
+        height: { xs: 'calc(100% - 16px)', md: 'min(88vh, 780px)' },
         maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 32px)' },
       }}
     >
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{ position: 'relative', height: '100%' }}>
         <Box
           sx={{
             position: 'absolute',
@@ -79,23 +80,25 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
-            minHeight: { md: 460 },
-            maxHeight: { xs: '100%', md: 'none' },
-            overflowY: { xs: 'auto', md: 'visible' },
+            height: '100%',
+            overflow: 'hidden',
           }}
         >
           {/* Left page: explanation (shown second on mobile, first on desktop) */}
           <Box
             sx={{
               order: { xs: 2, md: 1 },
-              flex: 1,
+              flex: { xs: '1 1 auto', md: 1 },
+              minWidth: 0,
+              minHeight: 0,
+              overflowY: { xs: 'auto', md: 'visible' },
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               backgroundColor: content.accentBg,
               px: { xs: 2.5, sm: 3, md: 5 },
-              py: { xs: 2.5, sm: 4, md: 5 },
-              gap: { xs: 2, md: 3 },
+              py: { xs: 2.25, sm: 3, md: 5 },
+              gap: { xs: 1.75, md: 3 },
             }}
           >
             <Box>
@@ -119,7 +122,7 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
                   textOverflow: 'ellipsis',
                 }}
               >
-                Passo {pageIndex + 1} de {totalSteps} · {content.label}
+                Passo {currentIndex + 1} de {totalSteps} · {content.label}
               </Typography>
 
               <Box
@@ -169,10 +172,11 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
                     key={s.title}
                     onClick={() => setPageIndex(index)}
                     sx={{
-                      width: index === pageIndex ? 22 : 8,
+                      width: index === currentIndex ? 22 : 8,
                       height: 8,
                       borderRadius: '999px',
-                      backgroundColor: index === pageIndex ? content.accent : `${content.accent}33`,
+                      backgroundColor:
+                        index === currentIndex ? content.accent : `${content.accent}33`,
                       cursor: 'pointer',
                       transition: 'width 0.25s ease, background-color 0.25s ease',
                     }}
@@ -180,10 +184,21 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
                 ))}
               </Box>
 
-              {isLast ? (
+              <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.25 } }}>
                 <Button
-                  component={Link}
-                  href={content.ctaHref}
+                  variant="outlined"
+                  color="secondary"
+                  onClick={goPrev}
+                  disabled={isFirst}
+                  sx={{ borderRadius: '999px', fontWeight: 700, minWidth: 0, px: { xs: 1.5, sm: 2 }, flexShrink: 0 }}
+                  aria-label="Passo anterior"
+                >
+                  <ArrowBackRoundedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                </Button>
+                <Button
+                  component={isLast ? Link : 'button'}
+                  href={isLast ? content.ctaHref : undefined}
+                  onClick={isLast ? undefined : goNext}
                   variant="contained"
                   color="secondary"
                   fullWidth
@@ -193,33 +208,11 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
                     py: { xs: 1, sm: 1.2 },
                     fontSize: { xs: '0.82rem', sm: '0.9rem' },
                   }}
+                  rightIcon={isLast ? undefined : <ArrowForwardRoundedIcon sx={{ fontSize: 18 }} />}
                 >
-                  {content.ctaLabel}
+                  {isLast ? content.ctaLabel : 'Próximo passo'}
                 </Button>
-              ) : (
-                <Box sx={{ display: 'flex', gap: { xs: 1, sm: 1.25 } }}>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={goPrev}
-                    disabled={isFirst}
-                    sx={{ borderRadius: '999px', fontWeight: 700, minWidth: 0, px: { xs: 1.5, sm: 2 }, flexShrink: 0 }}
-                    aria-label="Passo anterior"
-                  >
-                    <ArrowBackRoundedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={goNext}
-                    fullWidth
-                    sx={{ borderRadius: '999px', fontWeight: 700, fontSize: { xs: '0.82rem', sm: '0.9rem' } }}
-                    rightIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 18 }} />}
-                  >
-                    Próximo passo
-                  </Button>
-                </Box>
-              )}
+              </Box>
             </Box>
           </Box>
 
@@ -239,15 +232,12 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
           <Box
             sx={{
               order: { xs: 1, md: 3 },
-              flex: { xs: '0 0 auto', md: 1 },
+              flex: { xs: '0 0 56%', md: '1.15 1 0' },
+              minHeight: 0,
+              minWidth: 0,
               backgroundColor: { xs: '#F4F6F9', md: '#fff' },
-              p: { xs: 2, sm: 2.5, md: 3.5 },
+              p: { xs: 1.75, sm: 2.5, md: 3.5 },
               display: 'flex',
-              // Explicit `height` (not `minHeight`) so the percentage-height
-              // image frame inside has a definite size to resolve against —
-              // otherwise it collapses to 0px and nothing is visible.
-              height: { xs: 300, sm: 340, md: 'auto' },
-              flexShrink: 0,
             }}
           >
             <StepImageFrame

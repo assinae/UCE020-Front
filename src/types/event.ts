@@ -33,6 +33,8 @@ export interface Event {
   createdAt: string;
   updatedAt: string;
   totalInscritos?: number;
+  /** Papel do usuário logado no evento; preenchido pelas listagens que juntam mais de um tipo. */
+  tipoParticipacao?: 'participante' | 'monitor' | 'organizador';
 }
 
 export function resolveCertificateTemplateUrl(
