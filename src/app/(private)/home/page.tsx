@@ -14,7 +14,6 @@ import { eventService } from '@/services/eventService';
 import { participationService } from '@/services/participationService';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { useQueryClient } from '@tanstack/react-query';
-import { formatBahiaDate } from '@/utils/date';
 
 type SearchState =
   | { status: 'idle' }
@@ -155,8 +154,8 @@ export default function HomePage() {
           onClose={() => { setModalOpen(false); setSearchCode(''); setCode(''); dispatch({ type: 'RESET' }); }}
           title={searchState.event.nome}
           image={searchState.event.foto ?? undefined}
-          startDate={formatBahiaDate(searchState.event.dataInicio)}
-          endDate={formatBahiaDate(searchState.event.dataFim)}
+          startDate={searchState.event.dataInicio}
+          endDate={searchState.event.dataFim}
           location={searchState.event.localizacao}
           hours={searchState.event.cargaHoraria}
           participantsCount={0}
