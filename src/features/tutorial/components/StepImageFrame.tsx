@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 
@@ -17,12 +17,10 @@ interface StepImageFrameProps {
  * which print goes where — no code change needed once the file is added.
  */
 export function StepImageFrame({ src, hint, alt, accent }: StepImageFrameProps) {
-  const [failed, setFailed] = useState(false);
-
-  // Reset the "failed" state whenever the step (and therefore the src) changes.
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
+  // Guarda qual `src` falhou: ao trocar de passo (novo src) o estado "falhou"
+  // volta a ser falso sozinho, sem precisar de um effect para resetar.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = failedSrc === src;
 
   return (
     <Box
@@ -42,7 +40,7 @@ export function StepImageFrame({ src, hint, alt, accent }: StepImageFrameProps) 
         <img
           src={src}
           alt={alt}
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(src)}
           style={{
             position: 'absolute',
             inset: 0,

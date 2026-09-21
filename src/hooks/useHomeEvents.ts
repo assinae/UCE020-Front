@@ -14,8 +14,10 @@ export function useHomeEvents() {
     enabled: !!user && !isAuthLoading,
   });
 
-  const events = Array.isArray(data) ? data : [];
-  const filteredEvents = useMemo(() => (user ? events : []), [events, user]);
+  const filteredEvents = useMemo(
+    () => (user && Array.isArray(data) ? data : []),
+    [data, user],
+  );
 
   const loading = isAuthLoading || isQueryLoading;
 

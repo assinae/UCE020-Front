@@ -57,7 +57,7 @@ export function EventList({
 
   if(home) {
      return (
-      <Box sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 3 }}>
           <Box sx={{ width: 4, height: 16, borderRadius: 4, bgcolor: '#2EC4A0' }} />
           <Typography
@@ -86,16 +86,18 @@ export function EventList({
               display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
+                sm: 'repeat(auto-fill, minmax(280px, 1fr))',
+                lg: 'repeat(auto-fill, minmax(320px, 1fr))',
               },
-              gap: 2,
+              alignItems: 'stretch',
+              gap: { xs: 1.5, sm: 2 },
               width: '100%',
-              px: { xs: 1.5, md: 0 },
+              maxWidth: '100%',
+              px: 0,
             }}
           >
             {events.map((event) => (
-              <Box key={event.id}>
+              <Box key={event.id} sx={{ minWidth: 0, display: 'flex' }}>
                 <EventCard event={event} onClick={handleEventClick} />
               </Box>
             ))}
@@ -106,7 +108,7 @@ export function EventList({
 
   } else {
      return (
-      <Box sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
         <Box
           sx={{
             display: "flex",
@@ -118,7 +120,7 @@ export function EventList({
             width: "100%",
           }}
         >
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: { xs: 1, sm: 2 }, minWidth: 0 }}>
             <IconButton
               onClick={() => router.back()}
               size="small"
@@ -129,13 +131,17 @@ export function EventList({
             >
               <ArrowBack />
             </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: '#2EC4A0' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+              <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: '#2EC4A0', flexShrink: 0 }} />
               <Typography
                 variant="h5"
                 sx={{
                   fontWeight: 600,
                   color: "text.primary",
+                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                  lineHeight: 1.3,
+                  minWidth: 0,
+                  wordBreak: 'break-word',
                 }}
               >
                 {title}
@@ -275,16 +281,18 @@ export function EventList({
               display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
+                sm: 'repeat(auto-fill, minmax(280px, 1fr))',
+                lg: 'repeat(auto-fill, minmax(320px, 1fr))',
               },
-              gap: 2,
+              alignItems: 'stretch',
+              gap: { xs: 1.5, sm: 2 },
               width: '100%',
-              px: { xs: 1.5, md: 0 },
+              maxWidth: '100%',
+              px: 0,
             }}
           >
             {filteredEvents.map((event) => (
-              <Box key={event.id}>
+              <Box key={event.id} sx={{ minWidth: 0, display: 'flex' }}>
                 <EventCard event={event} onClick={handleEventClick} />
               </Box>
             ))}

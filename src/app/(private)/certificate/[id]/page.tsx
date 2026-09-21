@@ -12,7 +12,6 @@ import { Toast } from '@/components/ui/Toast';
 import { ToastSeverity } from '@/types/toast';
 import { useCertificatePdfPreview } from '@/features/certificate/hooks/useCertificatePdfPreview';
 import { baixarCertificadoPdf } from '@/features/certificate/utils/certificatePdf';
-import { resolveCertificateTemplateUrl } from '@/types/event';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { formatBahiaDate } from '@/utils/date';
 
@@ -81,8 +80,6 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   }
 
   const isOrganizer = mockUser.role === 'organizer';
-  const templateUrl = resolveCertificateTemplateUrl(cert as Parameters<typeof resolveCertificateTemplateUrl>[0]);
-  const hasCustomTemplate = Boolean(templateUrl);
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>

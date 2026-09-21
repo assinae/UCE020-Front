@@ -1,4 +1,4 @@
-import type { DateLike } from './activity';
+import type { ActivityGuest, DateLike } from './activity';
 
 export interface ScheduleCardProps {
   title: string;
@@ -10,6 +10,8 @@ export interface ScheduleCardProps {
   participantsCount: number;
   status: string;
   description: string;
+  /** Convidados da atividade (palestrante/ministrante/moderador). */
+  guests?: ActivityGuest[];
 }
 
 export interface ScheduleImageProps {
@@ -30,4 +32,8 @@ export interface ScheduleDetailsProps {
 
 export interface ScheduleDescriptionProps {
   description: string;
+}
+
+export interface ScheduleGuestsProps {
+  guests?: ActivityGuest[];
 }

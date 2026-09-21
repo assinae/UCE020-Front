@@ -21,6 +21,15 @@ export type ActivityDetails = {
   isRegistered?: boolean;
   /** Se a atividade está configurada para emitir certificado individual de participante. */
   gerarCertificado: boolean;
+  /** Convidados vinculados à atividade (palestrante/ministrante/moderador). */
+  guests: ActivityGuestResponse[];
+};
+
+export type ActivityGuestResponse = {
+  id?: number;
+  name: string;
+  email: string;
+  role: string;
 };
 
 export interface CreateActivityPayload {
@@ -53,6 +62,20 @@ type ActivityDetailsApiResponse = {
     | ActivityDetails
     | Record<string, unknown>;
 };
+
+function normalizeGuests(value: unknown): ActivityGuestResponse[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
+      id: typeof item.id === 'number' ? item.id : undefined,
+      name: String(item.name ?? item.nome ?? ''),
+      email: String(item.email ?? ''),
+      role: String(item.role ?? item.funcao ?? ''),
+    }))
+    .filter((guest) => guest.email !== '');
+}
 
 function toBoolean(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') return value;
@@ -125,6 +148,28 @@ function extractRegistrationFlag(value: unknown): boolean {
 }
 
 class ActivityService {
+  /**
+   * As rotas de criar/editar respondem `{ data: { success, data: { activity, guests } } }`.
+   * Desembrulha até chegar no objeto da atividade, mantendo `guests` junto.
+   */
+  private unwrapActivityPayload(value: unknown): Record<string, unknown> {
+    let current: Record<string, unknown> =
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+
+    for (let depth = 0; depth < 4; depth += 1) {
+      const nested = current.data ?? current.activity;
+
+      if (typeof nested !== 'object' || nested === null || Array.isArray(nested)) break;
+
+      const guests = current.guests ?? (nested as Record<string, unknown>).guests;
+      current = { ...(nested as Record<string, unknown>), ...(guests ? { guests } : {}) };
+    }
+
+    return current;
+  }
+
   private normalizeActivityData(
     value: ActivityDetails | Record<string, unknown> | undefined,
     fallback: Partial<CreateActivityPayload> & { id?: number } = {}
@@ -148,6 +193,7 @@ class ActivityService {
         toBoolean(normalizedActivityData.generateCertificate) ??
         Boolean(fallback.generateCertificate),
       isRegistered: toBoolean(normalizedActivityData.isRegistered) ?? false,
+      guests: normalizeGuests(normalizedActivityData.guests ?? fallback.guests),
     };
   }
 
@@ -157,12 +203,7 @@ class ActivityService {
       data?: ActivityDetails | Record<string, unknown>;
     }>('/activity', payload);
 
-    const activityData =
-      typeof data?.data === 'object' && data.data !== null && !Array.isArray(data.data)
-        ? (data.data as ActivityDetails | Record<string, unknown>)
-        : data;
-
-    return this.normalizeActivityData(activityData, payload);
+    return this.normalizeActivityData(this.unwrapActivityPayload(data?.data ?? data), payload);
   }
 
   async update(
@@ -178,13 +219,10 @@ class ActivityService {
       `/activity/${normalizedActivityId}`,
       payload
     );
-    const responseData = data?.data;
-    const activityData =
-      typeof responseData === 'object' && responseData !== null && 'data' in responseData
-        ? (responseData as { data?: ActivityDetails | Record<string, unknown> }).data
-        : responseData;
-
-    return this.normalizeActivityData(activityData, { ...payload, id: normalizedActivityId });
+    return this.normalizeActivityData(this.unwrapActivityPayload(data?.data ?? data), {
+      ...payload,
+      id: normalizedActivityId,
+    });
   }
 
   async remove(activityId: string | number): Promise<void> {
@@ -239,6 +277,7 @@ class ActivityService {
           toBoolean(normalizedActivityData.inscrito) ??
           toBoolean(normalizedActivityData.registered) ??
           fallbackRegistrationFlag,
+        guests: normalizeGuests(normalizedActivityData.guests),
       };
     } catch (error: unknown) {
       const errorData = (error as AxiosError<ApiErrorResponse>).response?.data;

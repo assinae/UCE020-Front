@@ -20,6 +20,7 @@ export default function ActivityModal({
   status,
   description,
   variant,
+  guests,
   presenceConfirmed,
   generateCertificate,
   onSignup,
@@ -63,6 +64,7 @@ export default function ActivityModal({
           participantsCount={participantsCount}
           status={status}
           description={description}
+          guests={guests}
         />
 
         {variant === 'organizer' && generateCertificate && (

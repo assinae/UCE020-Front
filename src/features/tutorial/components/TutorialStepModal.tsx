@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
@@ -19,10 +19,16 @@ interface TutorialStepModalProps {
 export function TutorialStepModal({ open, content, onClose }: TutorialStepModalProps) {
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Always reopen at the first page for a fresh role.
-  useEffect(() => {
+  // Sempre reabre na primeira página (ao abrir ou ao trocar de papel).
+  // Ajuste de estado durante o render, no lugar de um effect:
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const sessionKey = open ? (content?.role ?? null) : null;
+  const [prevSessionKey, setPrevSessionKey] = useState(sessionKey);
+
+  if (sessionKey !== prevSessionKey) {
+    setPrevSessionKey(sessionKey);
     if (open) setPageIndex(0);
-  }, [open, content?.role]);
+  }
 
   if (!content) return null;
 

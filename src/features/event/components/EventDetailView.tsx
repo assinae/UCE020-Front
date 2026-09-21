@@ -31,7 +31,7 @@ import { colorTokens } from '@/lib/colors';
 import { formatActivityDate } from '@/utils/format';
 import { EventActivitiesSection } from './EventActivitiesSection';
 import { OrganizerEventActions } from './OrganizerEventActions';
-import type { Activity } from '@/types/activity';
+import type { Activity, ActivityGuest } from '@/types/activity';
 import type { Event } from '@/types/event';
 import { participationService } from '@/services/participationService';
 import { EventSubscriptionAction } from './EventSubscriptionAction';
@@ -224,6 +224,9 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   // (activityService.findOne), nunca `event.atividades` direto.
   const [activityAuthoritativeStatus, setActivityAuthoritativeStatus] = useState('');
   const [activityStatusMap, setActivityStatusMap] = useState<Record<string, string>>({});
+
+  const [selectedActivityGuests, setSelectedActivityGuests] = useState<ActivityGuest[]>([]);
+  const [activityGuestsMap, setActivityGuestsMap] = useState<Record<string, ActivityGuest[]>>({});
 
   const isSignupProcessingRef = useRef(false);
   const pendingEnrollmentChecksRef = useRef<Set<string>>(new Set());
@@ -420,7 +423,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   }
 
   async function handleCreateActivity(data: ActivityFormState) {
-    if (!event || !Number.isFinite(numericEventId)) return;
+    if (!event || !Number.isFinite(numericEventId) || isCreatingActivity) return;
 
     setIsCreatingActivity(true);
     try {
@@ -810,6 +813,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
             setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
             setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
+            setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
             setIsQrModalOpen(false);
 
             if (pendingEnrollmentChecksRef.current.has(activityKey)) {
@@ -825,6 +829,9 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               let presenceConfirmed = false;
               const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
               const authoritativeStatus = activityDetails?.status ?? '';
+              const activityGuests: ActivityGuest[] = (activityDetails?.guests ?? []).map(
+                (guest) => ({ name: guest.name, email: guest.email, role: guest.role })
+              );
 
               if (
                 Number.isFinite(normalizedEventId) &&
@@ -870,12 +877,18 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                 ...prev,
                 [activityKey]: authoritativeStatus,
               }));
+              setSelectedActivityGuests(activityGuests);
+              setActivityGuestsMap((prev) => ({
+                ...prev,
+                [activityKey]: activityGuests,
+              }));
             } catch (error) {
               console.error('[ATIVIDADE] erro ao verificar inscrição:', error);
               setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
               setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
               setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
               setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
+              setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
             } finally {
               pendingEnrollmentChecksRef.current.delete(activityKey);
               setIsCheckingActivityEnrollment(false);
@@ -899,6 +912,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         participantsCount={0}
         status={activityAuthoritativeStatus || selectedActivity?.status || ''}
         description={selectedActivity?.description ?? ''}
+        guests={selectedActivityGuests}
         variant={
           isCheckingActivityEnrollment && role === 'participant' ? 'signup' : activityModalVariant
         }
