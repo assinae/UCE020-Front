@@ -15,6 +15,8 @@ export interface ActivityModalProps {
   status: string;
   description: string;
   variant: ActivityModalVariant;
+  /** Convidados da atividade, exibidos logo abaixo da descrição. */
+  guests?: ActivityGuest[];
   /** Quando o participante já teve a presença confirmada nesta atividade. */
   presenceConfirmed?: boolean;
   /** Quando a atividade está configurada para emitir certificado individual (campo `gerarCertificado`). */

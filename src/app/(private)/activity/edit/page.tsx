@@ -34,6 +34,11 @@ export default function CadastrarEventoPage() {
           startTime: getBahiaTimeInput(start),
           endTime: getBahiaTimeInput(end),
           generateCertificate: activity.gerarCertificado,
+          guests: activity.guests.map((guest) => ({
+            name: guest.name,
+            email: guest.email,
+            role: guest.role,
+          })),
         });
       })
       .catch((loadError) => {

@@ -5,6 +5,7 @@ import {
   ScheduleImage,
   ScheduleDetails,
   ScheduleDescription,
+  ScheduleGuests,
 } from '@/components/modals/schedule-card';
 import type { ScheduleCardProps } from '@/types/scheduleCard';
 
@@ -18,6 +19,7 @@ export default function ScheduleCard({
   participantsCount,
   status,
   description,
+  guests,
 }: ScheduleCardProps) {
   return (
     <>
@@ -64,6 +66,8 @@ export default function ScheduleCard({
       </Box>
 
       <ScheduleDescription description={description} />
+
+      <ScheduleGuests guests={guests} />
     </>
   );
 }
