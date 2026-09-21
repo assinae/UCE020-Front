@@ -11,9 +11,9 @@ import { useRouter } from "next/navigation";
 const statusOptions = [
   { value: 'todos', label: 'Todos' },
   { value: 'pendente', label: 'Pendente' },
-  { value: 'iniciada', label: 'Iniciada' },
+  { value: 'iniciada', label: 'Iniciado' },
   { value: 'andamento', label: 'Andamento' },
-  { value: 'finalizada', label: 'Finalizada' },
+  { value: 'finalizada', label: 'Finalizado' },
 ];
 
 interface EventListProps {

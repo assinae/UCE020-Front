@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
-import type { EventCardProps } from "@/types/event";
+import type { Event, EventCardProps } from "@/types/event";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import { formatBahiaDate } from "@/utils/date";
@@ -13,9 +14,15 @@ function formatDateRange(start: string, end: string): string {
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   pendente: { bg: "#F1F2F6", color: "#667085", label: "Pendente" },
-  iniciada: { bg: "#E6F7F0", color: "#2EC4A0", label: "Iniciada" },
+  iniciada: { bg: "#E6F7F0", color: "#2EC4A0", label: "Iniciado" },
   andamento: { bg: "#E8EDFB", color: "#253B68", label: "Andamento" },
-  finalizada: { bg: "#EAF7EE", color: "#35A384", label: "Finalizada" },
+  finalizada: { bg: "#EAF7EE", color: "#35A384", label: "Finalizado" },
+};
+
+const PARTICIPATION_LABELS: Record<NonNullable<Event["tipoParticipacao"]>, string> = {
+  participante: "Participante",
+  monitor: "Monitor",
+  organizador: "Organizador",
 };
 
 export function EventCard({ event, onClick }: EventCardProps) {
@@ -26,6 +33,9 @@ export function EventCard({ event, onClick }: EventCardProps) {
     color: "#667085",
     label: event.status,
   };
+  const participationLabel = event.tipoParticipacao
+    ? PARTICIPATION_LABELS[event.tipoParticipacao]
+    : null;
 
   return (
     <button
@@ -73,6 +83,12 @@ export function EventCard({ event, onClick }: EventCardProps) {
             <AccessTimeOutlinedIcon sx={{ fontSize: 15, color: "#9AA4B2", flexShrink: 0 }} />
             <span className="truncate">{event.cargaHoraria}h</span>
           </p>
+          {participationLabel ? (
+            <p className="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] text-gray-500 min-w-0">
+              <PersonOutlineOutlinedIcon sx={{ fontSize: 15, color: "#9AA4B2", flexShrink: 0 }} />
+              <span className="truncate">{participationLabel}</span>
+            </p>
+          ) : null}
         </div>
       </div>
     </button>
