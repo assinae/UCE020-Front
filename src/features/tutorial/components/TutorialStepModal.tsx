@@ -19,9 +19,6 @@ interface TutorialStepModalProps {
 export function TutorialStepModal({ open, content, onClose }: TutorialStepModalProps) {
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Sempre reabre na primeira página (ao abrir ou ao trocar de papel).
-  // Ajuste de estado durante o render, no lugar de um effect:
-  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
   const sessionKey = open ? (content?.role ?? null) : null;
   const [prevSessionKey, setPrevSessionKey] = useState(sessionKey);
   const isNewSession = sessionKey !== prevSessionKey;
@@ -34,9 +31,7 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
   if (!content) return null;
 
   const totalSteps = content.steps.length;
-  // Este render ainda vê o pageIndex antigo (o reset acima só vale no próximo),
-  // e os papeis têm quantidades diferentes de passos: sem limitar o índice,
-  // trocar para um papel mais curto leria um passo inexistente.
+
   const currentIndex = isNewSession ? 0 : Math.min(pageIndex, totalSteps - 1);
   const step = content.steps[currentIndex];
   const StepIcon = step.icon;
@@ -93,7 +88,6 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
           <Box
             sx={{
               order: { xs: 2, md: 1 },
-              // Rola se não couber: sem isso os botões saem da tela no celular.
               flex: { xs: '1 1 auto', md: 1 },
               minWidth: 0,
               minHeight: 0,
@@ -238,8 +232,6 @@ export function TutorialStepModal({ open, content, onClose }: TutorialStepModalP
           <Box
             sx={{
               order: { xs: 1, md: 3 },
-              // Fração fixa: crescendo livre, a imagem tomaria o espaço dos
-              // botões. O frame estica pelo flex, sem precisar de altura fixa.
               flex: { xs: '0 0 56%', md: '1.15 1 0' },
               minHeight: 0,
               minWidth: 0,
