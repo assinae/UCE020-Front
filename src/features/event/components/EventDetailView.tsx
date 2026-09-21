@@ -52,9 +52,9 @@ interface EventDetailViewProps {
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   pendente: { bg: '#F1F2F6', color: '#667085', label: 'Pendente' },
-  iniciada: { bg: '#E6F7F0', color: '#2EC4A0', label: 'Iniciada' },
+  iniciada: { bg: '#E6F7F0', color: '#2EC4A0', label: 'Iniciado' },
   andamento: { bg: '#E8EDFB', color: '#253B68', label: 'Andamento' },
-  finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizada' },
+  finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizado' },
 };
 
 const TIPO_TO_ROLE: Record<TipoParticipante, 'organizer' | 'monitor' | 'participant'> = {

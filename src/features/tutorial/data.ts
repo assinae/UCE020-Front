@@ -63,7 +63,7 @@ export const tutorialContent: Record<TutorialRole, TutorialRoleContent> = {
         icon: EventAvailableRoundedIcon,
         title: 'Cadastre o evento',
         description:
-          'Clique em "Novo Evento" e preencha nome, data, carga horária e demais informações gerais.',
+          'Clique em "Criar Novo Evento" e preencha nome, data, carga horária e demais informações gerais.',
         image: '/images/tutorial/organizer-novo-evento.png',
         imageHint: 'Formulário de cadastro de novo evento',
       },
@@ -109,7 +109,7 @@ export const tutorialContent: Record<TutorialRole, TutorialRoleContent> = {
     accent: '#0EA5E9',
     accentBg: '#EFF8FF',
     accentBorder: 'rgba(14,165,233,0.25)',
-    ctaLabel: 'Criar minha conta e me inscrever',
+    ctaLabel: 'Criar minha conta e começar',
     ctaHref: '/register',
     steps: [
       {
