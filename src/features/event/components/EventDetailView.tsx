@@ -423,7 +423,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   }
 
   async function handleCreateActivity(data: ActivityFormState) {
-    if (!event || !Number.isFinite(numericEventId)) return;
+    if (!event || !Number.isFinite(numericEventId) || isCreatingActivity) return;
 
     setIsCreatingActivity(true);
     try {

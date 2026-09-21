@@ -5,8 +5,6 @@ interface GreetingSectionProps {
 }
 
 export function GreetingSection({ userName }: GreetingSectionProps) {
-  const initial = userName?.charAt(0)?.toUpperCase() || "U";
-
   return (
     <Box
       sx={{

@@ -183,7 +183,7 @@ export function ListParticipantsView() {
   const isLoading = isLoadingParticipants || isLoadingRole;
 
   return (
-    <AppPageContainer maxWidth={760}>
+    <AppPageContainer>
       {isMonitor && <ValidatePresencesButton onClick={goToValidatePresence} />}
 
       {isLoading ? (
@@ -212,6 +212,13 @@ export function ListParticipantsView() {
         activityTitle={activityTitle}
         onClose={closeRemoveModal}
         onConfirm={handleRemovePresence}
+      />
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
     </AppPageContainer>
   );

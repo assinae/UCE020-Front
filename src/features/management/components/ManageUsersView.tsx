@@ -183,7 +183,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   }
 
   return (
-    <AppPageContainer maxWidth={800}>
+    <AppPageContainer>
       <ManagementListCard
         title="Gerenciar Membros do Evento"
         search={search}

@@ -1,18 +1,15 @@
 import { Box } from '@mui/material';
 import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined';
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import { Button } from '@/components/ui/Button';
 
 interface CertificateBatchActionsProps {
   onSignBatch: () => void;
-  onSendBatch: () => void;
   isSigning?: boolean;
   signDisabled?: boolean;
 }
 
 export function CertificateBatchActions({
   onSignBatch,
-  onSendBatch,
   isSigning = false,
   signDisabled = false,
 }: CertificateBatchActionsProps) {

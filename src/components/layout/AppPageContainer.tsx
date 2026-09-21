@@ -2,12 +2,11 @@ import type { ReactNode } from 'react';
 import { Box, type BoxProps } from '@mui/material';
 import { colorTokens } from '@/lib/colors';
 
-interface AppPageContainerProps extends BoxProps {
+interface AppPageContainerProps extends Omit<BoxProps, 'maxWidth'> {
   children: ReactNode;
-  maxWidth?: number | string;
 }
 
-export function AppPageContainer({ children, sx, maxWidth = 620, ...props }: AppPageContainerProps) {
+export function AppPageContainer({ children, sx, ...props }: AppPageContainerProps) {
   return (
     <Box
       sx={{

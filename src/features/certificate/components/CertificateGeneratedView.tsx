@@ -110,9 +110,6 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     }
   };
 
-  const handleSendBatch = () => console.log('TODO: encaminhar certificados');
-  const handleLoadMore = () => loadMore();
-  const handleBack = () => router.back();
 
   if (isLoading) {
     return (
@@ -184,7 +181,6 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
 
       <CertificateBatchActions
         onSignBatch={handleSignBatch}
-        onSendBatch={handleSendBatch}
         isSigning={isSigning}
         signDisabled={isSigning}
       />
