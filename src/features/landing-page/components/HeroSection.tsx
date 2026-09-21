@@ -175,9 +175,10 @@ export function HeroSection() {
               variant="contained"
               color="secondary"
               sx={{
-                fontSize: { xs: '0.68rem', md: '1rem' },
+                fontSize: { xs: '0.8rem', md: '1rem' },
                 minWidth: 'auto',
-                px: { xs: 3, sm: 4, md: 5 },
+                whiteSpace: 'nowrap',
+                px: { xs: 2, sm: 4, md: 5 },
                 py: { xs: 1, md: 1.2 },
                 borderRadius: '999px',
                 fontWeight: 700,

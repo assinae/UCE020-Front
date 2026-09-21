@@ -79,9 +79,9 @@ type TouchedState = Record<keyof FormState, boolean>;
 
 const STATUS_OPTIONS: { value: FormState['status']; label: string }[] = [
   { value: 'pendente', label: 'Pendente' },
-  { value: 'iniciada', label: 'Iniciada' },
+  { value: 'iniciada', label: 'Iniciado' },
   { value: 'andamento', label: 'Em andamento' },
-  { value: 'finalizada', label: 'Finalizada' },
+  { value: 'finalizada', label: 'Finalizado' },
 ];
 
 const DEFAULT_FORM: FormState = {
