@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventService, UpdateEventPayload } from '@/services/eventService';
 import { activityService } from '@/services/activityService';
+import { extractApiErrorMessage } from '@/utils/apiError';
 
 export function useEditEvent(eventId: number | null) {
   const router = useRouter();
@@ -66,13 +67,7 @@ export function useEditEvent(eventId: number | null) {
       router.push(`/event/${eventId}`);
     },
     onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
-      const raw = axiosErr.response?.data?.message;
-      const message = Array.isArray(raw)
-        ? raw.join(', ')
-        : (raw ??
-          (err instanceof Error ? err.message : 'Erro ao atualizar evento. Tente novamente.'));
-      setError(message);
+      setError(extractApiErrorMessage(err, 'Erro ao atualizar evento. Tente novamente.'));
     },
   });
 

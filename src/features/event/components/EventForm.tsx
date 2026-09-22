@@ -34,6 +34,7 @@ import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
 import { Button, TextInput, PageLoader } from '@/components/ui';
+import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
 import { useCreateEvent } from '../../evento/hooks/useCreateEvent';
@@ -237,6 +238,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
+  const [removalConfirmOpen, setRemovalConfirmOpen] = useState(false);
 
   const { handleCreate, loading: createLoading, error: createError } = useCreateEvent();
   const {
@@ -250,6 +252,17 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   const isSubmitting = createLoading || updateLoading;
   const submitError = createError || updateError;
+
+  // Atividade que sai da lista é excluída ao salvar, e o cascade do banco leva
+  // junto as presenças registradas nela.
+  const removedActivityNames = useMemo(() => {
+    if (!isEdit || !Array.isArray(existingEvent?.atividades)) return [];
+
+    const mantidas = new Set(activities.map((activity) => activity.id));
+    return existingEvent.atividades
+      .filter((activity: Activity) => !mantidas.has(String(activity.id)))
+      .map((activity: Activity, index: number) => activity.name || `Atividade ${index + 1}`);
+  }, [isEdit, existingEvent, activities]);
   const todayStr = getTodayString();
   const startDateMin = todayStr;
   const endDateMin = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
@@ -570,6 +583,15 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     if (!isValid) return;
     if (certificateTextError) return;
 
+    if (removedActivityNames.length > 0) {
+      setRemovalConfirmOpen(true);
+      return;
+    }
+
+    await submitForm();
+  }
+
+  async function submitForm() {
     const payload = {
       nome: form.nome,
       localizacao: form.localizacao,
@@ -1735,6 +1757,19 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           </Box>
         </Box>
       </Box>
+
+      <ConfirmModal
+        open={removalConfirmOpen}
+        onClose={() => setRemovalConfirmOpen(false)}
+        type="error"
+        message={`Salvar vai excluir ${
+          removedActivityNames.length === 1 ? 'a atividade abaixo' : 'as atividades abaixo'
+        } e apagar as presenças já registradas nelas. Não há como desfazer.`}
+        emphasisEndText={removedActivityNames.join(', ')}
+        confirmText="Excluir e salvar"
+        cancelText="Cancelar"
+        onConfirm={submitForm}
+      />
 
       {/* ── Drawer de Atividade ── */}
       <Drawer
