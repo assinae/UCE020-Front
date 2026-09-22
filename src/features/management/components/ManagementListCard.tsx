@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { Box, Typography } from '@mui/material';
+import { BackButton } from '@/components/ui';
 import { ContentCard } from '@/components/layout/ContentCard';
 import { colorTokens } from '@/lib/colors';
 import { ManagementSearchBar } from './ManagementSearchBar';
@@ -13,7 +13,7 @@ interface ManagementListCardProps {
   searchPlaceholder?: string;
   searchAriaLabel?: string;
   searchRow?: ReactNode;
-  onBack?: () => void;
+  backFallbackHref?: string;
   isEmpty?: boolean;
   emptyMessage?: string;
   children: ReactNode;
@@ -27,7 +27,7 @@ export function ManagementListCard({
   searchPlaceholder,
   searchAriaLabel,
   searchRow,
-  onBack,
+  backFallbackHref,
   isEmpty = false,
   emptyMessage = 'Nenhum registro encontrado',
   children,
@@ -35,15 +35,12 @@ export function ManagementListCard({
   return (
     <ContentCard sx={{ p: { xs: 2, sm: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {onBack && (
-          <IconButton
-            onClick={onBack}
-            aria-label="Voltar"
+        {backFallbackHref && (
+          <BackButton
+            fallbackHref={backFallbackHref}
             size="small"
             sx={{ ml: -0.5, color: colorTokens.text.primary }}
-          >
-            <ArrowBackRoundedIcon fontSize="small" />
-          </IconButton>
+          />
         )}
         <Typography
           sx={{
