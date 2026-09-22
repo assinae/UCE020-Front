@@ -1,10 +1,11 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { Box, Container, Typography, IconButton, CircularProgress } from '@mui/material';
-import { CalendarToday, AccessTime, ArrowBack, Draw, Download, PictureAsPdf } from '@mui/icons-material';
+import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import { CalendarToday, AccessTime, Draw, Download, PictureAsPdf } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { BackButton } from '@/components/ui/BackButton';
 import { certificateService } from '@/services/certificate.service';
 import { useMockUser } from '@/mocks/useMockUser';
 import type { CertificateManagementItem } from '@/types/certificate-management';
@@ -86,16 +87,14 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
       <Container maxWidth="lg" sx={{ px: { xs: 3, md: 4 }, py: { xs: 2, md: 4 }, pb: 6 }}>
         {/* Cabeçalho padronizado (h5 + subtítulo), igual às telas de assinar/editar */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 3, md: 4 } }}>
-          <IconButton
-            onClick={() => router.back()}
+          <BackButton
+            fallbackHref="/certificate/list"
             size="small"
             sx={{
               color: 'text.secondary',
               '&:hover': { bgcolor: 'action.hover' },
             }}
-          >
-            <ArrowBack />
-          </IconButton>
+          />
           <Box>
             <Typography
               variant="h5"

@@ -5,17 +5,15 @@ import {
   Box,
   Container,
   FormControl,
-  IconButton,
   MenuItem,
   Select,
   Typography,
   CircularProgress,
 } from "@mui/material";
-import { ArrowBack } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
 
 import { CertificateCard } from "@/components/certificate";
 import { Searchbar } from "@/components/ui/Searchbar";
+import { BackButton } from "@/components/ui/BackButton";
 import { certificateService } from "@/services/certificate.service";
 import type { CertificateManagementItem } from "@/types/certificate-management";
 import { getBahiaDateKey } from "@/utils/date";
@@ -28,7 +26,6 @@ const periodOptions = [
 ];
 
 export default function CertificatesPage() {
-  const router = useRouter();
   const [certificates, setCertificates] = useState<CertificateManagementItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,13 +90,11 @@ export default function CertificatesPage() {
           }}
         >
           <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 2 }}>
-            <IconButton
-              onClick={() => router.back()}
+            <BackButton
+              fallbackHref="/home"
               size="small"
               sx={{ color: "text.secondary", "&:hover": { bgcolor: "background.default" } }}
-            >
-              <ArrowBack />
-            </IconButton>
+            />
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: "#2EC4A0" }} />
               <Typography variant="h5" sx={{ fontWeight: 600, color: "text.primary" }}>

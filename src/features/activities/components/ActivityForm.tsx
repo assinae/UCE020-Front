@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   Box,
   Chip,
@@ -15,12 +14,11 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
-import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
-import { Button, TextInput } from '@/components/ui';
+import { BackButton, Button, TextInput } from '@/components/ui';
 import { colorTokens } from '@/lib/colors';
 import RegisterGuestModal from '@/components/modals/register-guest-modal/RegisterGuestModal';
 import { getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
@@ -432,14 +430,11 @@ export default function ActivityForm({
                 <CloseRoundedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             ) : (
-              <IconButton
-                component={Link}
-                href={backHref}
-                aria-label="Voltar"
+              <BackButton
+                fallbackHref={backHref}
+                iconVariant="compact"
                 sx={{ p: 0.5, color: colorTokens.text.primary }}
-              >
-                <ArrowBackIosNewRoundedIcon sx={{ fontSize: 16 }} />
-              </IconButton>
+              />
             )}
 
             <Typography

@@ -176,10 +176,6 @@ export function ListParticipantsView() {
     );
   }
 
-  function handleBack() {
-    router.push(`/event/${eventId}`);
-  }
-
   const isLoading = isLoadingParticipants || isLoadingRole;
 
   return (
@@ -199,7 +195,7 @@ export function ListParticipantsView() {
           presenceFilter={presenceFilter}
           onSearchChange={setSearch}
           onFilterToggle={handleFilterToggle}
-          onBack={handleBack}
+          backFallbackHref={`/event/${eventId}`}
           renderParticipantActions={renderParticipantActions}
           confirmedCount={confirmedCount}
           pendingCount={pendingCount}

@@ -1,12 +1,12 @@
 "use client";
 
-import { Box, CircularProgress, FormControl, IconButton, MenuItem, Select, Typography } from '@mui/material';
+import { Box, CircularProgress, FormControl, MenuItem, Select, Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { Event } from '@/types/event';
 import { EventCard } from '@/components/event/EventCard';
 import { Searchbar } from '@/components/ui/Searchbar';
-import { ArrowBack } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
+import { BackButton } from '@/components/ui/BackButton';
+import { useRouter } from 'next/navigation';
 
 const statusOptions = [
   { value: 'todos', label: 'Todos' },
@@ -121,16 +121,14 @@ export function EventList({
           }}
         >
           <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: { xs: 1, sm: 2 }, minWidth: 0 }}>
-            <IconButton
-              onClick={() => router.back()}
+            <BackButton
+              fallbackHref="/home"
               size="small"
               sx={{
                 color: "text.secondary",
                 "&:hover": { bgcolor: "background.default" },
               }}
-            >
-              <ArrowBack />
-            </IconButton>
+            />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
               <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: '#2EC4A0', flexShrink: 0 }} />
               <Typography
