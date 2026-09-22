@@ -16,7 +16,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -33,7 +32,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
-import { Button, TextInput, PageLoader } from '@/components/ui';
+import { BackButton, Button, TextInput, PageLoader } from '@/components/ui';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -726,14 +725,11 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <IconButton
-              component={Link}
-              href="/home"
-              aria-label="Voltar"
+            <BackButton
+              fallbackHref={isEdit && eventId != null ? `/event/${eventId}` : '/home'}
+              iconVariant="compact"
               sx={{ p: 0.5, color: colorTokens.text.primary }}
-            >
-              <ArrowBackIosNewRoundedIcon sx={{ fontSize: 16 }} />
-            </IconButton>
+            />
 
             <Typography
               sx={{

@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, IconButton, Typography } from '@mui/material';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { Box, Typography } from '@mui/material';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { ContentCard } from '@/components/layout/ContentCard';
-import { Toast } from '@/components/ui';
+import { BackButton, Toast } from '@/components/ui';
 import { presenceService } from '@/services/presenceService';
 import { colorTokens } from '@/lib/colors';
 import { ToastSeverity } from '@/types/toast';
@@ -101,7 +100,6 @@ function PresenceScannerPanel({
 }
 
 export function ValidatePresenceView() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const eventIdParam = searchParams.get('eventId');
@@ -188,19 +186,12 @@ export function ValidatePresenceView() {
 
   const { eventId: contextEventId, activityId: contextActivityId, eventName, activityTitle } = context;
 
-  function handleBack() {
-    router.push(buildListParticipantsPath(contextEventId, contextActivityId));
-  }
-
   return (
     <AppPageContainer>
-      <IconButton
-        onClick={handleBack}
-        aria-label="Voltar"
+      <BackButton
+        fallbackHref={buildListParticipantsPath(contextEventId, contextActivityId)}
         sx={{ alignSelf: 'flex-start', color: colorTokens.text.primary }}
-      >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+      />
 
       <ContentCard sx={{ gap: 3 }}>
         <PresenceValidationHeader

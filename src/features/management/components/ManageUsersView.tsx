@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { PageLoader } from '@/components/ui';
-import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
@@ -34,7 +33,6 @@ const ROLE_MAP_REVERSE: Record<string, TipoParticipante> = {
 };
 
 export function ManageUsersView({ eventId }: ManageUsersViewProps) {
-  const router = useRouter();
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const numericEventId = Number(eventId);
@@ -189,7 +187,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
         search={search}
         onSearchChange={setSearch}
         searchAriaLabel="Buscar usuário"
-        onBack={() => router.push(`/event/${eventId}`)}
+        backFallbackHref={`/event/${eventId}`}
         isEmpty={filteredUsers.length === 0}
         emptyMessage="Nenhum usuário encontrado"
       >

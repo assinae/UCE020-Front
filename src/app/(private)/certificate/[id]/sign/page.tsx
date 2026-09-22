@@ -6,14 +6,14 @@ import {
   Box,
   Container,
   Typography,
-  IconButton,
   Divider,
   Snackbar,
   Alert,
 } from '@mui/material';
-import { ArrowBack, Draw } from '@mui/icons-material';
+import { Draw } from '@mui/icons-material';
 
 import { Button } from '@/components/ui/Button';
+import { BackButton } from '@/components/ui/BackButton';
 import { CertificateSignature } from '@/components/certificate/CertificateSignature';
 import { MOCK_CERTIFICATES } from '@/mocks/certificates';
 
@@ -93,16 +93,14 @@ export default function SignCertificatePage({
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
       <Container maxWidth="sm" sx={{ py: { xs: 3, sm: 4 }, pb: 10 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <IconButton
-            onClick={() => router.back()}
+          <BackButton
+            fallbackHref="/certificate/list"
             size="small"
             sx={{
               color: 'text.secondary',
               '&:hover': { bgcolor: 'action.hover' },
             }}
-          >
-            <ArrowBack />
-          </IconButton>
+          />
           <Box>
             <Typography
               variant="h5"

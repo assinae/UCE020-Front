@@ -10,8 +10,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { PageLoader } from '@/components/ui';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { BackButton, PageLoader } from '@/components/ui';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
@@ -428,10 +427,6 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     }
   }
 
-  function handleBack() {
-    router.push('/home');
-  }
-
   async function handleCreateActivity(data: ActivityFormState) {
     if (!event || !Number.isFinite(numericEventId) || isCreatingActivity) return;
 
@@ -575,18 +570,15 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <IconButton
-            onClick={handleBack}
-            aria-label="Voltar"
+          <BackButton
+            fallbackHref="/home"
             sx={{
               color: colorTokens.text.primary,
               bgcolor: '#F8FAFC',
               border: '1px solid rgba(15, 29, 53, 0.06)',
               '&:hover': { bgcolor: '#EEF2F6' },
             }}
-          >
-            <ArrowBackRoundedIcon />
-          </IconButton>
+          />
           {isOrganizer && event.status.toLowerCase() === 'pendente' && (
             <IconButton
               size="medium"
