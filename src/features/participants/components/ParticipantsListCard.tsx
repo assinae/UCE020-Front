@@ -11,7 +11,7 @@ interface ParticipantsListCardProps {
   presenceFilter: PresenceFilter;
   onSearchChange: (value: string) => void;
   onFilterToggle: (filter: Exclude<PresenceFilter, 'all'>) => void;
-  onBack?: () => void;
+  backFallbackHref?: string;
   renderParticipantActions?: (participant: Participant) => ReactNode;
   confirmedCount?: number;
   pendingCount?: number;
@@ -23,7 +23,7 @@ export function ParticipantsListCard({
   presenceFilter,
   onSearchChange,
   onFilterToggle,
-  onBack,
+  backFallbackHref,
   renderParticipantActions,
   confirmedCount,
   pendingCount,
@@ -36,7 +36,7 @@ export function ParticipantsListCard({
           <PresenceSummary confirmed={confirmedCount} pending={pendingCount} />
         ) : undefined
       }
-      onBack={onBack}
+      backFallbackHref={backFallbackHref}
       searchRow={
         <ParticipantsSearchBar
           search={search}

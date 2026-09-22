@@ -4,6 +4,7 @@ import './globals.css';
 import ThemeRegistry from '@/providers/theme-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { ReactQueryProvider } from '@/providers/react-query-provider';
+import { NavigationHistoryProvider } from '@/providers/navigation-history-provider';
 import { GlobalWarmup } from '@/components/GlobalWarmup';
 
 const poppins = Poppins({
@@ -32,8 +33,10 @@ export default function RootLayout({
         <ThemeRegistry>
           <ReactQueryProvider>
             <AuthProvider>
-              <GlobalWarmup />
-              {children}
+              <NavigationHistoryProvider>
+                <GlobalWarmup />
+                {children}
+              </NavigationHistoryProvider>
             </AuthProvider>
           </ReactQueryProvider>
         </ThemeRegistry>

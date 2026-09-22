@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { Searchbar } from '@/components/ui/Searchbar';
 import { Button } from '@/components/ui/Button';
+import { BackButton } from '@/components/ui/BackButton';
 import { Toast } from '@/components/ui/Toast';
 import { ConfirmModal } from '@/components/modals';
 import { ContentCard } from '@/components/layout/ContentCard';
@@ -23,7 +24,6 @@ import { CertificateBatchActions } from './CertificateBatchActions';
 import { CertificateFilterTabs } from './CertificateFilterTabs';
 import { CertificateFilters } from './CertificateFilters';
 import { CertificateListHeader } from './CertificateListHeader';
-import { ArrowBack } from '@mui/icons-material';
 
 interface CertificatesGeneratedViewProps {
   eventoId: number;
@@ -137,16 +137,14 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
         {/* LADO ESQUERDO: Botão de voltar, Linha e Textos */}
         <Box sx={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: { xs: 1.5, sm: 2 } }}>
-          <IconButton
-            onClick={() => router.back()}
+          <BackButton
+            fallbackHref="/event/list"
             size="small"
-            sx={{ 
-              color: "text.secondary", 
-              "&:hover": { bgcolor: "background.default" }, 
+            sx={{
+              color: "text.secondary",
+              "&:hover": { bgcolor: "background.default" },
             }}
-          >
-            <ArrowBack />
-          </IconButton>
+          />
           {/* Bloco de Textos */}
           <Box sx={{ display: "flex", flexDirection: "column" }}>
             
