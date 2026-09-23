@@ -32,7 +32,8 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
-import { BackButton, Button, TextInput, PageLoader } from '@/components/ui';
+import { BackButton, Button, TextInput, PageLoader, Toast } from '@/components/ui';
+import { ToastSeverity } from '@/types/toast';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { ImageUpload } from '@/components/ui/inputs';
 import { colorTokens } from '@/lib/colors';
@@ -237,7 +238,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
-  const [removalConfirmOpen, setRemovalConfirmOpen] = useState(false);
 
   const { handleCreate, loading: createLoading, error: createError } = useCreateEvent();
   const {
@@ -245,23 +245,34 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     loadingEvent,
     loadError,
     handleUpdate,
+    removeActivity,
     loading: updateLoading,
+    removingActivity,
     error: updateError,
   } = useEditEvent(isEdit && eventId != null ? eventId : null);
 
   const isSubmitting = createLoading || updateLoading;
   const submitError = createError || updateError;
 
-  // Atividade que sai da lista é excluída ao salvar, e o cascade do banco leva
-  // junto as presenças registradas nela.
-  const removedActivityNames = useMemo(() => {
-    if (!isEdit || !Array.isArray(existingEvent?.atividades)) return [];
+  // Guarda qual erro já foi dispensado, para o toast não reabrir a cada render
+  // sem precisar de um effect só para sincronizar o estado de aberto.
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    const mantidas = new Set(activities.map((activity) => activity.id));
-    return existingEvent.atividades
-      .filter((activity: Activity) => !mantidas.has(String(activity.id)))
-      .map((activity: Activity, index: number) => activity.name || `Atividade ${index + 1}`);
-  }, [isEdit, existingEvent, activities]);
+  const errorToastOpen = !!submitError && submitError !== dismissedError;
+  const toastOpen = errorToastOpen || successMessage !== null;
+  const toastMessage = errorToastOpen ? (submitError ?? '') : (successMessage ?? '');
+  const toastSeverity = errorToastOpen ? ToastSeverity.Error : ToastSeverity.Success;
+
+  // Atividade já salva aguardando confirmação de exclusão. A exclusão acontece
+  // na hora, não no salvamento: o cascade do banco leva as presenças junto e
+  // deixar isso pendente na tela esconderia o que o banco realmente tem.
+  const [activityToDelete, setActivityToDelete] = useState<ActivityItem | null>(null);
+
+  // O servidor recusa excluir atividade de evento finalizado; esconder a
+  // lixeira evita oferecer uma ação que nunca vai passar. Vale o status salvo,
+  // não o do formulário, porque é ele que o servidor consulta.
+  const eventoFinalizado = existingEvent?.status === 'finalizada';
   const todayStr = getTodayString();
   const startDateMin = todayStr;
   const endDateMin = form.startDate && form.startDate > todayStr ? form.startDate : todayStr;
@@ -582,11 +593,6 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
     if (!isValid) return;
     if (certificateTextError) return;
 
-    if (removedActivityNames.length > 0) {
-      setRemovalConfirmOpen(true);
-      return;
-    }
-
     await submitForm();
   }
 
@@ -671,7 +677,25 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
   }
 
   function handleRemoveActivity(id: string) {
-    setActivities((cur) => cur.filter((a) => a.id !== id));
+    const saved = activities.find((a) => a.id === id);
+    // Atividade criada no formulário e ainda não gravada só existe aqui: sai da
+    // lista sem passar pelo servidor e sem confirmação.
+    if (!saved || !isEdit || Number.isNaN(Number(id))) {
+      setActivities((cur) => cur.filter((a) => a.id !== id));
+      return;
+    }
+    setActivityToDelete(saved);
+  }
+
+  async function handleConfirmDeleteActivity() {
+    if (!activityToDelete) return;
+    const { id } = activityToDelete;
+    setActivityToDelete(null);
+
+    if (await removeActivity(Number(id))) {
+      setActivities((cur) => cur.filter((a) => a.id !== id));
+      setSuccessMessage(`Atividade "${activityToDelete.name}" excluída.`);
+    }
   }
 
   if (isEdit && loadingEvent) {
@@ -1703,14 +1727,17 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
                           <EditOutlinedIcon sx={{ fontSize: 18 }} />
                         </IconButton>
 
-                        <IconButton
-                          size="small"
-                          aria-label={`Excluir ${activity.name}`}
-                          onClick={() => handleRemoveActivity(activity.id)}
-                          sx={{ color: colorTokens.neutral.gray500 }}
-                        >
-                          <DeleteOutlineOutlinedIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
+                        {eventoFinalizado ? null : (
+                          <IconButton
+                            size="small"
+                            aria-label={`Excluir ${activity.name}`}
+                            onClick={() => handleRemoveActivity(activity.id)}
+                            disabled={removingActivity}
+                            sx={{ color: colorTokens.neutral.gray500 }}
+                          >
+                            <DeleteOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        )}
                       </Box>
                     </Box>
                   ))}
@@ -1718,11 +1745,16 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
               )}
             </Box>
 
-            {submitError && (
-              <Typography sx={{ fontSize: 12, color: 'error.main', textAlign: 'center' }}>
-                {submitError}
-              </Typography>
-            )}
+            <Toast
+              open={toastOpen}
+              message={toastMessage}
+              severity={toastSeverity}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              duration={errorToastOpen ? 8000 : 4000}
+              onClose={() =>
+                errorToastOpen ? setDismissedError(submitError) : setSuccessMessage(null)
+              }
+            />
 
             <Box
               sx={{ pt: 1.25, display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}
@@ -1755,16 +1787,14 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       </Box>
 
       <ConfirmModal
-        open={removalConfirmOpen}
-        onClose={() => setRemovalConfirmOpen(false)}
+        open={activityToDelete !== null}
+        onClose={() => setActivityToDelete(null)}
         type="error"
-        message={`Salvar vai excluir ${
-          removedActivityNames.length === 1 ? 'a atividade abaixo' : 'as atividades abaixo'
-        } e apagar as presenças já registradas nelas. Não há como desfazer.`}
-        emphasisEndText={removedActivityNames.join(', ')}
-        confirmText="Excluir e salvar"
+        message="Excluir esta atividade apaga também as presenças já registradas nela. Não há como desfazer."
+        emphasisEndText={activityToDelete?.name ?? ''}
+        confirmText="Excluir"
         cancelText="Cancelar"
-        onConfirm={submitForm}
+        onConfirm={handleConfirmDeleteActivity}
       />
 
       {/* ── Drawer de Atividade ── */}
