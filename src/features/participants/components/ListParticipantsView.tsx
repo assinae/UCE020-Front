@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Box } from '@mui/material';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
@@ -20,8 +20,8 @@ import { ValidatePresencesButton } from '@/features/participants/components/Vali
 import {
   countByPresenceStatus,
   filterParticipants,
-  togglePresenceFilter,
 } from '@/features/participants/utils/filterParticipants';
+import { sortByName, type SortDirection } from '@/utils/sortByName';
 import type { Participant, PresenceFilter } from '@/types/participant';
 
 const TIPO_TO_ROLE: Record<TipoParticipante, 'organizer' | 'monitor' | 'participant'> = {
@@ -44,6 +44,7 @@ export function ListParticipantsView() {
 
   const [search, setSearch] = useState('');
   const [presenceFilter, setPresenceFilter] = useState<PresenceFilter>('all');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
@@ -126,20 +127,21 @@ export function ListParticipantsView() {
     },
   });
 
+  const filteredParticipants = useMemo(
+    () => sortByName(filterParticipants(participants, search, presenceFilter), sortDirection),
+    [participants, search, presenceFilter, sortDirection]
+  );
+
   if (!context) {
     return <PresenceContextMissing />;
   }
 
   const { eventId, activityId, activityTitle } = context;
   const role = participantType ? TIPO_TO_ROLE[participantType] : 'participant';
-  const isMonitor = role === 'monitor';
-  const canEditPresence = isMonitor || role === 'organizer';
-  const filteredParticipants = filterParticipants(participants, search, presenceFilter);
+  // Organizador é administrador do evento e acumula os poderes de monitor.
+  const canEditPresence = role === 'monitor' || role === 'organizer';
   const { confirmed: confirmedCount, pending: pendingCount } = countByPresenceStatus(participants);
 
-  function handleFilterToggle(filter: Exclude<PresenceFilter, 'all'>) {
-    setPresenceFilter((current) => togglePresenceFilter(current, filter));
-  }
 
   function goToValidatePresence() {
     router.push(buildValidatePresencePath(eventId, activityId));
@@ -168,7 +170,7 @@ export function ListParticipantsView() {
     return (
       <ParticipantPresenceActions
         participant={participant}
-        canValidatePresence={isMonitor}
+        canValidatePresence={canEditPresence}
         canEditPresence={canEditPresence}
         onValidatePresence={goToValidatePresence}
         onRemovePresence={openRemoveModal}
@@ -180,7 +182,7 @@ export function ListParticipantsView() {
 
   return (
     <AppPageContainer>
-      {isMonitor && <ValidatePresencesButton onClick={goToValidatePresence} />}
+      {canEditPresence && <ValidatePresencesButton onClick={goToValidatePresence} />}
 
       {isLoading ? (
         <PageLoader minHeight="calc(100dvh - 160px)" />
@@ -194,8 +196,10 @@ export function ListParticipantsView() {
           search={search}
           presenceFilter={presenceFilter}
           onSearchChange={setSearch}
-          onFilterToggle={handleFilterToggle}
+          onFilterChange={setPresenceFilter}
           backFallbackHref={`/event/${eventId}`}
+          sortDirection={sortDirection}
+          onSortChange={setSortDirection}
           renderParticipantActions={renderParticipantActions}
           confirmedCount={confirmedCount}
           pendingCount={pendingCount}

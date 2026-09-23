@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PageLoader } from '@/components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { getRemoveStaffMessage } from '@/features/participants/presence/utils/presenceMessages';
 import { filterBySearch } from '../utils/filterBySearch';
+import { sortByName, type SortDirection } from '@/utils/sortByName';
 import { ManagementListCard } from './ManagementListCard';
 import { StaffListRow } from './StaffListRow';
 import { EditUserRoleModal, USER_ROLES } from '../../../components/modals/manage-users-modal/EditUserRoleModal';
@@ -39,6 +40,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   const hasValidEventId = Number.isFinite(numericEventId);
 
   const [search, setSearch] = useState('');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
     open: false,
@@ -132,7 +134,10 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
     },
   });
 
-  const filteredUsers = filterBySearch(users, search);
+  const filteredUsers = useMemo(
+    () => sortByName(filterBySearch(users, search), sortDirection),
+    [users, search, sortDirection]
+  );
 
   // --- Exclusão ---
   function openDeleteModal(userId: string) {
@@ -184,6 +189,10 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
     <AppPageContainer>
       <ManagementListCard
         title="Gerenciar Membros do Evento"
+        count={filteredUsers.length}
+        sortDirection={sortDirection}
+        onSortChange={setSortDirection}
+        countLabel="membros"
         search={search}
         onSearchChange={setSearch}
         searchAriaLabel="Buscar usuário"
