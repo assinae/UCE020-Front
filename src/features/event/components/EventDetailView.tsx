@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -298,7 +298,15 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const isOrganizer = role === 'organizer';
 
   const activityModalVariant = getActivityModalVariant(role, isActivityEnrolled);
-  const activities = event?.atividades ?? [];
+  // A API devolve na ordem de cadastro, o que embaralha a programação: um dia
+  // pela manhã aparecia antes da tarde de um dia anterior.
+  const activities = useMemo(
+    () =>
+      [...(event?.atividades ?? [])].sort(
+        (a, b) => new Date(a.startDate ?? 0).getTime() - new Date(b.startDate ?? 0).getTime()
+      ),
+    [event?.atividades]
+  );
   const shouldClampDescription = !!event?.descricao && event.descricao.length > 180;
 
   async function handleSignup() {
@@ -936,7 +944,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         endDate={selectedActivity?.endDate ?? ''}
         location={selectedActivity?.location ?? event.localizacao ?? ''}
         hours={Number(selectedActivity?.workload ?? 0) || event.cargaHoraria || 0}
-        participantsCount={0}
+        participantsCount={selectedActivity?.totalInscritos ?? 0}
         status={activityAuthoritativeStatus || selectedActivity?.status || ''}
         description={selectedActivity?.description ?? ''}
         guests={selectedActivityGuests}

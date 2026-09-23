@@ -110,7 +110,12 @@ export function ActivityModalActions({
 
       {variant === 'organizer' && (
         <>
-          <Button sx={actionButtonSx} onClick={onListParticipants}>
+          {/* Organizador acumula os poderes de monitor, incluindo validar presença. */}
+          <Button sx={actionButtonSx} onClick={onValidatePresences}>
+            Validar Presenças
+          </Button>
+
+          <Button sx={actionButtonSx} variant="outlined" onClick={onListParticipants}>
             Participantes
           </Button>
 
