@@ -158,7 +158,7 @@ export default function HomePage() {
           endDate={searchState.event.dataFim}
           location={searchState.event.localizacao}
           hours={searchState.event.cargaHoraria}
-          participantsCount={0}
+          participantsCount={searchState.event.totalInscritos ?? 0}
           status={searchState.event.status}
           description={searchState.event.descricao}
           variant="signup"

@@ -62,6 +62,14 @@ const TIPO_TO_ROLE: Record<TipoParticipante, 'organizer' | 'monitor' | 'particip
   participante: 'participant',
 };
 
+// Contornado em vez de preenchido para não competir com o chip de status, que
+// fica ao lado.
+const PARTICIPATION_CHIP: Record<TipoParticipante, { label: string; color: string }> = {
+  organizador: { label: 'Organizador', color: colorTokens.navigation.default },
+  monitor: { label: 'Monitor', color: colorTokens.brand.secondary },
+  participante: { label: 'Participante', color: colorTokens.neutral.gray700 },
+};
+
 type ActivityLike = Activity & {
   title?: string;
   name?: string;
@@ -285,6 +293,8 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     unsubscribeMutation.mutate();
   }
   const role = participantType ? TIPO_TO_ROLE[participantType] : 'participant';
+  // Só quem tem participação tem papel: sem isso, visitante veria "Participante".
+  const participationChip = participantType ? PARTICIPATION_CHIP[participantType] : null;
   const isOrganizer = role === 'organizer';
 
   const activityModalVariant = getActivityModalVariant(role, isActivityEnrolled);
@@ -638,7 +648,32 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               >
                 {STATUS_STYLES[event.status.toLowerCase()]?.label ?? event.status}
               </Box>
+
+              {participationChip && (
+                <Box
+                  component="span"
+                  sx={{
+                    px: 1.5,
+                    py: 0.6,
+                    borderRadius: 99,
+                    border: '1px solid',
+                    borderColor: participationChip.color,
+                    color: participationChip.color,
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  {participationChip.label}
+                </Box>
+              )}
             </Box>
+
+            {role === 'monitor' && (
+              <Typography sx={{ fontSize: 13, color: colorTokens.neutral.gray700 }}>
+                Como monitor, você valida as presenças abrindo uma atividade da programação
+                abaixo.
+              </Typography>
+            )}
 
             <Typography
               component="h1"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventService, UpdateEventPayload } from '@/services/eventService';
 import { activityService } from '@/services/activityService';
+import { extractApiErrorMessage } from '@/utils/apiError';
 
 export function useEditEvent(eventId: number | null) {
   const router = useRouter();
@@ -26,17 +27,10 @@ export function useEditEvent(eventId: number | null) {
 
   const mutation = useMutation({
     mutationFn: async (payload: UpdateEventPayload) => {
+      // Excluir atividade não passa por aqui: é ação própria, disparada pela
+      // lixeira e confirmada no modal. Salvar só grava evento e atividades.
       const { atividades = [], ...eventPayload } = payload;
       const updatedEvent = await eventService.update(eventId!, eventPayload);
-      const currentActivityIds = new Set(
-        (event?.atividades ?? []).map((activity) => Number(activity.id))
-      );
-      const submittedActivityIds = new Set(
-        atividades
-          .map((activity) => activity.id)
-          .filter((activityId): activityId is number => activityId != null)
-          .map(Number)
-      );
 
       await Promise.all(
         atividades.map(({ id, ...activity }) => {
@@ -50,12 +44,6 @@ export function useEditEvent(eventId: number | null) {
         })
       );
 
-      await Promise.all(
-        [...currentActivityIds]
-          .filter((activityId) => !submittedActivityIds.has(activityId))
-          .map((activityId) => activityService.remove(activityId))
-      );
-
       return updatedEvent;
     },
     onSuccess: () => {
@@ -66,13 +54,22 @@ export function useEditEvent(eventId: number | null) {
       router.push(`/event/${eventId}`);
     },
     onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
-      const raw = axiosErr.response?.data?.message;
-      const message = Array.isArray(raw)
-        ? raw.join(', ')
-        : (raw ??
-          (err instanceof Error ? err.message : 'Erro ao atualizar evento. Tente novamente.'));
-      setError(message);
+      setError(extractApiErrorMessage(err, 'Erro ao atualizar evento. Tente novamente.'));
+    },
+  });
+
+  const removal = useMutation({
+    mutationFn: (activityId: number) => activityService.remove(activityId),
+    onSuccess: () => {
+      // De propósito sem invalidar ['event', eventId]: o formulário se
+      // reconstrói a partir dessa query, e refazê-la aqui apagaria o que a
+      // pessoa já tiver digitado e ainda não salvou.
+      queryClient.invalidateQueries({ queryKey: ['events-created'] });
+      queryClient.invalidateQueries({ queryKey: ['home-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events-monitoring'] });
+    },
+    onError: (err: unknown) => {
+      setError(extractApiErrorMessage(err, 'Não foi possível excluir a atividade.'));
     },
   });
 
@@ -82,12 +79,25 @@ export function useEditEvent(eventId: number | null) {
     await mutation.mutateAsync(payload);
   }
 
+  /** Devolve se a exclusão passou, para a tela só tirar da lista quando passou. */
+  async function removeActivity(activityId: number) {
+    setError(null);
+    try {
+      await removal.mutateAsync(activityId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     event,
     loadingEvent,
     loadError,
     handleUpdate,
+    removeActivity,
     loading: mutation.isPending,
+    removingActivity: removal.isPending,
     error,
   };
 }
