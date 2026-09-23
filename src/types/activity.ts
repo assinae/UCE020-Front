@@ -55,6 +55,8 @@ export type Activity = {
   photo?: string | null;
   /** Define se a atividade emite certificado individual de participante. */
   generateCertificate?: boolean;
+  /** Inscritos na atividade, não no evento. Vem do detalhe do evento. */
+  totalInscritos?: number;
 }
 
 export type ActivityGuest = {

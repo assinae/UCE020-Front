@@ -10,7 +10,9 @@ interface ParticipantsListCardProps {
   search: string;
   presenceFilter: PresenceFilter;
   onSearchChange: (value: string) => void;
-  onFilterToggle: (filter: Exclude<PresenceFilter, 'all'>) => void;
+  onFilterChange: (filter: PresenceFilter) => void;
+  sortDirection?: 'asc' | 'desc';
+  onSortChange?: (direction: 'asc' | 'desc') => void;
   backFallbackHref?: string;
   renderParticipantActions?: (participant: Participant) => ReactNode;
   confirmedCount?: number;
@@ -22,7 +24,9 @@ export function ParticipantsListCard({
   search,
   presenceFilter,
   onSearchChange,
-  onFilterToggle,
+  onFilterChange,
+  sortDirection,
+  onSortChange,
   backFallbackHref,
   renderParticipantActions,
   confirmedCount,
@@ -37,13 +41,20 @@ export function ParticipantsListCard({
         ) : undefined
       }
       backFallbackHref={backFallbackHref}
+      sortDirection={sortDirection}
+      onSortChange={onSortChange}
+      filterGroup={{
+        label: 'Mostrar',
+        value: presenceFilter,
+        options: [
+          { value: 'all', label: 'Todos' },
+          { value: 'confirmed', label: 'Marcaram presença' },
+          { value: 'pending', label: 'Não marcaram' },
+        ],
+        onChange: (value) => onFilterChange(value as PresenceFilter),
+      }}
       searchRow={
-        <ParticipantsSearchBar
-          search={search}
-          presenceFilter={presenceFilter}
-          onSearchChange={onSearchChange}
-          onFilterToggle={onFilterToggle}
-        />
+        <ParticipantsSearchBar search={search} onSearchChange={onSearchChange} />
       }
       isEmpty={participants.length === 0}
       emptyMessage="Nenhum participante encontrado"
