@@ -29,6 +29,7 @@ export default function ActivityModal({
   onValidatePresences,
   onListParticipants,
   onGenerateCertificates,
+  onViewReport,
   isLoading,
   isGeneratingCertificates,
 }: ActivityModalProps) {
@@ -89,6 +90,7 @@ export default function ActivityModal({
           onValidatePresences={onValidatePresences}
           onListParticipants={onListParticipants}
           onGenerateCertificates={onGenerateCertificates}
+          onViewReport={onViewReport}
           isLoading={isLoading}
           isGeneratingCertificates={isGeneratingCertificates}
         />
