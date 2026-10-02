@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Box, CircularProgress, Container, Typography } from '@mui/material';
 import { Download, PictureAsPdf } from '@mui/icons-material';
@@ -22,33 +22,34 @@ function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('Não foi possível preparar o PDF.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function EventReportPage({ params }: { params: Promise<{ id: string; kind: string }> }) {
   const { id, kind: rawKind } = use(params);
   const kind = rawKind === 'monitors' ? 'monitors' : 'attendance' as ReportKind;
   const activityId = useSearchParams().get('activityId');
-  const [url, setUrl] = useState<string>();
   const [isDownloading, setIsDownloading] = useState(false);
   const title = kind === 'monitors' ? 'Relatório de Monitores' : activityId ? 'Relatório da Atividade' : 'Relatório de Presenças';
 
   const report = useQuery({
     queryKey: ['event-report', id, kind, activityId],
-    queryFn: () => kind === 'monitors'
-      ? reportService.getMonitorPdf(id)
-      : activityId
-        ? reportService.getActivityAttendancePdf(id, activityId)
-        : reportService.getEventAttendancePdf(id),
+    queryFn: async () => {
+      const blob = kind === 'monitors'
+        ? await reportService.getMonitorPdf(id)
+        : activityId
+          ? await reportService.getActivityAttendancePdf(id, activityId)
+          : await reportService.getEventAttendancePdf(id);
+      return { blob, url: await blobToDataUrl(blob) };
+    },
     retry: false,
   });
-
-  useEffect(() => {
-    if (!report.data) return;
-    const objectUrl = URL.createObjectURL(report.data);
-    setUrl(objectUrl);
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-      setUrl(undefined);
-    };
-  }, [report.data]);
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
@@ -62,8 +63,8 @@ export default function EventReportPage({ params }: { params: Promise<{ id: stri
         </Box>
 
         <Box sx={{ height: { xs: '68dvh', md: '72dvh' }, bgcolor: '#f5f5f5', border: '1px solid #e2e8f0', borderRadius: 2, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
-          {report.isLoading ? <CircularProgress size={28} /> : url ? (
-            <Box component="iframe" src={url} title={title} sx={{ width: '100%', height: '100%', border: 0, bgcolor: '#fff' }} />
+          {report.isLoading ? <CircularProgress size={28} /> : report.data?.url ? (
+            <Box component="iframe" src={report.data.url} title={title} sx={{ width: '100%', height: '100%', border: 0, bgcolor: '#fff' }} />
           ) : (
             <Box sx={{ textAlign: 'center', color: '#64748b', px: 3 }}>
               <PictureAsPdf sx={{ fontSize: 42, mb: 1 }} />
@@ -76,7 +77,7 @@ export default function EventReportPage({ params }: { params: Promise<{ id: stri
           <Button leftIcon={<Download />} variant="outlined" color="secondary" disabled={!report.data || isDownloading} onClick={() => {
             if (!report.data) return;
             setIsDownloading(true);
-            download(report.data, title);
+            download(report.data.blob, title);
             setIsDownloading(false);
           }}>
             Baixar PDF
