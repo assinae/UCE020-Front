@@ -140,6 +140,9 @@ export function ListParticipantsView() {
   const role = participantType ? TIPO_TO_ROLE[participantType] : 'participant';
   // Organizador é administrador do evento e acumula os poderes de monitor.
   const canEditPresence = role === 'monitor' || role === 'organizer';
+  const isActivityFinalized = context.activityStatus?.trim().toLowerCase() === 'finalizada';
+  const canMutatePresence =
+    canEditPresence && context.activityStatus !== undefined && !isActivityFinalized;
   const { confirmed: confirmedCount, pending: pendingCount } = countByPresenceStatus(participants);
 
 
@@ -170,8 +173,8 @@ export function ListParticipantsView() {
     return (
       <ParticipantPresenceActions
         participant={participant}
-        canValidatePresence={canEditPresence}
-        canEditPresence={canEditPresence}
+        canValidatePresence={canMutatePresence}
+        canEditPresence={canMutatePresence}
         onValidatePresence={goToValidatePresence}
         onRemovePresence={openRemoveModal}
       />
@@ -182,7 +185,12 @@ export function ListParticipantsView() {
 
   return (
     <AppPageContainer>
-      {canEditPresence && <ValidatePresencesButton onClick={goToValidatePresence} />}
+      {canEditPresence && (
+        <ValidatePresencesButton
+          onClick={goToValidatePresence}
+          disabled={context.activityStatus === undefined || isActivityFinalized}
+        />
+      )}
 
       {isLoading ? (
         <PageLoader minHeight="calc(100dvh - 160px)" />

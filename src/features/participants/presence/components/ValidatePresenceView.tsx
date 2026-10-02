@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, Typography } from '@mui/material';
+import { Alert, Box, Typography } from '@mui/material';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { ContentCard } from '@/components/layout/ContentCard';
 import { BackButton, Toast } from '@/components/ui';
@@ -185,6 +185,8 @@ export function ValidatePresenceView() {
   }
 
   const { eventId: contextEventId, activityId: contextActivityId, eventName, activityTitle } = context;
+  const isActivityFinalized = context.activityStatus?.trim().toLowerCase() === 'finalizada';
+  const canValidatePresence = context.activityStatus !== undefined && !isActivityFinalized;
 
   return (
     <AppPageContainer>
@@ -198,15 +200,23 @@ export function ValidatePresenceView() {
           eventName={eventName}
           activityTitle={activityTitle}
         />
-        <PresenceScannerPanel
-          paused={state.modalOpen}
-          scanKey={scanKey}
-          onScan={handleScan}
-        />
+        {!canValidatePresence ? (
+          <Alert severity="info">
+            {isActivityFinalized
+              ? 'Esta atividade foi finalizada. As presenças registradas podem ser consultadas, mas não podem ser alteradas'
+              : 'Verificando status da atividade antes de permitir alterações'}
+          </Alert>
+        ) : (
+          <PresenceScannerPanel
+            paused={state.modalOpen}
+            scanKey={scanKey}
+            onScan={handleScan}
+          />
+        )}
       </ContentCard>
 
       <PresenceScanModal
-        open={state.modalOpen}
+        open={state.modalOpen && canValidatePresence}
         scanResult={state.result}
         onClose={closeModal}
         onConfirm={handleConfirmPresence}

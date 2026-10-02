@@ -45,6 +45,7 @@ export function ActivityModalActions({
   const canGenerateCertificates =
     Boolean(generateCertificate) && (status ?? '').trim().toLowerCase() === 'finalizada';
   const canViewReport = (status ?? '').trim().toLowerCase() === 'finalizada';
+  const isFinalized = (status ?? '').trim().toLowerCase() === 'finalizada';
   // Participante inscrito com presença já confirmada: nenhuma ação disponível,
   // apenas o status "Presença registrada".
   if (variant === 'manage' && presenceConfirmed) {
@@ -106,7 +107,7 @@ export function ActivityModalActions({
       )}
 
       {variant === 'monitor' && (
-        <Button sx={actionButtonSx} onClick={onValidatePresences}>
+        <Button sx={actionButtonSx} onClick={onValidatePresences} disabled={isFinalized}>
           Validar Presenças
         </Button>
       )}
@@ -114,7 +115,7 @@ export function ActivityModalActions({
       {variant === 'organizer' && (
         <>
           {/* Organizador acumula os poderes de monitor, incluindo validar presença. */}
-          <Button sx={actionButtonSx} onClick={onValidatePresences}>
+          <Button sx={actionButtonSx} onClick={onValidatePresences} disabled={isFinalized}>
             Validar Presenças
           </Button>
 

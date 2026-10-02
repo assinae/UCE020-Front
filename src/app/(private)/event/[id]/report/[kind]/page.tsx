@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Box, CircularProgress, Container, Typography } from '@mui/material';
+import { Alert, Box, CircularProgress, Container, Typography } from '@mui/material';
 import { Download, PictureAsPdf } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { BackButton, Button } from '@/components/ui';
@@ -37,6 +37,12 @@ export default function EventReportPage({ params }: { params: Promise<{ id: stri
   const activityId = useSearchParams().get('activityId');
   const [isDownloading, setIsDownloading] = useState(false);
   const title = kind === 'monitors' ? 'Relatório de Monitores' : activityId ? 'Relatório da Atividade' : 'Relatório de Presenças';
+  const reportGuidance =
+    kind === 'monitors'
+      ? 'Este relatório reúne confirmações de check-ins realizadas por monitores e organizadores. Eventos finalizados antes da implementação da auditoria podem gerar um PDF sem registros'
+      : activityId
+        ? 'O histórico lista cada confirmação e exclusão de presença, com autor e horário. “Indisponível” identifica uma presença registrada antes da implementação da auditoria'
+        : 'O histórico lista cada confirmação e exclusão de presença, com autor e horário. “Indisponível” identifica uma presença registrada antes da implementação da auditoria. Eventos sem atividades não possuem check-ins neste fluxo';
 
   const report = useQuery({
     queryKey: ['event-report', id, kind, activityId],
@@ -61,6 +67,8 @@ export default function EventReportPage({ params }: { params: Promise<{ id: stri
             <Typography variant="body2" color="text.secondary">Documento de auditoria do evento</Typography>
           </Box>
         </Box>
+
+        <Alert severity="info" sx={{ mb: 2 }}>{reportGuidance}</Alert>
 
         <Box sx={{ height: { xs: '68dvh', md: '72dvh' }, bgcolor: '#f5f5f5', border: '1px solid #e2e8f0', borderRadius: 2, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
           {report.isLoading ? <CircularProgress size={28} /> : report.data?.url ? (
