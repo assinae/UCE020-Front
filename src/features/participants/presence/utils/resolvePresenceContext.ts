@@ -9,6 +9,7 @@ interface PresenceContextApiResponse {
     activityId?: string | number;
     eventName?: string;
     activityTitle?: string;
+    activityStatus?: string;
   };
 }
 
@@ -56,6 +57,7 @@ export async function fetchPresenceContext(
       eventId: String(contextData.eventId ?? eventId),
       activityId: String(contextData.activityId ?? activityId),
       activityTitle: contextData.activityTitle ?? activityId,
+      activityStatus: contextData.activityStatus,
       eventName: contextData.eventName ?? resolveEventName(eventId),
     };
   } catch {
