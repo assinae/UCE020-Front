@@ -68,6 +68,14 @@ export function OrganizerEventActions({
     router.push(`/certificate/generated/${eventId}`);
   }
 
+  function onViewAttendanceReport() {
+    router.push(`/event/${eventId}/report/attendance`);
+  }
+
+  function onViewMonitorReport() {
+    router.push(`/event/${eventId}/report/monitors`);
+  }
+
   async function onFinalizeEvent() {
     setIsFinalizing(true);
     try {
@@ -156,6 +164,28 @@ export function OrganizerEventActions({
           sx={{ ...actionButtonSx }}
         >
           Finalizar Evento
+        </Button>
+      )}
+      {isFinalized && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={onViewAttendanceReport}
+          sx={{ ...actionButtonSx }}
+        >
+          Relatório de Presenças
+        </Button>
+      )}
+      {isFinalized && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={onViewMonitorReport}
+          sx={{ ...actionButtonSx }}
+        >
+          Relatório de Monitores
         </Button>
       )}
       {isFinalized && (
