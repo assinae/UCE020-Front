@@ -1,5 +1,5 @@
 import { IconButton } from '@mui/material';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import { colorTokens } from '@/lib/colors';
 import { managementIconButtonSx } from '@/features/management/components/listRowStyles';
@@ -41,7 +41,7 @@ export function ParticipantPresenceActions({
           aria-label={`Remover presença de ${participant.name}`}
           sx={managementIconButtonSx}
         >
-          <EditOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
+          <DeleteOutlineOutlinedIcon sx={{ fontSize: 20, color: colorTokens.navigation.default }} />
         </IconButton>
       )}
     </>

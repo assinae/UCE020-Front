@@ -961,6 +961,11 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         onValidatePresences={goToListParticipants}
         onListParticipants={goToListParticipants}
         onGenerateCertificates={handleGenerateActivityCertificates}
+        onViewReport={() => {
+          if (selectedActivity) {
+            router.push(`/event/${eventId}/report/attendance?activityId=${selectedActivity.id}`);
+          }
+        }}
       />
 
       {selectedActivity && user && (

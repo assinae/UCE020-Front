@@ -27,6 +27,7 @@ export interface ActivityModalProps {
   onValidatePresences?: AsyncVoidHandler;
   onListParticipants?: AsyncVoidHandler;
   onGenerateCertificates?: AsyncVoidHandler;
+  onViewReport?: AsyncVoidHandler;
   isLoading?: boolean;
   isGeneratingCertificates?: boolean;
 }

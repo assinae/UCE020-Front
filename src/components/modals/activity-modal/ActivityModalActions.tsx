@@ -15,6 +15,7 @@ type ActivityModalActionsProps = Pick<
   | 'onValidatePresences'
   | 'onListParticipants'
   | 'onGenerateCertificates'
+  | 'onViewReport'
   | 'isLoading'
   | 'isGeneratingCertificates'
 >;
@@ -37,11 +38,14 @@ export function ActivityModalActions({
   onValidatePresences,
   onListParticipants,
   onGenerateCertificates,
+  onViewReport,
   isLoading,
   isGeneratingCertificates,
 }: ActivityModalActionsProps) {
   const canGenerateCertificates =
     Boolean(generateCertificate) && (status ?? '').trim().toLowerCase() === 'finalizada';
+  const canViewReport = (status ?? '').trim().toLowerCase() === 'finalizada';
+  const isFinalized = (status ?? '').trim().toLowerCase() === 'finalizada';
   // Participante inscrito com presença já confirmada: nenhuma ação disponível,
   // apenas o status "Presença registrada".
   if (variant === 'manage' && presenceConfirmed) {
@@ -103,7 +107,7 @@ export function ActivityModalActions({
       )}
 
       {variant === 'monitor' && (
-        <Button sx={actionButtonSx} onClick={onValidatePresences}>
+        <Button sx={actionButtonSx} onClick={onValidatePresences} disabled={isFinalized}>
           Validar Presenças
         </Button>
       )}
@@ -111,7 +115,7 @@ export function ActivityModalActions({
       {variant === 'organizer' && (
         <>
           {/* Organizador acumula os poderes de monitor, incluindo validar presença. */}
-          <Button sx={actionButtonSx} onClick={onValidatePresences}>
+          <Button sx={actionButtonSx} onClick={onValidatePresences} disabled={isFinalized}>
             Validar Presenças
           </Button>
 
@@ -127,6 +131,11 @@ export function ActivityModalActions({
           >
             {isGeneratingCertificates ? 'Gerando...' : 'Gerar certificados'}
           </Button>
+          {canViewReport && (
+            <Button sx={actionButtonSx} variant="outlined" onClick={onViewReport}>
+              Relatório da atividade
+            </Button>
+          )}
         </>
       )}
     </Box>
