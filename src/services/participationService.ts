@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Participant } from '@/types/participant';
+import type { EventProgress, Participant } from '@/types/participant';
 
 export type TipoParticipante = 'participante' | 'monitor' | 'organizador';
 
@@ -55,11 +55,11 @@ function unwrapPayload<T>(responseData: unknown): T | null {
 
 class ParticipationService {
   async subscribe(eventoId: number): Promise<ParticipationResponse> {
-    const { data } = await api.post<ParticipationResponse>(
-      `/event/${eventoId}/subscription`,
-    );
+    const { data } = await api.post<ParticipationResponse>(`/event/${eventoId}/subscription`);
 
-    const payload = unwrapPayload<{ tipo?: TipoParticipante; eventoId?: number; userId?: number }>(data);
+    const payload = unwrapPayload<{ tipo?: TipoParticipante; eventoId?: number; userId?: number }>(
+      data
+    );
 
     return {
       message: data?.message ?? 'Inscrição realizada com sucesso',
@@ -72,11 +72,11 @@ class ParticipationService {
   }
 
   async unsubscribe(eventoId: number): Promise<ParticipationResponse> {
-    const { data } = await api.delete<ParticipationResponse>(
-      `/event/${eventoId}/subscription`,
-    );
+    const { data } = await api.delete<ParticipationResponse>(`/event/${eventoId}/subscription`);
 
-    const payload = unwrapPayload<{ tipo?: TipoParticipante; eventoId?: number; userId?: number }>(data);
+    const payload = unwrapPayload<{ tipo?: TipoParticipante; eventoId?: number; userId?: number }>(
+      data
+    );
 
     return {
       message: data?.message ?? 'Inscrição cancelada com sucesso',
@@ -91,22 +91,23 @@ class ParticipationService {
   //Traz o tipo de participação do usuário autenticado naquele evento
   //Ex: 'participante', 'monitor' ou 'organizador'
   async getTipoParticipante(eventoId: number): Promise<TipoParticipante> {
-    const { data } = await api.get<ParticipationResponse>(
-      `/event/${eventoId}/subscription`,
-    );
+    const { data } = await api.get<ParticipationResponse>(`/event/${eventoId}/subscription`);
 
     const payload = unwrapPayload<{ tipo?: TipoParticipante }>(data);
     return payload?.tipo ?? 'participante';
   }
 
-  async subscribeToActivity(atividadeId: number, userId: number): Promise<{
+  async subscribeToActivity(
+    atividadeId: number,
+    userId: number
+  ): Promise<{
     activityId: number;
     userId: number;
     participationId: number;
   }> {
     const { data } = await api.post<ActivitySubscribeResponse>(
       `/activity/${atividadeId}/subscribe`,
-      { userId },
+      { userId }
     );
 
     const payload = unwrapPayload<{
@@ -118,14 +119,17 @@ class ParticipationService {
     return payload ?? { activityId: atividadeId, userId, participationId: 0 };
   }
 
-  async unsubscribeFromActivity(atividadeId: number, userId: number): Promise<{
+  async unsubscribeFromActivity(
+    atividadeId: number,
+    userId: number
+  ): Promise<{
     activityId: number;
     userId: number;
     participationId: number;
   }> {
     const { data } = await api.delete<ActivitySubscribeResponse>(
       `/activity/${atividadeId}/unsubscribe`,
-      { data: { userId } },
+      { data: { userId } }
     );
 
     const payload = unwrapPayload<{
@@ -139,7 +143,7 @@ class ParticipationService {
 
   async getActivityParticipants(eventoId: number, atividadeId: number): Promise<Participant[]> {
     const { data } = await api.get<ParticipantsResponse>(
-      `/event/${eventoId}/subscription/activity/${atividadeId}/participants`,
+      `/event/${eventoId}/subscription/activity/${atividadeId}/participants`
     );
 
     const payload = unwrapPayload<BackendParticipant[]>(data);
@@ -147,8 +151,16 @@ class ParticipationService {
     return (payload ?? []).map((participant) => ({
       id: String(participant.usuarioId),
       name: participant.nome,
+      email: participant.email,
       presenceStatus: participant.presente ? 'confirmed' : 'pending',
     }));
+  }
+
+  async getEventProgress(eventoId: number): Promise<EventProgress> {
+    const { data } = await api.get<{ message?: string; data: EventProgress }>(
+      `/event/${eventoId}/subscription/progress`
+    );
+    return data.data;
   }
 }
 

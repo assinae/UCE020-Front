@@ -1,15 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Drawer,
-  IconButton,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Box, Drawer, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { BackButton, PageLoader } from '@/components/ui';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
@@ -236,6 +229,8 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const [activityGuestsMap, setActivityGuestsMap] = useState<Record<string, ActivityGuest[]>>({});
 
   const isSignupProcessingRef = useRef(false);
+  const openedActivityFromLinkRef = useRef(false);
+  const activityIdFromLink = useSearchParams().get('atividade');
   const pendingEnrollmentChecksRef = useRef<Set<string>>(new Set());
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -535,6 +530,108 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
   const isLoading = isLoadingEvent || isLoadingParticipation;
 
+  async function handleSelectActivity(activity: Activity) {
+    const activityKey = String(activity.id);
+    const normalizedEventId = Number(event?.id ?? eventId);
+
+    setSelectedActivity(activity as ActivityLike);
+    setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
+    setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
+    setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
+    setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
+    setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
+    setIsQrModalOpen(false);
+
+    if (pendingEnrollmentChecksRef.current.has(activityKey)) {
+      return;
+    }
+
+    pendingEnrollmentChecksRef.current.add(activityKey);
+    setIsCheckingActivityEnrollment(true);
+
+    try {
+      const activityDetails = await activityService.findOne(activity.id);
+      let isRegistered = Boolean(activityDetails?.isRegistered ?? false);
+      let presenceConfirmed = false;
+      const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
+      const authoritativeStatus = activityDetails?.status ?? '';
+      const activityGuests: ActivityGuest[] = (activityDetails?.guests ?? []).map((guest) => ({
+        name: guest.name,
+        email: guest.email,
+        role: guest.role,
+      }));
+
+      if (Number.isFinite(normalizedEventId) && Number.isFinite(Number(activity.id)) && user?.id) {
+        try {
+          const participants = await participationService.getActivityParticipants(
+            normalizedEventId,
+            Number(activity.id)
+          );
+          const me = participants.find((participant) => participant.id === String(user.id));
+
+          if (me) {
+            isRegistered = true;
+            presenceConfirmed = me.presenceStatus === 'confirmed';
+          }
+        } catch (participantsError) {
+          console.error(
+            '[ATIVIDADE] erro ao listar participantes para verificar inscrição/presença:',
+            participantsError
+          );
+        }
+      }
+
+      setIsActivityEnrolled(isRegistered);
+      setIsPresenceConfirmed(presenceConfirmed);
+      setIsActivityCertificateEnabled(certificateEnabled);
+      setActivityAuthoritativeStatus(authoritativeStatus);
+      setActivityEnrollmentMap((prev) => ({
+        ...prev,
+        [activityKey]: isRegistered,
+      }));
+      setActivityPresenceMap((prev) => ({
+        ...prev,
+        [activityKey]: presenceConfirmed,
+      }));
+      setActivityCertificateFlagMap((prev) => ({
+        ...prev,
+        [activityKey]: certificateEnabled,
+      }));
+      setActivityStatusMap((prev) => ({
+        ...prev,
+        [activityKey]: authoritativeStatus,
+      }));
+      setSelectedActivityGuests(activityGuests);
+      setActivityGuestsMap((prev) => ({
+        ...prev,
+        [activityKey]: activityGuests,
+      }));
+    } catch (error) {
+      console.error('[ATIVIDADE] erro ao verificar inscrição:', error);
+      setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
+      setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
+      setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
+      setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
+      setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
+    } finally {
+      pendingEnrollmentChecksRef.current.delete(activityKey);
+      setIsCheckingActivityEnrollment(false);
+    }
+  }
+
+  // A home linka para cá com ?atividade=<id> no botão "Ver atividade".
+  useEffect(() => {
+    if (!activityIdFromLink || openedActivityFromLinkRef.current) return;
+    const activity = activities.find((item) => String(item.id) === activityIdFromLink);
+    if (!activity) return;
+    const timer = setTimeout(() => {
+      openedActivityFromLinkRef.current = true;
+      void handleSelectActivity(activity);
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activities, activityIdFromLink]);
+
   if (isLoading) {
     return <PageLoader />;
   }
@@ -678,8 +775,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
             {role === 'monitor' && (
               <Typography sx={{ fontSize: 13, color: colorTokens.neutral.gray700 }}>
-                Como monitor, você valida as presenças abrindo uma atividade da programação
-                abaixo.
+                Como monitor, você valida as presenças abrindo uma atividade da programação abaixo.
               </Typography>
             )}
 
@@ -837,99 +933,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           />
         )}
 
-        <EventActivitiesSection
-          activities={activities}
-          onSelectActivity={async (activity) => {
-            const activityKey = String(activity.id);
-            const normalizedEventId = Number(event?.id ?? eventId);
-
-            setSelectedActivity(activity as ActivityLike);
-            setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
-            setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
-            setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
-            setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
-            setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
-            setIsQrModalOpen(false);
-
-            if (pendingEnrollmentChecksRef.current.has(activityKey)) {
-              return;
-            }
-
-            pendingEnrollmentChecksRef.current.add(activityKey);
-            setIsCheckingActivityEnrollment(true);
-
-            try {
-              const activityDetails = await activityService.findOne(activity.id);
-              let isRegistered = Boolean(activityDetails?.isRegistered ?? false);
-              let presenceConfirmed = false;
-              const certificateEnabled = Boolean(activityDetails?.gerarCertificado ?? false);
-              const authoritativeStatus = activityDetails?.status ?? '';
-              const activityGuests: ActivityGuest[] = (activityDetails?.guests ?? []).map(
-                (guest) => ({ name: guest.name, email: guest.email, role: guest.role })
-              );
-
-              if (
-                Number.isFinite(normalizedEventId) &&
-                Number.isFinite(Number(activity.id)) &&
-                user?.id
-              ) {
-                try {
-                  const participants = await participationService.getActivityParticipants(
-                    normalizedEventId,
-                    Number(activity.id)
-                  );
-                  const me = participants.find((participant) => participant.id === String(user.id));
-
-                  if (me) {
-                    isRegistered = true;
-                    presenceConfirmed = me.presenceStatus === 'confirmed';
-                  }
-                } catch (participantsError) {
-                  console.error(
-                    '[ATIVIDADE] erro ao listar participantes para verificar inscrição/presença:',
-                    participantsError
-                  );
-                }
-              }
-
-              setIsActivityEnrolled(isRegistered);
-              setIsPresenceConfirmed(presenceConfirmed);
-              setIsActivityCertificateEnabled(certificateEnabled);
-              setActivityAuthoritativeStatus(authoritativeStatus);
-              setActivityEnrollmentMap((prev) => ({
-                ...prev,
-                [activityKey]: isRegistered,
-              }));
-              setActivityPresenceMap((prev) => ({
-                ...prev,
-                [activityKey]: presenceConfirmed,
-              }));
-              setActivityCertificateFlagMap((prev) => ({
-                ...prev,
-                [activityKey]: certificateEnabled,
-              }));
-              setActivityStatusMap((prev) => ({
-                ...prev,
-                [activityKey]: authoritativeStatus,
-              }));
-              setSelectedActivityGuests(activityGuests);
-              setActivityGuestsMap((prev) => ({
-                ...prev,
-                [activityKey]: activityGuests,
-              }));
-            } catch (error) {
-              console.error('[ATIVIDADE] erro ao verificar inscrição:', error);
-              setIsActivityEnrolled(activityEnrollmentMap[activityKey] ?? false);
-              setIsPresenceConfirmed(activityPresenceMap[activityKey] ?? false);
-              setIsActivityCertificateEnabled(activityCertificateFlagMap[activityKey] ?? false);
-              setActivityAuthoritativeStatus(activityStatusMap[activityKey] ?? '');
-              setSelectedActivityGuests(activity.guests ?? activityGuestsMap[activityKey] ?? []);
-            } finally {
-              pendingEnrollmentChecksRef.current.delete(activityKey);
-              setIsCheckingActivityEnrollment(false);
-            }
-          }}
-        />
+        <EventActivitiesSection activities={activities} onSelectActivity={handleSelectActivity} />
       </ContentCard>
 
       <ActivityModal
