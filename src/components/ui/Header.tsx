@@ -6,55 +6,10 @@ import { usePathname } from 'next/navigation';
 import { AppBar, Box, Toolbar } from '@mui/material';
 import { Button } from '@/components/ui';
 
-interface User {
-  name: string;
-}
-
-interface HeaderProps {
-  user?: User | null;
-  onMenuClick?: () => void;
-}
-
-function HamburgerIcon({ color }: { color: string }) {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-export function Header({ user = null, onMenuClick }: HeaderProps) {
-  const isLoggedIn = !!user;
+export function Header() {
   const pathname = usePathname();
   const isSimpleHeaderPage =
     pathname.includes('/landing-page/learn-more') || pathname.includes('/landing-page/tutorial');
-
-  if (isLoggedIn) {
-    return (
-      <header className="fixed top-0 left-0 right-0 z-30 w-full bg-[#101828] px-4 sm:px-6">
-        <div className="mx-auto max-w-7xl flex items-center h-16 relative">
-          <button
-            onClick={onMenuClick}
-            aria-label="Abrir menu"
-            className="text-white hover:opacity-70 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2EC4A0] rounded"
-          >
-            <HamburgerIcon color="white" />
-          </button>
-        </div>
-      </header>
-    );
-  }
 
   if (isSimpleHeaderPage) {
     return (
