@@ -6,13 +6,13 @@ import { Box } from '@mui/material';
 import { Event } from '@/types/event';
 import { Toast } from '@/components/ui';
 import { ToastSeverity } from '@/types/toast';
-import { ActivityModal } from '@/components/modals';
 import { useHomeEvents } from '@/hooks/useHomeEvents';
 import { colorTokens } from '@/lib/colors';
 import { eventService } from '@/services/eventService';
 import { participationService } from '@/services/participationService';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { useQueryClient } from '@tanstack/react-query';
+import { EventFoundModal } from './EventFoundModal';
 import { HomeHero } from './HomeHero';
 import { QuickActions } from './QuickActions';
 import { SubscribedEvents } from './SubscribedEvents';
@@ -51,6 +51,7 @@ export function HomeView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
   const isSubscribingRef = useRef(false);
+  const [subscribing, setSubscribing] = useState(false);
   const [feedback, setFeedback] = useState<{
     open: boolean;
     message: string;
@@ -104,17 +105,27 @@ export function HomeView() {
     router.push(`/event/${event.id}`);
   }
 
+  function resetSearch() {
+    setModalOpen(false);
+    dispatch({ type: 'RESET' });
+    setSearchCode('');
+    setCode('');
+  }
+
+  function handleViewDetails(eventId: number) {
+    resetSearch();
+    router.push(`/event/${eventId}`);
+  }
+
   async function handleSignup(eventId: number) {
     if (isSubscribingRef.current) return;
     isSubscribingRef.current = true;
+    setSubscribing(true);
     try {
       await participationService.subscribe(eventId);
       queryClient.invalidateQueries({ queryKey: ['home-events'] });
       queryClient.invalidateQueries({ queryKey: ['participating-events'] });
-      setModalOpen(false);
-      dispatch({ type: 'RESET' });
-      setSearchCode('');
-      setCode('');
+      resetSearch();
       router.push(`/event/${eventId}`);
     } catch (error) {
       setFeedback({
@@ -124,6 +135,7 @@ export function HomeView() {
       });
     } finally {
       isSubscribingRef.current = false;
+      setSubscribing(false);
     }
   }
 
@@ -166,25 +178,13 @@ export function HomeView() {
       />
 
       {searchState.status === 'success' && (
-        <ActivityModal
+        <EventFoundModal
+          event={searchState.event}
           open={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setSearchCode('');
-            setCode('');
-            dispatch({ type: 'RESET' });
-          }}
-          title={searchState.event.nome}
-          image={searchState.event.foto ?? undefined}
-          startDate={searchState.event.dataInicio}
-          endDate={searchState.event.dataFim}
-          location={searchState.event.localizacao}
-          hours={searchState.event.cargaHoraria}
-          participantsCount={searchState.event.totalInscritos ?? 0}
-          status={searchState.event.status}
-          description={searchState.event.descricao}
-          variant="signup"
-          onSignup={() => handleSignup(searchState.event.id)}
+          subscribing={subscribing}
+          onClose={resetSearch}
+          onViewDetails={() => handleViewDetails(searchState.event.id)}
+          onSubscribe={() => handleSignup(searchState.event.id)}
         />
       )}
 

@@ -66,6 +66,7 @@ export const colorTokens = {
     hover: '#254778',
     deep: '#13284D',
     gradient: 'linear-gradient(135deg, #0D1E3B 0%, #13284D 100%)',
+    sheetGradient: 'linear-gradient(150deg, #16305A 0%, #0D1E3B 62%)',
   },
   shadow: {
     mint: '#43C79C',

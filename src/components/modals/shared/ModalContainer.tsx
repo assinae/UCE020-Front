@@ -9,6 +9,8 @@ interface ModalContainerProps {
   children: ReactNode;
   sx?: SxProps<Theme>;
   paperSx?: SxProps<Theme>;
+  /** Classe do painel, para animações de entrada do Tailwind. */
+  paperClassName?: string;
 }
 
 export default function ModalContainer({
@@ -17,6 +19,7 @@ export default function ModalContainer({
   children,
   sx,
   paperSx,
+  paperClassName,
 }: ModalContainerProps) {
   return (
     <Dialog
@@ -25,10 +28,8 @@ export default function ModalContainer({
       sx={sx}
       slotProps={{
         paper: {
-          sx: [
-            { width: '100%' },
-            ...(Array.isArray(paperSx) ? paperSx : paperSx ? [paperSx] : []),
-          ],
+          className: paperClassName,
+          sx: [{ width: '100%' }, ...(Array.isArray(paperSx) ? paperSx : paperSx ? [paperSx] : [])],
         },
       }}
     >
