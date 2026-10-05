@@ -4,6 +4,7 @@ export type GuestRole = 'Palestrante' | 'Ministrante' | 'Moderador';
 export interface ManagedUser {
   id: string;
   name: string;
+  email?: string;
   role: StaffRole;
 }
 

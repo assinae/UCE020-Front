@@ -39,7 +39,6 @@ export default function EventCreatedPage() {
               <EventList
                 events={events}
                 title="Eventos Criados"
-                home={false}
                 noEventsMessage="Nenhum evento encontrado."
               />
             </>
