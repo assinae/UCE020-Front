@@ -82,9 +82,6 @@ export function EventFoundModal({
       paperClassName="max-mui:animate-sheet-in mui:animate-card-in motion-reduce:animate-none"
       paperSx={{
         position: 'relative',
-        // O MUI foca o próprio painel ao abrir; sem isso o navegador desenha o
-        // anel de foco em volta do modal inteiro quando a busca vem do teclado.
-        outline: 'none',
         m: { xs: 0, md: 2.5 },
         maxWidth: { xs: '100%', md: 520 },
         maxHeight: '92vh',

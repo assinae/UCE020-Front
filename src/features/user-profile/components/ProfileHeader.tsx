@@ -1,16 +1,16 @@
 'use client';
 
-import { Box, Avatar, Typography, IconButton } from '@mui/material';
-import { useEffect, useState } from 'react';
-import CameraAltRoundedIcon from '@mui/icons-material/CameraAltRounded';
+import { Avatar, Box, ButtonBase, CircularProgress, alpha } from '@mui/material';
+import { useEffect, useState, type ReactNode } from 'react';
+import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
+import { SkeletonBone } from '@/components/ui';
+import { colorTokens } from '@/lib/colors';
 import type { UserProfile } from '@/types/userProfile';
 import { AvatarUploadDialog } from './AvatarUploadDialog';
 import { AvatarCropperDialog } from './AvatarCropperDialog';
 
-interface ProfileHeaderProps {
-  user: UserProfile;
-  onAvatarChange?: (file: File) => void;
-}
+const WHITE = colorTokens.neutral.white;
+const AVATAR_SIZE = 112;
 
 const MAX_AVATAR_SIZE_MB = 3;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -25,20 +25,119 @@ function parseDataUrl(dataUrl: string): { mime: string; sizeBytes: number } | nu
   return { mime, sizeBytes: Math.ceil((base64.length * 3) / 4) };
 }
 
-export function ProfileHeader({ user, onAvatarChange }: ProfileHeaderProps) {
-  const initials = user.name
+function getInitials(name: string): string {
+  return name
     .split(' ')
-    .map((n) => n[0])
+    .filter(Boolean)
+    .map((part) => part[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+}
 
-  // ── Avatar (modal de upload + recorte) ────────────────────
+function HeaderShell({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      component="section"
+      sx={{
+        position: 'relative',
+        overflow: 'hidden',
+        background: colorTokens.navigation.gradient,
+        pt: { xs: 4.5, md: 5.5 },
+        px: 3,
+      }}
+    >
+      <Box
+        aria-hidden
+        className="animate-orb-float motion-reduce:animate-none"
+        sx={{
+          position: 'absolute',
+          top: -40,
+          left: '8%',
+          width: 240,
+          height: 240,
+          borderRadius: '999px',
+          background: `radial-gradient(circle, ${alpha(colorTokens.brand.secondaryLight, 0.2)} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+      <Box
+        aria-hidden
+        className="animate-orb-float motion-reduce:animate-none"
+        style={{ animationDuration: '11s' }}
+        sx={{
+          position: 'absolute',
+          top: 20,
+          right: '10%',
+          width: 200,
+          height: 200,
+          borderRadius: '999px',
+          background: `radial-gradient(circle, ${alpha(colorTokens.brand.mint, 0.14)} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <Box
+        sx={{
+          position: 'relative',
+          maxWidth: 1180,
+          mx: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1.5,
+          textAlign: 'center',
+        }}
+      >
+        {children}
+      </Box>
+
+      <Box
+        component="svg"
+        aria-hidden
+        viewBox="0 0 1440 140"
+        preserveAspectRatio="none"
+        className="animate-wave-in motion-reduce:animate-none"
+        sx={{
+          position: 'relative',
+          display: 'block',
+          width: 'calc(100% + 48px)',
+          height: { xs: 64, md: 110 },
+          mx: -3,
+          mt: 3.5,
+          transformOrigin: 'bottom',
+          color: colorTokens.surface.app,
+        }}
+      >
+        <path fill="currentColor" d="M0,0 C420,150 1020,150 1440,0 L1440,140 L0,140 Z" />
+      </Box>
+    </Box>
+  );
+}
+
+export function ProfileHeaderSkeleton() {
+  return (
+    <HeaderShell>
+      <SkeletonBone dark sx={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} />
+      <SkeletonBone dark sx={{ width: 220, height: 30, mt: 0.5 }} />
+      <SkeletonBone dark sx={{ width: 180, height: 16 }} />
+    </HeaderShell>
+  );
+}
+
+interface ProfileHeaderProps {
+  user: UserProfile;
+  /** Devolve `false` quando o envio falha, para o cabeçalho voltar à foto anterior. */
+  onAvatarChange: (file: File) => Promise<boolean>;
+}
+
+export function ProfileHeader({ user, onAvatarChange }: ProfileHeaderProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatarUrl ?? null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -58,8 +157,6 @@ export function ProfileHeader({ user, onAvatarChange }: ProfileHeaderProps) {
 
   const handleAvatarSelect = (dataUrl: string | null) => {
     if (!dataUrl) {
-      // Usuário removeu a foto pelo botão de lixeira do ImageUpload
-      setAvatarPreview(null);
       setAvatarError(null);
       setUploadOpen(false);
       return;
@@ -81,98 +178,113 @@ export function ProfileHeader({ user, onAvatarChange }: ProfileHeaderProps) {
     setCropOpen(true);
   };
 
-  const handleCropConfirm = (blob: Blob) => {
-    if (avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
-    const objectUrl = URL.createObjectURL(blob);
-    setAvatarPreview(objectUrl);
+  const handleCropConfirm = async (blob: Blob) => {
+    const previous = avatarPreview;
+    setAvatarPreview(URL.createObjectURL(blob));
+    setUploading(true);
 
     const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' });
-    onAvatarChange?.(file);
+    const saved = await onAvatarChange(file);
+    setUploading(false);
+    if (!saved) setAvatarPreview(previous);
   };
 
   return (
-    <Box
-      sx={{
-        background: '#0F1D35',
-        position: 'relative',
-        pt: 3,
-      }}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-        <Box sx={{ position: 'relative' }}>
-          <Avatar
-            alt={user.name}
-            src={avatarPreview || undefined}
-            sx={{
-              width: 100,
-              height: 100,
-              border: '4px solid rgba(255, 255, 255, 0.3)',
-              mb: 2,
-              bgcolor: '#76E3BC',
-              fontSize: '2.5rem',
-              fontWeight: 'bold',
-              color: '#1a2744',
-            }}
-          >
-            {!avatarPreview ? initials : null}
-          </Avatar>
+    <HeaderShell>
+      <Box
+        className="animate-card-in motion-reduce:animate-none"
+        sx={{ position: 'relative', width: AVATAR_SIZE, height: AVATAR_SIZE }}
+      >
+        <Avatar
+          alt={user.name}
+          src={avatarPreview ?? undefined}
+          sx={{
+            width: AVATAR_SIZE,
+            height: AVATAR_SIZE,
+            border: `4px solid ${alpha(WHITE, 0.3)}`,
+            bgcolor: colorTokens.brand.primary,
+            color: colorTokens.navigation.deep,
+            fontSize: 40,
+            fontWeight: 800,
+          }}
+        >
+          {getInitials(user.name)}
+        </Avatar>
 
-          <IconButton
-            onClick={handleOpenAvatarUpload}
-            aria-label="Alterar foto de perfil"
-            size="small"
+        {uploading && (
+          <Box
+            role="status"
+            aria-label="Enviando foto"
             sx={{
               position: 'absolute',
-              bottom: 12,
-              right: -4,
-              width: 32,
-              height: 32,
-              bgcolor: '#101828',
-              border: '2px solid #fff',
-              '&:hover': { bgcolor: '#1A2744' },
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '999px',
+              bgcolor: alpha(colorTokens.shadow.overlay, 0.45),
             }}
           >
-            <CameraAltRoundedIcon sx={{ color: '#fff', fontSize: 16 }} />
-          </IconButton>
-        </Box>
+            <CircularProgress size={28} thickness={5} sx={{ color: WHITE }} />
+          </Box>
+        )}
 
-        <Typography
-          variant="h5"
-          sx={{ color: '#fff', fontWeight: 700, textAlign: 'center', fontSize: '1.5rem' }}
+        <ButtonBase
+          onClick={handleOpenAvatarUpload}
+          disabled={uploading}
+          aria-label="Alterar foto"
+          sx={{
+            position: 'absolute',
+            bottom: 2,
+            right: -2,
+            width: 36,
+            height: 36,
+            borderRadius: '999px',
+            border: `2px solid ${WHITE}`,
+            bgcolor: colorTokens.shadow.navy,
+            color: WHITE,
+            transition: 'transform .28s cubic-bezier(.34,1.2,.64,1), background .18s ease',
+            '&:hover': { bgcolor: colorTokens.navigation.hover, transform: 'scale(1.08)' },
+          }}
         >
-          {user.name}
-        </Typography>
+          <PhotoCameraOutlinedIcon sx={{ fontSize: 17 }} />
+        </ButtonBase>
       </Box>
 
-      {/*
-        Onda reintroduzida com técnica diferente da anterior, para não
-        reintroduzir o seam:
-        - Fica em FLUXO NORMAL (não absolute), então não depende de
-          overflow:hidden nem de arredondamento de subpixel para recorte —
-          não há nenhuma borda "no fio da navalha" para arredondar errado.
-        - `mt` negativo sobrepõe a onda na base navy, sem precisar de clip.
-        - fill="currentColor" + `color: 'background.default'` amarra a cor
-          da onda exatamente ao valor real do tema, eliminando qualquer
-          risco de mismatch entre uma cor hardcoded e o fundo da página.
-      */}
       <Box
-        component="svg"
-        viewBox="0 0 1200 100"
-        preserveAspectRatio="none"
+        component="h1"
+        className="animate-fade-up motion-reduce:animate-none"
+        style={{ animationDelay: '0.08s' }}
         sx={{
-          display: 'block',
-          width: '100%',
-          height: '90px',
-          mt: '-46px',
-          color: 'background.default',
+          m: 0,
+          mt: 0.5,
+          fontSize: { xs: 24, md: 28 },
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.2,
+          color: WHITE,
+          overflowWrap: 'anywhere',
         }}
       >
-        <path d="M0,50 Q300,10 600,50 T1200,50 L1200,100 L0,100 Z" fill="currentColor" />
+        {user.name}
+      </Box>
+      <Box
+        component="span"
+        className="animate-fade-up motion-reduce:animate-none"
+        style={{ animationDelay: '0.14s' }}
+        sx={{
+          fontSize: 13.5,
+          fontWeight: 500,
+          color: alpha(WHITE, 0.7),
+          overflowWrap: 'anywhere',
+        }}
+      >
+        {user.email}
       </Box>
 
       <AvatarUploadDialog
         open={uploadOpen}
-        value={avatarPreview}
+        value={null}
         error={avatarError}
         onClose={handleCloseAvatarUpload}
         onChange={handleAvatarSelect}
@@ -182,8 +294,8 @@ export function ProfileHeader({ user, onAvatarChange }: ProfileHeaderProps) {
         open={cropOpen}
         imageSrc={rawAvatarSrc}
         onClose={() => setCropOpen(false)}
-        onConfirm={handleCropConfirm}
+        onConfirm={(blob) => void handleCropConfirm(blob)}
       />
-    </Box>
+    </HeaderShell>
   );
 }

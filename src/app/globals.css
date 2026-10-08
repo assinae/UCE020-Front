@@ -30,6 +30,7 @@
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
   --animate-card-in: card-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-sheet-in: sheet-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-wave-in: wave-in 0.6s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 
   @keyframes fade-up {
     from {
@@ -64,6 +65,13 @@
       opacity: 1;
       transform: none;
       filter: none;
+    }
+  }
+
+  @keyframes wave-in {
+    from {
+      opacity: 0;
+      transform: scaleY(0.7);
     }
   }
 

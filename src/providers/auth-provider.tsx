@@ -13,6 +13,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loginGlobal: (token: string, userData: unknown) => void;
+  updateUser: (changes: Partial<Pick<User, 'name' | 'email'>>) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -116,6 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   };
 
+  // O /auth/me devolve o payload do token, que não muda ao editar o perfil;
+  // sem isto o nome na barra de navegação só atualizaria no próximo login.
+  const updateUser = (changes: Partial<Pick<User, 'name' | 'email'>>) => {
+    setUser((current) => (current ? { ...current, ...changes } : current));
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
@@ -123,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginGlobal, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, loginGlobal, updateUser, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
