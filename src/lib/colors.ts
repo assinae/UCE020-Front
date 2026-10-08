@@ -45,6 +45,10 @@ export const colorTokens = {
     organizerBg: '#E8EDFB',
     organizerText: '#253B68',
   },
+  progress: {
+    liveBg: '#FFF5E0',
+    liveText: '#8A5A00',
+  },
   status: {
     error: '#B22C29',
     errorLight: '#D32F2F',

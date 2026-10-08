@@ -29,7 +29,12 @@ export default function ModalContainer({
       slotProps={{
         paper: {
           className: paperClassName,
-          sx: [{ width: '100%' }, ...(Array.isArray(paperSx) ? paperSx : paperSx ? [paperSx] : [])],
+          // O MUI foca o próprio painel ao abrir; sem isso o navegador desenha o anel de foco
+          // em volta do modal inteiro quando ele é aberto pelo teclado.
+          sx: [
+            { width: '100%', outline: 'none' },
+            ...(Array.isArray(paperSx) ? paperSx : paperSx ? [paperSx] : []),
+          ],
         },
       }}
     >
