@@ -23,6 +23,8 @@ export const colorTokens = {
     hover: '#F1F4F8',
     rowHover: '#F9FDFC',
     dangerSubtle: '#FCF0F0',
+    field: '#FCFDFE',
+    panel: '#F6F9FC',
   },
   text: {
     primary: '#192C48',

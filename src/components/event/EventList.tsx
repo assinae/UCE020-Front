@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import { Box, CircularProgress, FormControl, MenuItem, Select, Typography } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { Box, FormControl, MenuItem, Select, Typography } from '@mui/material';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Event } from '@/types/event';
 import { EventCard } from '@/components/event/EventCard';
+import { EventTicketSkeleton } from '@/components/event/EventTicketSkeleton';
 import { Searchbar } from '@/components/ui/Searchbar';
 import { BackButton } from '@/components/ui/BackButton';
 import { useRouter } from 'next/navigation';
@@ -22,7 +23,18 @@ interface EventListProps {
   loading?: boolean;
   noEventsMessage?: string;
   onEventClick?: (event: Event) => void;
+  /** Card de cada evento; sem ele, usa o `EventCard`. */
+  renderEvent?: (event: Event) => ReactNode;
 }
+
+const SKELETON_CARDS = 6;
+const GRID_SX = {
+  display: 'grid',
+  gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(auto-fill, minmax(300px, 1fr))' },
+  alignItems: 'start',
+  gap: 2,
+  width: '100%',
+} as const;
 
 export function EventList({
   events,
@@ -30,7 +42,7 @@ export function EventList({
   noEventsMessage = 'Nenhum evento encontrado.',
   loading = false,
   onEventClick,
-
+  renderEvent,
 }: EventListProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,9 +51,10 @@ export function EventList({
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const normalizedStatus = statusFilter.toLowerCase();
 
-    return events.filter((event) =>
-      event.nome.toLowerCase().includes(normalizedSearch)
-      && (normalizedStatus === 'todos' || event.status.toLowerCase() === normalizedStatus)
+    return events.filter(
+      (event) =>
+        event.nome.toLowerCase().includes(normalizedSearch) &&
+        (normalizedStatus === 'todos' || event.status.toLowerCase() === normalizedStatus)
     );
   }, [events, searchTerm, statusFilter]);
   const handleEventClick = (event: Event) => {
@@ -57,31 +70,41 @@ export function EventList({
     <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
       <Box
         sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: { xs: "stretch", md: "center" },
-          justifyContent: "space-between",
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'stretch', md: 'center' },
+          justifyContent: 'space-between',
           gap: { xs: 2.25, md: 3 },
           mb: 3.5,
-          width: "100%",
+          width: '100%',
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: { xs: 1, sm: 2 }, minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 2 },
+            minWidth: 0,
+          }}
+        >
           <BackButton
             fallbackHref="/home"
             size="small"
             sx={{
-              color: "text.secondary",
-              "&:hover": { bgcolor: "background.default" },
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'background.default' },
             }}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-            <Box sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: '#2EC4A0', flexShrink: 0 }} />
+            <Box
+              sx={{ width: 4, height: 22, borderRadius: 4, bgcolor: '#2EC4A0', flexShrink: 0 }}
+            />
             <Typography
               variant="h5"
               sx={{
                 fontWeight: 600,
-                color: "text.primary",
+                color: 'text.primary',
                 fontSize: { xs: '1.25rem', sm: '1.5rem' },
                 lineHeight: 1.3,
                 minWidth: 0,
@@ -208,8 +231,10 @@ export function EventList({
       </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: '#2EC4A0' }} />
+        <Box role="status" aria-label="Carregando eventos" sx={GRID_SX}>
+          {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+            <EventTicketSkeleton key={index} />
+          ))}
         </Box>
       ) : events.length === 0 ? (
         <Typography sx={{ fontSize: 14, color: 'text.secondary', py: 4, textAlign: 'center' }}>
@@ -220,24 +245,19 @@ export function EventList({
           Nenhum evento encontrado para esse filtro.
         </Typography>
       ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(auto-fill, minmax(280px, 1fr))',
-              lg: 'repeat(auto-fill, minmax(320px, 1fr))',
-            },
-            alignItems: 'stretch',
-            gap: { xs: 1.5, sm: 2 },
-            width: '100%',
-            maxWidth: '100%',
-            px: 0,
-          }}
-        >
-          {filteredEvents.map((event) => (
-            <Box key={event.id} sx={{ minWidth: 0, display: 'flex' }}>
-              <EventCard event={event} onClick={handleEventClick} />
+        <Box sx={GRID_SX}>
+          {filteredEvents.map((event, index) => (
+            <Box
+              key={event.id}
+              className="animate-card-in motion-reduce:animate-none"
+              style={{ animationDelay: `${Math.min(index, 5) * 0.06}s` }}
+              sx={{ minWidth: 0 }}
+            >
+              {renderEvent ? (
+                renderEvent(event)
+              ) : (
+                <EventCard event={event} onClick={handleEventClick} />
+              )}
             </Box>
           ))}
         </Box>
