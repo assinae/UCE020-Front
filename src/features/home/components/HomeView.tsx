@@ -100,11 +100,6 @@ export function HomeView() {
     [code]
   );
 
-  function handleEventClick(event: Event) {
-    setModalOpen(false);
-    router.push(`/event/${event.id}`);
-  }
-
   function resetSearch() {
     setModalOpen(false);
     dispatch({ type: 'RESET' });
@@ -160,11 +155,7 @@ export function HomeView() {
           searching={searchState.status === 'loading'}
         />
         <QuickActions />
-        <SubscribedEvents
-          events={filteredEvents}
-          loading={eventsLoading}
-          onEventClick={handleEventClick}
-        />
+        <SubscribedEvents events={filteredEvents} loading={eventsLoading} />
       </Box>
 
       <Toast

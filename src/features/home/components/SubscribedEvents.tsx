@@ -1,14 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import { Box, alpha } from '@mui/material';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
-import { EventCard } from '@/components/event';
 import { SectionHeading } from '@/components/ui';
 import { colorTokens } from '@/lib/colors';
 import type { Event } from '@/types/event';
+import { EventTicketCard } from '@/features/event';
 import { useAuth } from '@/providers/auth-provider';
 import { useFeaturedEvent } from '../hooks/useFeaturedEvent';
 import { useRememberedEventsLayout } from '../hooks/useRememberedEventsLayout';
-import { FeaturedEvent } from './FeaturedEvent';
 import { EventsSkeleton } from './EventsSkeleton';
 import { NoEventsState } from './NoEventsState';
 
@@ -19,10 +20,9 @@ const CARD_STAGGER_S = 0.06;
 interface SubscribedEventsProps {
   events: Event[];
   loading: boolean;
-  onEventClick: (event: Event) => void;
 }
 
-export function SubscribedEvents({ events, loading, onEventClick }: SubscribedEventsProps) {
+export function SubscribedEvents({ events, loading }: SubscribedEventsProps) {
   const { user } = useAuth();
   const featured = useFeaturedEvent(events);
   const listedEvents = events.filter((event) => event.id !== featured.event?.id);
@@ -88,33 +88,39 @@ export function SubscribedEvents({ events, loading, onEventClick }: SubscribedEv
       ) : events.length === 0 ? (
         <NoEventsState />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box className="animate-card-in motion-reduce:animate-none">
-            <FeaturedEvent featured={featured} defaultOpen={events.length === 1} />
-          </Box>
-          {listedEvents.length > 0 && (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fill, minmax(320px, 1fr))' },
-                gap: 2,
-              }}
-            >
-              {listedEvents.slice(0, MAX_DESKTOP).map((event, index) => (
-                <Box
-                  key={event.id}
-                  className="animate-card-in motion-reduce:animate-none"
-                  style={{ animationDelay: `${(index + 1) * CARD_STAGGER_S}s` }}
-                  sx={{
-                    minWidth: 0,
-                    display: index < MAX_MOBILE ? 'flex' : { xs: 'none', md: 'flex' },
-                  }}
-                >
-                  <EventCard event={event} onClick={onEventClick} />
-                </Box>
-              ))}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              md: 'repeat(auto-fill, minmax(300px, 1fr))',
+            },
+            alignItems: 'start',
+            gap: 2,
+          }}
+        >
+          {featured.event && (
+            <Box className="animate-card-in motion-reduce:animate-none" sx={{ minWidth: 0 }}>
+              <EventTicketCard
+                event={featured.event}
+                variant="featured"
+                defaultExpanded={events.length === 1}
+              />
             </Box>
           )}
+          {listedEvents.slice(0, MAX_DESKTOP).map((event, index) => (
+            <Box
+              key={event.id}
+              className="animate-card-in motion-reduce:animate-none"
+              style={{ animationDelay: `${(index + 1) * CARD_STAGGER_S}s` }}
+              sx={{
+                minWidth: 0,
+                display: index < MAX_MOBILE ? 'block' : { xs: 'none', md: 'block' },
+              }}
+            >
+              <EventTicketCard event={event} />
+            </Box>
+          ))}
         </Box>
       )}
     </Box>

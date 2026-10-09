@@ -1,29 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 import type { ReactNode } from 'react';
 import { Box, ButtonBase, alpha } from '@mui/material';
-import type { Event, EventCardProps } from '@/types/event';
+import type { EventCardProps } from '@/types/event';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import { colorTokens } from '@/lib/colors';
 import { formatBahiaDate } from '@/utils/date';
+import { PARTICIPATION_LABELS, getEventStatusStyle } from './eventLabels';
 
 function formatDateRange(start: string, end: string): string {
   return `${formatBahiaDate(start)} a ${formatBahiaDate(end)}`;
 }
-
-const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  pendente: { bg: '#F1F2F6', color: '#667085', label: 'Pendente' },
-  iniciada: { bg: '#E6F7F0', color: colorTokens.text.mint, label: 'Iniciado' },
-  andamento: { bg: '#E8EDFB', color: '#253B68', label: 'Andamento' },
-  finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizado' },
-};
-
-const PARTICIPATION_LABELS: Record<NonNullable<Event['tipoParticipacao']>, string> = {
-  participante: 'Participante',
-  monitor: 'Monitor',
-  organizador: 'Organizador',
-};
 
 const INK = colorTokens.navigation.default;
 const SHADOW = colorTokens.shadow.ink;
@@ -46,12 +34,7 @@ const iconSx = { fontSize: 15, color: colorTokens.text.icon, flexShrink: 0 };
 
 export function EventCard({ event, onClick }: EventCardProps) {
   const initial = (event.nome || '?').trim().charAt(0).toUpperCase();
-  const statusKey = (event.status || '').toLowerCase();
-  const statusStyle = STATUS_STYLES[statusKey] || {
-    bg: '#F1F2F6',
-    color: '#667085',
-    label: event.status,
-  };
+  const statusStyle = getEventStatusStyle(event.status);
   const participationLabel = event.tipoParticipacao
     ? PARTICIPATION_LABELS[event.tipoParticipacao]
     : null;
