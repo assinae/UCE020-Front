@@ -6,6 +6,7 @@ import { Button } from '@/components/ui';
 interface EventSubscriptionActionProps {
   isSubscribed: boolean;
   isLoading: boolean;
+  isFinalized?: boolean;
   onSubscribe: () => void;
   onUnsubscribe: () => void;
 }
@@ -19,6 +20,7 @@ const actionButtonSx = {
 export function EventSubscriptionAction({
   isSubscribed,
   isLoading,
+  isFinalized = false,
   onSubscribe,
   onUnsubscribe,
 }: EventSubscriptionActionProps) {
@@ -29,22 +31,22 @@ export function EventSubscriptionAction({
           variant="outlined"
           color="secondary"
           onClick={onUnsubscribe}
-          disabled={isLoading}
+          disabled={isLoading || isFinalized}
           fullWidth
           sx={{ ...actionButtonSx, maxWidth: 220 }}
         >
-          Cancelar inscrição
+          {isFinalized ? 'Inscrições encerradas' : 'Cancelar inscrição'}
         </Button>
       ) : (
         <Button
           variant="contained"
           color="secondary"
           onClick={onSubscribe}
-          disabled={isLoading}
+          disabled={isLoading || isFinalized}
           fullWidth
           sx={{ ...actionButtonSx, maxWidth: 220 }}
         >
-          Inscrever-se no evento
+          {isFinalized ? 'Inscrições encerradas' : 'Inscrever-se no evento'}
         </Button>
       )}
     </Box>

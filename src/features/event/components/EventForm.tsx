@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Box, alpha } from '@mui/material';
+import { Alert, Box, alpha } from '@mui/material';
 import { Toast } from '@/components/ui';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { CERTIFICATE_TEXT_LIMITS } from '@/lib/certificateTextLimits';
@@ -71,6 +71,21 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
           >
             Voltar ao início
           </Link>
+        </Box>
+      </EventFormShell>
+    );
+  }
+
+  if (isEdit && form.eventoFinalizado) {
+    return (
+      <EventFormShell back={back}>
+        <Box sx={{ display: 'grid', gap: 2 }}>
+          <Box component="h1" sx={{ m: 0, fontSize: 26, fontWeight: 800, color: colorTokens.text.heading }}>
+            {values.nome || 'Evento finalizado'}
+          </Box>
+          <Alert severity="info">
+            Este evento foi finalizado. Seus dados e atividades estão disponíveis apenas para consulta.
+          </Alert>
         </Box>
       </EventFormShell>
     );

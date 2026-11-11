@@ -12,7 +12,6 @@ const MINT = colorTokens.brand.primary;
 
 const STATUS: Record<string, { label: string; live: boolean }> = {
   pendente: { label: 'Pendente', live: false },
-  iniciada: { label: 'Iniciada', live: true },
   andamento: { label: 'Em andamento', live: true },
   finalizada: { label: 'Finalizada', live: false },
 };

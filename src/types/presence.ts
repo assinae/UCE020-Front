@@ -11,6 +11,7 @@ export interface PresenceValidationContext {
   activityId: string;
   activityTitle: string;
   activityStatus?: string;
+  activityStartsAt?: string;
   eventName: string;
 }
 

@@ -15,7 +15,7 @@ export type FormState = {
   startTime: string;
   endTime: string;
   cargaHoraria: string;
-  status: 'pendente' | 'iniciada' | 'andamento' | 'finalizada';
+  status: 'pendente' | 'andamento' | 'finalizada';
   foto: string | null;
   certificadoTemplate: string | null;
 };
@@ -33,7 +33,6 @@ export type TouchedState = Record<keyof FormState, boolean>;
 
 export const STATUS_OPTIONS: { value: FormState['status']; label: string }[] = [
   { value: 'pendente', label: 'Pendente' },
-  { value: 'iniciada', label: 'Iniciado' },
   { value: 'andamento', label: 'Em andamento' },
   { value: 'finalizada', label: 'Finalizado' },
 ];

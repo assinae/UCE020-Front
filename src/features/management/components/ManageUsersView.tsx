@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Alert } from '@mui/material';
 import { PageLoader } from '@/components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
@@ -90,6 +91,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   });
 
   const isEventFinalized = event?.status?.toLowerCase() === 'finalizada';
+  const canManageEvent = event !== undefined && !isEventFinalized;
 
   const {
     data: users = [],
@@ -180,7 +182,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
 
   // --- Exclusão ---
   function openDeleteModal(userId: string) {
-    if (isEventFinalized) return;
+    if (!canManageEvent) return;
     const user = users.find((item) => item.id === userId);
     if (!user) return;
     setSelectedUser(user);
@@ -193,13 +195,13 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   }
 
   function handleDeleteUser() {
-    if (!selectedUser) return;
+    if (!selectedUser || !canManageEvent) return;
     deleteMutation.mutate(selectedUser.id);
   }
 
   // --- Edição de papel ---
   function openEditModal(userId: string) {
-    if (isEventFinalized) return;
+    if (!canManageEvent) return;
     const user = users.find((item) => item.id === userId);
     if (!user) return;
     setEditingUser(user);
@@ -212,7 +214,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   }
 
   function handleSaveRole(newRole: StaffRole) {
-    if (!editingUser) return;
+    if (!editingUser || !canManageEvent) return;
     updateRoleMutation.mutate({ userId: editingUser.id, newRole });
   }
 
@@ -231,7 +233,7 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
   }
 
   const countOf = (role: StaffRole) => users.filter((user) => user.role === role).length;
-  const showActions = !isEventFinalized;
+  const showActions = canManageEvent;
   const gridColumns = showActions ? GRID_COLUMNS : GRID_COLUMNS_READ_ONLY;
 
   return (
@@ -255,6 +257,12 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
           ]}
           backHref={`/event/${eventId}`}
         />
+
+        {isEventFinalized && (
+          <Alert severity="info">
+            Evento finalizado. Os membros podem ser consultados, mas papéis e inscrições não podem ser alterados.
+          </Alert>
+        )}
 
         <ListToolbar
           search={search}
