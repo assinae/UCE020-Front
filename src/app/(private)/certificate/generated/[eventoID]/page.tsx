@@ -1,4 +1,3 @@
-import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { CertificatesGeneratedView } from '@/features/certificate';
 
 export default async function CertificadosGeradosPage({
@@ -9,8 +8,6 @@ export default async function CertificadosGeradosPage({
   const { eventoID } = await params;
 
   return (
-    <AppPageContainer>
-      <CertificatesGeneratedView eventoId={Number(eventoID)} />
-    </AppPageContainer>
+    <CertificatesGeneratedView eventoId={Number(eventoID)} />
   );
 }

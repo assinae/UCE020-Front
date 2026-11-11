@@ -63,9 +63,9 @@ export const tutorialContent: Record<TutorialRole, TutorialRoleContent> = {
         icon: EventAvailableRoundedIcon,
         title: 'Cadastre o evento',
         description:
-          'Clique em "Criar Novo Evento" e preencha nome, data, carga horária e demais informações gerais.',
+          'Clique em "Criar Evento" e preencha nome, data, carga horária e demais informações gerais.',
         image: '/images/tutorial/organizer-novo-evento.png',
-        imageHint: 'Formulário de cadastro de novo evento',
+        imageHint: 'Formulário de cadastro de evento',
       },
       {
         icon: PlaylistAddCheckRoundedIcon,

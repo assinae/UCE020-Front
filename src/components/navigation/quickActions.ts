@@ -14,7 +14,7 @@ export interface QuickAction {
 }
 
 export const QUICK_ACTIONS: QuickAction[] = [
-  { label: 'Criar novo evento', href: '/event/register', tone: 'mint', icon: AddRoundedIcon },
+  { label: 'Criar evento', href: '/event/register', tone: 'mint', icon: AddRoundedIcon },
   {
     label: 'Meus certificados',
     href: '/certificate/list',
@@ -23,7 +23,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
   },
   { label: 'Meus eventos', href: '/event/list', tone: 'forest', icon: CalendarMonthOutlinedIcon },
   {
-    label: 'Monitoria de eventos',
+    label: 'Minhas monitorias',
     href: '/monitoring/list',
     tone: 'light',
     icon: AssignmentTurnedInOutlinedIcon,

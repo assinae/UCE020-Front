@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { certificateService } from '@/services/certificate.service';
 import type { CertificateManagementItem, CertificateManagementRole } from '@/types/certificate-management';
+import type { CertificateGroupStat } from '@/types/certificate-management';
 import {
-  ACTIVITY_FILTER_OPTIONS,
   STATUS_FILTER_OPTIONS,
-  countCertificatesByStatus,
   filterCertificates,
   sortCertificatesByParticipantName,
   type CertificateRoleTab,
@@ -22,6 +21,15 @@ const ROLE_LABEL: Record<CertificateManagementRole, string> = {
   Moderador:   'Moderadores',
 };
 
+const CERTIFICATE_ROLES: CertificateManagementRole[] = [
+  'Ouvinte',
+  'Monitor',
+  'Organizador',
+  'Palestrante',
+  'Ministrante',
+  'Moderador',
+];
+
 export function useCertificatesGenerated(eventoId: number) {
   const [certificates, setCertificates] = useState<CertificateManagementItem[]>([]);
   const [isLoading, setIsLoading]       = useState(false);
@@ -29,19 +37,13 @@ export function useCertificatesGenerated(eventoId: number) {
   const [page, setPage]   = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  const [roleStats, setRoleStats] = useState<
-    { role: CertificateManagementRole; label: string; value: number }[]
-  >(() =>
-    (['Ouvinte', 'Monitor', 'Organizador', 'Palestrante'] as CertificateManagementRole[]).map(
-      role => ({ role, label: ROLE_LABEL[role], value: 0 }),
-    ),
-  );
+  const [groupStats, setGroupStats] = useState<CertificateGroupStat[]>([]);
 
   const [roleTab, setRoleTab]                     = useState<CertificateRoleTab>('Todos');
   const [search, setSearch]                       = useState('');
-  const [activityDraft, setActivityDraft]         = useState('Todas');
+  const [sourceDraft, setSourceDraft]             = useState('event');
   const [statusDraft, setStatusDraft]             = useState('Todos');
-  const [activityApplied, setActivityApplied]     = useState('Todas');
+  const [sourceApplied, setSourceApplied]         = useState('event');
   const [statusApplied, setStatusApplied]         = useState('Todos');
   const [sortOrder, setSortOrder]                 = useState<SortOrder>('asc');
   const [reloadToken, setReloadToken]             = useState(0);
@@ -107,41 +109,54 @@ export function useCertificatesGenerated(eventoId: number) {
 
     certificateService
       .getCertificateStatsByEvent(eventoId)
-      .then(stats => {
-        setRoleStats(
-          stats.map(stat => ({
-            role:  stat.role,
-            label: ROLE_LABEL[stat.role],
-            value: stat.count,
-          })),
-        );
+      .then((groups) => {
+        setGroupStats(groups);
       })
       .catch(() => {
         // mantém os totais zerados se a busca de estatísticas falhar
       });
   }, [eventoId, reloadToken]);
 
+  const selectedGroup = groupStats.find((group) => group.key === sourceApplied);
+  const selectedRoleCounts = new Map(
+    (selectedGroup?.roles ?? []).map((stat) => [stat.role, stat.count]),
+  );
+  const scopedRoleStats = CERTIFICATE_ROLES.map((role) => ({
+    role,
+    label: ROLE_LABEL[role],
+    value: selectedRoleCounts.get(role) ?? 0,
+  }));
+
   const filteredCertificates = useMemo(() => {
     const filtered = filterCertificates({
       certificates,
       roleTab,
       search,
-      activityFilter: activityApplied,
+      sourceFilter: sourceApplied,
       statusFilter:   statusApplied,
     });
     return sortCertificatesByParticipantName(filtered, sortOrder);
-  }, [certificates, roleTab, search, activityApplied, statusApplied, sortOrder]);
+  }, [certificates, roleTab, search, sourceApplied, statusApplied, sortOrder]);
 
-  const statusTotals = useMemo(
-    () => countCertificatesByStatus(certificates),
-    [certificates],
-  );
+  const statusTotals = {
+    pendente: selectedGroup?.pending ?? 0,
+    assinado: selectedGroup?.signed ?? 0,
+  };
 
-  const totalIssued = certificates.length;
+  const totalIssued = selectedGroup?.total ?? 0;
+  const groupLabel = selectedGroup?.label ?? 'Certificados do evento';
+  const totalCertificatesForEvent = groupStats.reduce((sum, group) => sum + group.total, 0);
+  const sourceOptions = [
+    { value: 'event', label: 'Evento' },
+    ...groupStats
+      .filter((group) => group.source === 'activity' && group.activityId !== null)
+      .map((group) => ({ value: group.key, label: group.label })),
+  ];
 
   const applyFilters = () => {
-    setActivityApplied(activityDraft);
+    setSourceApplied(sourceDraft);
     setStatusApplied(statusDraft);
+    setRoleTab('Todos');
   };
 
   const toggleSortOrder = () =>
@@ -149,21 +164,24 @@ export function useCertificatesGenerated(eventoId: number) {
 
   return {
     filteredCertificates,
-    roleStats,
+    roleStats: scopedRoleStats,
+    groupStats,
     statusTotals,
     totalIssued,
+    groupLabel,
+    totalCertificatesForEvent,
     isLoading,
     isError,
     roleTab,
     setRoleTab,
     search,
     setSearch,
-    activityDraft,
-    setActivityDraft,
+    sourceDraft,
+    setSourceDraft,
     statusDraft,
     setStatusDraft,
     applyFilters,
-    activityOptions: ACTIVITY_FILTER_OPTIONS,
+    sourceOptions,
     statusOptions:   STATUS_FILTER_OPTIONS,
     sortOrder,
     toggleSortOrder,
