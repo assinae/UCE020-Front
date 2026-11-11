@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Alert } from '@mui/material';
 import { PageLoader } from '@/components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
@@ -187,6 +188,11 @@ export function ManageUsersView({ eventId }: ManageUsersViewProps) {
 
   return (
     <AppPageContainer>
+      {isEventFinalized && (
+        <Alert severity="info">
+          Evento finalizado. A lista de participantes pode ser consultada, mas papéis e inscrições não podem ser alterados.
+        </Alert>
+      )}
       <ManagementListCard
         title="Gerenciar Membros do Evento"
         count={filteredUsers.length}

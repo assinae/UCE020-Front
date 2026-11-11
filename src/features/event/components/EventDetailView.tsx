@@ -7,6 +7,9 @@ import {
   Drawer,
   IconButton,
   Typography,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -16,6 +19,8 @@ import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import { ActivityModal, ConfirmModal } from '@/components/modals';
 import { ContentCard } from '@/components/layout/ContentCard';
@@ -51,8 +56,7 @@ interface EventDetailViewProps {
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   pendente: { bg: '#F1F2F6', color: '#667085', label: 'Pendente' },
-  iniciada: { bg: '#E6F7F0', color: '#2EC4A0', label: 'Iniciado' },
-  andamento: { bg: '#E8EDFB', color: '#253B68', label: 'Andamento' },
+  andamento: { bg: '#E8EDFB', color: '#253B68', label: 'Em andamento' },
   finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizado' },
 };
 
@@ -480,7 +484,16 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
   function handleEventFinalized() {
     queryClient.setQueryData(['event', numericEventId], (oldData: Event | undefined) => {
-      return oldData ? { ...oldData, status: 'finalizada' } : oldData;
+      return oldData
+        ? {
+            ...oldData,
+            status: 'finalizada',
+            atividades: oldData.atividades?.map((activity) => ({
+              ...activity,
+              status: 'finalizada',
+            })),
+          }
+        : oldData;
     });
     setToast({
       open: true,
@@ -822,14 +835,42 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           <EventSubscriptionAction
             isSubscribed={isSubscribed}
             isLoading={isSubscriptionLoading}
+            isFinalized={event.status.toLowerCase() === 'finalizada'}
             onSubscribe={handleSubscribe}
             onUnsubscribe={handleUnsubscribe}
           />
         )}
 
+        <Accordion
+          disableGutters
+          elevation={0}
+          sx={{
+            border: '1px solid rgba(15, 29, 53, 0.08)',
+            borderRadius: '12px !important',
+            bgcolor: '#F8FAFC',
+            '&:before': { display: 'none' },
+          }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#253B68' }}>
+              <InfoOutlinedIcon fontSize="small" />
+              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Sobre o funcionamento do evento</Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0, color: '#475467' }}>
+            <Typography component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, lineHeight: 1.7 }}>
+              <li>Inscrições e presenças seguem o período e as regras de cada atividade.</li>
+              <li>Monitores e organizadores registram presenças durante a atividade.</li>
+              <li>Ao finalizar, o evento e todas as atividades em aberto são encerrados; inscrições, participantes e presenças deixam de poder ser alterados.</li>
+              <li>Depois do encerramento, o organizador pode consultar os relatórios e certificados disponíveis.</li>
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
+
         {isOrganizer && (
           <OrganizerEventActions
             eventId={Number(event.id)}
+            activities={activities}
             isFinalized={event.status.toLowerCase() === 'finalizada'}
             onAddActivity={() => setIsActivityDrawerOpen(true)}
             onFinalized={handleEventFinalized}

@@ -62,7 +62,7 @@ type FormState = {
   startTime: string;
   endTime: string;
   cargaHoraria: string;
-  status: 'pendente' | 'iniciada' | 'andamento' | 'finalizada';
+  status: 'pendente' | 'andamento' | 'finalizada';
   foto: string | null;
   certificadoTemplate: string | null;
 };
@@ -80,9 +80,7 @@ type TouchedState = Record<keyof FormState, boolean>;
 
 const STATUS_OPTIONS: { value: FormState['status']; label: string }[] = [
   { value: 'pendente', label: 'Pendente' },
-  { value: 'iniciada', label: 'Iniciado' },
   { value: 'andamento', label: 'Em andamento' },
-  { value: 'finalizada', label: 'Finalizado' },
 ];
 
 const DEFAULT_FORM: FormState = {
@@ -450,7 +448,7 @@ export default function EventForm({ mode, eventId }: EventFormProps) {
       const next = { ...cur, [field]: value };
       if (!isEdit && field === 'startDate' && typeof value === 'string') {
         const today = getTodayString();
-        next.status = value === today ? 'iniciada' : 'pendente';
+        next.status = value === today ? 'andamento' : 'pendente';
       }
       return next;
     });

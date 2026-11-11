@@ -11,8 +11,7 @@ import { useRouter } from 'next/navigation';
 const statusOptions = [
   { value: 'todos', label: 'Todos' },
   { value: 'pendente', label: 'Pendente' },
-  { value: 'iniciada', label: 'Iniciado' },
-  { value: 'andamento', label: 'Andamento' },
+  { value: 'andamento', label: 'Em andamento' },
   { value: 'finalizada', label: 'Finalizado' },
 ];
 

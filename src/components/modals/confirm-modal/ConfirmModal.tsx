@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Typography, Box } from '@mui/material';
+import type { ReactNode } from 'react';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -12,6 +13,7 @@ import type { ConfirmModalProps } from '@/types/confirmModal';
 
 interface ExtendedConfirmModalProps extends ConfirmModalProps {
   type?: 'default' | 'error' | 'warning' | 'success';
+  details?: ReactNode;
 }
 
 export default function ConfirmModal({
@@ -25,6 +27,7 @@ export default function ConfirmModal({
   confirmDisabled = false,
   isLoading = false,
   type = 'default',
+  details,
 }: ExtendedConfirmModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,6 +75,8 @@ export default function ConfirmModal({
         >
           {message}
         </Typography>
+
+        {details}
 
         <Typography
           sx={{
