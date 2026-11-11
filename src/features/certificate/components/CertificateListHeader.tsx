@@ -1,15 +1,18 @@
-import { Box, Typography, Tooltip } from '@mui/material';
+import { Box, Typography, Tooltip, ButtonBase, alpha } from '@mui/material';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import type { SortOrder } from '../utils/certificateFilters';
+import { colorTokens } from '@/lib/colors';
 
 interface CertificateListHeaderProps {
+  groupLabel: string;
   count: number;
   sortOrder: SortOrder;
   onToggleSort: () => void;
 }
 
 export function CertificateListHeader({
+  groupLabel,
   count,
   sortOrder,
   onToggleSort,
@@ -17,29 +20,21 @@ export function CertificateListHeader({
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <ArticleOutlinedIcon sx={{ fontSize: 18, color: '#0F1D35' }} />
-        <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0F1D35' }}>
-          Certificados
-        </Typography>
-        <Box
-          sx={{
-            minWidth: 22,
-            height: 20,
-            px: 0.75,
-            borderRadius: '999px',
-            bgcolor: '#E8F5F2',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#1a6e5a' }}>{count}</Typography>
+        <Box sx={{ width: 34, height: 34, borderRadius: '11px', bgcolor: colorTokens.surface.mint, display: 'grid', placeItems: 'center' }}>
+          <ArticleOutlinedIcon sx={{ fontSize: 18, color: colorTokens.brand.secondary }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.2, color: colorTokens.text.heading }}>
+            {groupLabel}
+          </Typography>
+          <Typography sx={{ mt: 0.2, fontSize: 11, color: colorTokens.text.muted, lineHeight: 1.2 }}>
+            {count === 1 ? '1 resultado encontrado' : `${count} resultados encontrados`}
+          </Typography>
         </Box>
       </Box>
       <Tooltip title={sortOrder === 'asc' ? 'Ordenar Z → A' : 'Ordenar A → Z'}>
-        <Box
-          role="button"
-          tabIndex={0}
+        <ButtonBase
+          aria-label={sortOrder === 'asc' ? 'Ordenar de Z a A' : 'Ordenar de A a Z'}
           onClick={onToggleSort}
           onKeyDown={(e) => e.key === 'Enter' && onToggleSort()}
           sx={{
@@ -47,19 +42,20 @@ export function CertificateListHeader({
             alignItems: 'center',
             gap: 0.5,
             cursor: 'pointer',
-            px: 1,
-            py: 0.5,
-            borderRadius: '8px',
-            bgcolor: '#F1F5F9',
-            '&:hover': { bgcolor: '#E2E8F0' },
+            px: 1.25,
+            py: 0.75,
+            borderRadius: '12px',
+            bgcolor: colorTokens.neutral.white,
+            border: `1px solid ${alpha(colorTokens.navigation.default, 0.08)}`,
+            '&:hover': { bgcolor: colorTokens.surface.mintSubtle, borderColor: alpha(colorTokens.brand.secondary, 0.3) },
             userSelect: 'none',
           }}
         >
-          <Typography sx={{ fontSize: 12, color: '#64748B' }}>
-            {sortOrder === 'asc' ? 'A → Z' : 'Z → A'}
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: colorTokens.text.muted }}>
+            {sortOrder === 'asc' ? 'Nome A–Z' : 'Nome Z–A'}
           </Typography>
-          <SwapVertIcon sx={{ fontSize: 18, color: '#64748B' }} />
-        </Box>
+          <SwapVertIcon sx={{ fontSize: 18, color: colorTokens.brand.secondary }} />
+        </ButtonBase>
       </Tooltip>
     </Box>
   );

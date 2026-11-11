@@ -8,7 +8,9 @@ export type CertificateRoleTab =
   | 'Ouvintes'
   | 'Monitores'
   | 'Organizadores'
-  | 'Palestrantes';
+  | 'Palestrantes'
+  | 'Ministrantes'
+  | 'Moderadores';
 export type SortOrder = 'asc' | 'desc';
 
 export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
@@ -17,6 +19,8 @@ export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
   'Monitores',
   'Organizadores',
   'Palestrantes',
+  'Ministrantes',
+  'Moderadores',
 ];
 
 const TAB_TO_ROLE: Partial<Record<CertificateRoleTab, CertificateManagementRole>> = {
@@ -24,13 +28,9 @@ const TAB_TO_ROLE: Partial<Record<CertificateRoleTab, CertificateManagementRole>
   Monitores: 'Monitor',
   Organizadores: 'Organizador',
   Palestrantes: 'Palestrante',
+  Ministrantes: 'Ministrante',
+  Moderadores: 'Moderador',
 };
-
-export const ACTIVITY_FILTER_OPTIONS = [
-  { value: 'Todas', label: 'Todas' },
-  { value: 'Palestra', label: 'Palestra' },
-  { value: 'Minicurso', label: 'Minicurso' },
-];
 
 export const STATUS_FILTER_OPTIONS = [
   { value: 'Todos', label: 'Todos' },
@@ -42,7 +42,7 @@ interface FilterParams {
   certificates: CertificateManagementItem[];
   roleTab: CertificateRoleTab;
   search: string;
-  activityFilter: string;
+  sourceFilter: string;
   statusFilter: string;
 }
 
@@ -50,7 +50,7 @@ export function filterCertificates({
   certificates,
   roleTab,
   search,
-  activityFilter,
+  sourceFilter,
   statusFilter,
 }: FilterParams): CertificateManagementItem[] {
   const targetRole = TAB_TO_ROLE[roleTab];
@@ -62,15 +62,17 @@ export function filterCertificates({
     const matchesSearch =
       !normalizedSearch ||
       certificate.participantName.toLowerCase().includes(normalizedSearch) ||
-      certificate.participantEmail.toLowerCase().includes(normalizedSearch);
+      certificate.participantEmail.toLowerCase().includes(normalizedSearch) ||
+      certificate.title.toLowerCase().includes(normalizedSearch);
 
-    const matchesActivity =
-      activityFilter === 'Todas' ||
-      certificate.title.toLowerCase().includes(activityFilter.toLowerCase());
+    const matchesSource =
+      sourceFilter === 'event'
+        ? certificate.source === 'event' || (!certificate.source && certificate.id.startsWith('user-'))
+        : certificate.source === 'activity' && `activity:${certificate.activityId}` === sourceFilter;
 
     const matchesStatus = statusFilter === 'Todos' || certificate.status === statusFilter;
 
-    return matchesRole && matchesSearch && matchesActivity && matchesStatus;
+    return matchesRole && matchesSearch && matchesSource && matchesStatus;
   });
 }
 
@@ -83,11 +85,4 @@ export function sortCertificatesByParticipantName(
       ? a.participantName.localeCompare(b.participantName, 'pt-BR')
       : b.participantName.localeCompare(a.participantName, 'pt-BR')
   );
-}
-
-export function countCertificatesByStatus(certificates: CertificateManagementItem[]) {
-  return {
-    pendente: certificates.filter((c) => c.status === 'Pendente').length,
-    assinado: certificates.filter((c) => c.status === 'Assinado').length,
-  };
 }

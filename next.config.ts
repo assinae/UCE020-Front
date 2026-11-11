@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
+import type { NextConfig } from 'next';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -11,14 +11,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: 'https',
+        hostname: '**',
       },
     ],
-    formats: ["image/avif", "image/webp"],
+    formats: ['image/avif', 'image/webp'],
   },
   experimental: {
-    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+    optimizePackageImports: ['@mui/material', '@mui/icons-material'],
   },
 };
 
