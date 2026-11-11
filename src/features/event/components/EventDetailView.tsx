@@ -7,18 +7,14 @@ import {
   AccordionSummary,
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Box, Drawer, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { BackButton, PageLoader } from '@/components/ui';
+import { Box, Typography } from '@mui/material';
+import { PageLoader } from '@/components/ui';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
-import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
-import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import { ActivityModal, ConfirmModal } from '@/components/modals';
-import { ContentCard } from '@/components/layout/ContentCard';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { buildListParticipantsPath } from '@/features/participants/presence/utils/routes';
@@ -27,9 +23,12 @@ import { eventService, TipoParticipante } from '@/services/eventService';
 import { getActivityModalVariant } from '@/features/event/utils/getActivityModalVariant';
 import { ParticipantQrCodeModal } from '@/features/participants/presence/components/ParticipantQrCodeModal';
 import { colorTokens } from '@/lib/colors';
-import { formatActivityDate } from '@/utils/format';
 import { EventActivitiesSection } from './EventActivitiesSection';
 import { OrganizerEventActions } from './OrganizerEventActions';
+import { EventHero } from './EventHero';
+import { EventInfoRow } from './EventInfoRow';
+import { EventCodeCard } from './EventCodeCard';
+import { EventAttendeesSummary } from './EventAttendeesSummary';
 import type { Activity, ActivityGuest } from '@/types/activity';
 import type { Event } from '@/types/event';
 import { participationService } from '@/services/participationService';
@@ -40,10 +39,9 @@ import { extractApiErrorMessage } from '@/utils/apiError';
 import { activityService } from '@/services/activityService';
 import { certificateService } from '@/services/certificate.service';
 import { isAxiosError } from 'axios';
-import ActivityForm, {
-  type ActivityFormState,
-} from '@/features/activities/components/ActivityForm';
-import { toBahiaIso } from '@/utils/date';
+import type { ActivityFormState } from '@/features/activities/utils/activityFormRules';
+import { ActivitySheet } from './event-form/ActivitySheet';
+import { APP_TIMEZONE, getBahiaDateInput, getBahiaTimeInput, toBahiaIso } from '@/utils/date';
 
 interface EventDetailViewProps {
   eventId: string;
@@ -51,8 +49,9 @@ interface EventDetailViewProps {
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   pendente: { bg: '#F1F2F6', color: '#667085', label: 'Pendente' },
-  andamento: { bg: '#E8EDFB', color: '#253B68', label: 'Em andamento' },
-  finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizado' },
+  iniciada: { bg: colorTokens.surface.mint, color: colorTokens.text.mint, label: 'Iniciado' },
+  andamento: { bg: colorTokens.role.organizerBg, color: colorTokens.role.organizerText, label: 'Em andamento' },
+  finalizada: { bg: colorTokens.surface.hover, color: colorTokens.text.muted, label: 'Finalizado' },
 };
 
 const TIPO_TO_ROLE: Record<TipoParticipante, 'organizer' | 'monitor' | 'participant'> = {
@@ -76,78 +75,44 @@ type ActivityLike = Activity & {
   workload?: string | number;
 };
 
-function DetailTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Box
-      sx={{
-        minWidth: 0,
-        p: { xs: 1.25, sm: 2 },
-        borderRadius: 2,
-        bgcolor: '#F8FAFC',
-        border: '1px solid rgba(15, 29, 53, 0.06)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: { xs: 1, sm: 1.5 },
-      }}
-    >
-      <Box
-        sx={{
-          width: { xs: 30, sm: 36 },
-          height: { xs: 30, sm: 36 },
-          borderRadius: 2,
-          display: 'grid',
-          placeItems: 'center',
-          color: '#2EC4A0',
-          bgcolor: '#E6F7F0',
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography
-          sx={{
-            color: '#667085',
-            fontSize: { xs: 9.5, sm: 11 },
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            lineHeight: 1.2,
-          }}
-        >
-          {label}
-        </Typography>
-        <Typography
-          sx={{
-            color: '#0F1D35',
-            fontSize: { xs: 12.25, sm: 13.5 },
-            fontWeight: 700,
-            lineHeight: 1.25,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-          }}
-        >
-          {value}
-        </Typography>
-      </Box>
-    </Box>
-  );
+// Versão curta da data para caber numa linha ao lado de local e carga horária
+// (ex.: "11 a 15 de nov. de 2026"); a longa quebrava em três linhas no desktop.
+function formatEventDateShort(start?: string, end?: string): string {
+  const parse = (value?: string) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+  };
+  const startDate = parse(start);
+  if (!startDate) return 'Data não informada';
+  const endDate = parse(end);
+
+  const parts = (date: Date) =>
+    Object.fromEntries(
+      new Intl.DateTimeFormat('pt-BR', {
+        timeZone: APP_TIMEZONE,
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+        .formatToParts(date)
+        .map(({ type, value }) => [type, value])
+    ) as Record<'day' | 'month' | 'year', string>;
+
+  const a = parts(startDate);
+  if (!endDate) return `${a.day} de ${a.month} de ${a.year}`;
+  const b = parts(endDate);
+
+  if (a.year === b.year && a.month === b.month) {
+    return a.day === b.day
+      ? `${a.day} de ${a.month} de ${a.year}`
+      : `${a.day} a ${b.day} de ${a.month} de ${a.year}`;
+  }
+  if (a.year === b.year) return `${a.day} de ${a.month} a ${b.day} de ${b.month} de ${b.year}`;
+  return `${a.day} de ${a.month} de ${a.year} a ${b.day} de ${b.month} de ${b.year}`;
 }
 
 export function EventDetailView({ eventId }: EventDetailViewProps) {
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
   const numericEventId = Number(eventId);
@@ -242,6 +207,8 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [isActivityDrawerOpen, setIsActivityDrawerOpen] = useState(false);
+  // Muda a cada abertura para a folha começar com o formulário limpo.
+  const [activitySheetSession, setActivitySheetSession] = useState(0);
   const [isCreatingActivity, setIsCreatingActivity] = useState(false);
 
   const isLoadingEvent = isLoadingEventData || isAuthLoading;
@@ -670,288 +637,326 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
     );
   }
 
-  return (
-    <AppPageContainer
-      sx={{
-        gap: 3,
-        '& > .MuiBox-root': {
-          maxWidth: 1120,
-          p: { xs: 2, md: 3 },
-        },
+  const statusKey = event.status.toLowerCase();
+  const statusStyle = STATUS_STYLES[statusKey];
+  const isFinalized = statusKey === 'finalizada';
+  const totalInscritos = event.totalInscritos ?? 0;
+
+  // Mesma ação principal no rodapé fixo (mobile) e na coluna lateral (desktop).
+  const renderOrganizerActions = (trigger: 'button' | 'icon') => (
+    <OrganizerEventActions
+      eventId={Number(event.id)}
+      activities={activities}
+      isFinalized={isFinalized}
+      canDelete={statusKey === 'pendente'}
+      onAddActivity={() => {
+        setActivitySheetSession((prev) => prev + 1);
+        setIsActivityDrawerOpen(true);
       }}
-    >
-      <ContentCard
+      onDelete={handleDeleteClick}
+      onFinalized={handleEventFinalized}
+      onFinalizeError={handleFinalizeError}
+      trigger={trigger}
+    />
+  );
+
+  // No mobile o organizador usa o botão de ícone ao lado do título; a barra fixa
+  // do rodapé fica só para inscrição.
+  const primaryAction = isCheckingSubscription ? null : isOrganizer ? (
+    renderOrganizerActions('button')
+  ) : (
+    <EventSubscriptionAction
+      isSubscribed={isSubscribed}
+      isLoading={isSubscriptionLoading}
+      isFinalized={isFinalized}
+      onSubscribe={handleSubscribe}
+      onUnsubscribe={handleUnsubscribe}
+    />
+  );
+
+  const summaryBlocks = (
+    <>
+      <EventCodeCard code={event.codigo} copied={isCodeCopied} onCopy={handleCopyEventCode} />
+      <EventAttendeesSummary total={totalInscritos} />
+    </>
+  );
+
+  return (
+    <Box sx={{ minHeight: '100dvh', bgcolor: colorTokens.surface.app }}>
+      <Box
         sx={{
-          borderRadius: { xs: '22px', md: '28px' },
-          gap: { xs: 2.5, md: 3 },
-          p: { xs: 2, md: 3 },
-          border: '1px solid rgba(15, 29, 53, 0.06)',
-          boxShadow: '0 18px 45px rgba(15, 29, 53, 0.08)',
+          maxWidth: 1180,
+          mx: 'auto',
+          px: { xs: 0, md: 3 },
+          pt: { xs: 0, md: 3 },
+          pb: { xs: 0, md: 7 },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <BackButton
-            fallbackHref="/home"
-            sx={{
-              color: colorTokens.text.primary,
-              bgcolor: '#F8FAFC',
-              border: '1px solid rgba(15, 29, 53, 0.06)',
-              '&:hover': { bgcolor: '#EEF2F6' },
-            }}
-          />
-          {isOrganizer && event.status.toLowerCase() === 'pendente' && (
-            <IconButton
-              size="medium"
-              onClick={handleDeleteClick}
+        {/* Mobile: capa de ponta a ponta. Desktop: mesma largura do card abaixo. */}
+        <EventHero
+          image={event.foto}
+          title={event.nome}
+          action={
+            <Box
+              component="span"
               sx={{
-                color: '#F04438',
-                padding: '8px',
-                bgcolor: '#F044381A',
-                '&:hover': { bgcolor: '#F0443833' },
+                px: 1.75,
+                py: 0.75,
+                borderRadius: 99,
+                bgcolor: statusStyle?.bg ?? '#F1F2F6',
+                color: statusStyle?.color ?? '#667085',
+                fontSize: 12,
+                fontWeight: 800,
+                boxShadow: '0 6px 18px rgba(13, 30, 59, 0.18)',
+                whiteSpace: 'nowrap',
               }}
-              aria-label="Excluir evento"
             >
-              <DeleteOutlineIcon fontSize="medium" />
-            </IconButton>
-          )}
-        </Box>
+              {statusStyle?.label ?? event.status}
+            </Box>
+          }
+        />
 
         <Box
           sx={{
+            position: 'relative',
+            mt: { xs: '-28px', md: '-72px' },
+            bgcolor: '#FFFFFF',
+            borderRadius: { xs: '28px 28px 0 0', md: '28px' },
+            border: { xs: 'none', md: '1px solid rgba(13, 30, 59, 0.06)' },
+            boxShadow: {
+              xs: '0 -10px 30px rgba(13, 30, 59, 0.08)',
+              md: '0 18px 45px rgba(15, 29, 53, 0.08)',
+            },
+            px: { xs: 2.5, sm: 3.5, md: 4, lg: 5 },
+            pt: { xs: 3, md: 4.5 },
+            pb: { xs: 4, md: 5 },
             display: 'grid',
-            gridTemplateColumns: event.foto
-              ? { xs: '1fr', md: 'minmax(320px, 0.9fr) minmax(0, 1.1fr)' }
-              : '1fr',
-            gap: { xs: 2.5, md: 3 },
-            alignItems: 'stretch',
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) 320px', lg: 'minmax(0, 1fr) 340px' },
+            columnGap: { md: 4, lg: 5 },
+            alignItems: 'start',
           }}
         >
-          {event.foto && (
-            <Box
-              sx={{
-                minHeight: { xs: 220, md: 360 },
-                borderRadius: { xs: '18px', md: '22px' },
-                overflow: 'hidden',
-                position: 'relative',
-                bgcolor: '#F0FAF7',
-              }}
-            >
-              <Box
-                component="img"
-                src={event.foto}
-                alt={event.nome}
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-            </Box>
-          )}
-
-          <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
-              <Box
-                component="span"
-                sx={{
-                  px: 1.5,
-                  py: 0.6,
-                  borderRadius: 99,
-                  bgcolor: STATUS_STYLES[event.status.toLowerCase()]?.bg ?? '#F1F2F6',
-                  color: STATUS_STYLES[event.status.toLowerCase()]?.color ?? '#667085',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {STATUS_STYLES[event.status.toLowerCase()]?.label ?? event.status}
-              </Box>
-
+          <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 3.5 } }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
               {participationChip && (
                 <Box
                   component="span"
                   sx={{
+                    alignSelf: 'flex-start',
                     px: 1.5,
-                    py: 0.6,
+                    py: 0.4,
                     borderRadius: 99,
-                    border: '1px solid',
+                    border: '1.5px solid',
                     borderColor: participationChip.color,
                     color: participationChip.color,
                     fontSize: 12,
-                    fontWeight: 800,
+                    fontWeight: 700,
                   }}
                 >
                   {participationChip.label}
                 </Box>
               )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography
+                  component="h1"
+                  sx={{
+                    color: colorTokens.text.heading,
+                    fontSize: { xs: 25, sm: 30, md: 34 },
+                    lineHeight: 1.12,
+                    fontWeight: 800,
+                    letterSpacing: '-0.035em',
+                    overflowWrap: 'anywhere',
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  {event.nome}
+                </Typography>
+                {isOrganizer && !isCheckingSubscription ? (
+                  <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                    {renderOrganizerActions('icon')}
+                  </Box>
+                ) : null}
+              </Box>
+              {role === 'monitor' && (
+                <Typography
+                  sx={{
+                    mt: 0.5,
+                    px: 1.75,
+                    py: 1.25,
+                    borderRadius: '16px',
+                    bgcolor: colorTokens.surface.mint,
+                    color: colorTokens.text.mint,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Como monitor, você valida as presenças abrindo uma atividade da programação abaixo.
+                </Typography>
+              )}
             </Box>
-
-            {role === 'monitor' && (
-              <Typography sx={{ fontSize: 13, color: colorTokens.neutral.gray700 }}>
-                Como monitor, você valida as presenças abrindo uma atividade da programação abaixo.
-              </Typography>
-            )}
-
-            <Typography
-              component="h1"
-              sx={{
-                color: '#0F1D35',
-                fontSize: { xs: 26, md: 36 },
-                lineHeight: 1.08,
-                fontWeight: 800,
-                maxWidth: 620,
-              }}
-            >
-              {event.nome}
-            </Typography>
-
-            <Typography
-              sx={{
-                color: '#475467',
-                fontSize: { xs: 14, md: 15 },
-                lineHeight: 1.65,
-                maxWidth: 660,
-                display: '-webkit-box',
-                WebkitLineClamp: shouldClampDescription && !isDescriptionExpanded ? 4 : 'unset',
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
-              {event.descricao}
-            </Typography>
-
-            {shouldClampDescription ? (
-              <Typography
-                component="button"
-                type="button"
-                onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-                sx={{
-                  alignSelf: 'flex-start',
-                  p: 0,
-                  border: 0,
-                  bgcolor: 'transparent',
-                  color: '#2EC4A0',
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
-                {isDescriptionExpanded ? 'Ler menos' : 'Leia mais'}
-              </Typography>
-            ) : null}
 
             <Box
               sx={{
-                mt: { xs: 0.5, md: 'auto' },
-                p: { xs: 2, md: 2.25 },
-                borderRadius: 2,
-                bgcolor: '#0F1D35',
-                color: '#FFF',
-                display: 'flex',
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                justifyContent: 'space-between',
-                gap: 2,
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'minmax(0, 1fr)',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  lg: 'repeat(3, minmax(0, 1fr))',
+                },
+                gap: { xs: 2, sm: 2.5 },
+                p: { xs: 0, md: 2.25 },
+                borderRadius: { md: '20px' },
+                bgcolor: { md: colorTokens.surface.panel },
+                border: { md: '1px solid rgba(13, 30, 59, 0.05)' },
               }}
             >
-              <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.68)', fontSize: 12, fontWeight: 700 }}>
-                  Código do Evento
+              <EventInfoRow
+                icon={<CalendarTodayRoundedIcon sx={{ fontSize: 20 }} />}
+                title={formatEventDateShort(event.dataInicio, event.dataFim)}
+                subtitle="Data do evento"
+              />
+              <EventInfoRow
+                icon={<PlaceRoundedIcon sx={{ fontSize: 21 }} />}
+                title={event.localizacao || 'A definir'}
+                subtitle="Local"
+              />
+              <EventInfoRow
+                icon={<AccessTimeRoundedIcon sx={{ fontSize: 21 }} />}
+                title={`${event.cargaHoraria} horas`}
+                subtitle="Carga horária"
+              />
+            </Box>
+
+            {/* No mobile o código e os inscritos ficam no fluxo; no desktop vão para a coluna lateral. */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 1.5 }}>
+              {summaryBlocks}
+            </Box>
+
+            {event.descricao ? (
+              <Box component="section">
+                <Typography
+                  component="h2"
+                  sx={{ color: colorTokens.text.heading, fontSize: 17, fontWeight: 800, mb: 1 }}
+                >
+                  Sobre o evento
                 </Typography>
                 <Typography
                   sx={{
-                    fontSize: { xs: 25, md: 30 },
-                    lineHeight: 1.1,
-                    fontWeight: 900,
-                    letterSpacing: '0.08em',
-                    overflowWrap: 'anywhere',
+                    color: colorTokens.text.muted,
+                    fontSize: { xs: 14, md: 15 },
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-line',
+                    display: '-webkit-box',
+                    WebkitLineClamp: shouldClampDescription && !isDescriptionExpanded ? 4 : 'unset',
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
                   }}
                 >
-                  {event.codigo || 'Sem código'}
+                  {event.descricao}
                 </Typography>
+                {shouldClampDescription ? (
+                  <Typography
+                    component="button"
+                    type="button"
+                    onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+                    sx={{
+                      mt: 0.75,
+                      p: 0,
+                      border: 0,
+                      bgcolor: 'transparent',
+                      color: colorTokens.brand.secondary,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      '&:hover': { color: colorTokens.brand.secondaryDark, textDecoration: 'underline' },
+                    }}
+                  >
+                    {isDescriptionExpanded ? 'Ler menos' : 'Leia mais'}
+                  </Typography>
+                ) : null}
               </Box>
-              <IconButton
-                onClick={handleCopyEventCode}
-                disabled={!event.codigo}
-                aria-label="Copiar código do evento"
-                sx={{
-                  flexShrink: 0,
-                  color: '#FFF',
-                  bgcolor: 'rgba(255,255,255,0.12)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
-                  '&.Mui-disabled': { color: 'rgba(255,255,255,0.36)' },
-                }}
-              >
-                <ContentCopyRoundedIcon />
-              </IconButton>
-            </Box>
-
-            {isCodeCopied ? (
-              <Typography sx={{ color: '#2EC4A0', fontSize: 12, fontWeight: 700 }}>
-                Código copiado.
-              </Typography>
             ) : null}
+
+            <Accordion
+              disableGutters
+              elevation={0}
+              sx={{
+                borderRadius: '20px !important',
+                bgcolor: colorTokens.surface.panel,
+                border: '1px solid rgba(13, 30, 59, 0.05)',
+                overflow: 'hidden',
+                '&:before': { display: 'none' },
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreRoundedIcon sx={{ color: colorTokens.text.heading }} />}
+                sx={{ px: 2, minHeight: 52 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      flexShrink: 0,
+                      borderRadius: '10px',
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: colorTokens.surface.mint,
+                      color: colorTokens.brand.secondary,
+                    }}
+                  >
+                    <InfoOutlinedIcon sx={{ fontSize: 18 }} />
+                  </Box>
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: colorTokens.text.heading }}>
+                    Sobre o funcionamento do evento
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
+                <Typography
+                  component="ul"
+                  sx={{ m: 0, pl: 2.5, fontSize: 13.5, lineHeight: 1.7, color: colorTokens.text.muted }}
+                >
+                  <li>Inscrições e presenças seguem o período e as regras de cada atividade.</li>
+                  <li>Monitores e organizadores registram presenças durante a atividade.</li>
+                  <li>
+                    Ao finalizar, o evento e todas as atividades em aberto são encerrados; inscrições,
+                    participantes e presenças deixam de poder ser alterados.
+                  </li>
+                  <li>
+                    Depois do encerramento, o organizador pode consultar os relatórios e certificados
+                    disponíveis.
+                  </li>
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+
+            <EventActivitiesSection activities={activities} onSelectActivity={handleSelectActivity} />
+
+            {/* Mobile: inscrição no fim do conteúdo do evento, sem acompanhar a rolagem. */}
+            {primaryAction && !isOrganizer ? (
+              <Box sx={{ display: { xs: 'block', md: 'none' } }}>{primaryAction}</Box>
+            ) : null}
+          </Box>
+
+          <Box
+            component="aside"
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              flexDirection: 'column',
+              gap: 1.5,
+              position: 'sticky',
+              top: 104,
+            }}
+          >
+            {summaryBlocks}
+            {primaryAction ? <Box sx={{ mt: 1 }}>{primaryAction}</Box> : null}
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(2, minmax(0, 1fr))',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
-            },
-            gap: { xs: 1, sm: 1.5 },
-          }}
-        >
-          <DetailTile
-            icon={<CalendarTodayRoundedIcon sx={{ fontSize: 20 }} />}
-            label="Data"
-            value={formatActivityDate(event.dataInicio, event.dataFim)}
-          />
-          <DetailTile
-            icon={<PlaceRoundedIcon sx={{ fontSize: 21 }} />}
-            label="Local"
-            value={event.localizacao || 'A definir'}
-          />
-          <DetailTile
-            icon={<AccessTimeRoundedIcon sx={{ fontSize: 21 }} />}
-            label="Carga horária"
-            value={`${event.cargaHoraria} horas`}
-          />
-          <DetailTile
-            icon={<PersonRoundedIcon sx={{ fontSize: 21 }} />}
-            label="Inscritos"
-            value={`${event.totalInscritos ?? 0} inscritos`}
-          />
-        </Box>
-
-        {!isOrganizer && !isCheckingSubscription && (
-          <EventSubscriptionAction
-            isSubscribed={isSubscribed}
-            isLoading={isSubscriptionLoading}
-            isFinalized={event.status.toLowerCase() === 'finalizada'}
-            onSubscribe={handleSubscribe}
-            onUnsubscribe={handleUnsubscribe}
-          />
-        )}
-
-        {isOrganizer && (
-          <OrganizerEventActions
-            eventId={Number(event.id)}
-            activities={activities}
-            isFinalized={event.status.toLowerCase() === 'finalizada'}
-            onAddActivity={() => setIsActivityDrawerOpen(true)}
-            onFinalized={handleEventFinalized}
-            onFinalizeError={handleFinalizeError}
-          />
-        )}
-
-        <EventActivitiesSection activities={activities} onSelectActivity={handleSelectActivity} />
-      </ContentCard>
+      </Box>
 
       <ActivityModal
         open={!!selectedActivity}
@@ -1003,48 +1008,24 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         />
       )}
 
-      <Drawer
-        anchor={isMobile ? 'bottom' : 'right'}
+      {/* Mesma folha de atividade da tela de cadastrar evento. */}
+      <ActivitySheet
+        key={activitySheetSession}
         open={isActivityDrawerOpen}
+        editing={false}
+        eventDateRange={
+          event.dataInicio && event.dataFim
+            ? {
+                start: `${getBahiaDateInput(event.dataInicio)}T${getBahiaTimeInput(event.dataInicio)}`,
+                end: `${getBahiaDateInput(event.dataFim)}T${getBahiaTimeInput(event.dataFim)}`,
+              }
+            : undefined
+        }
+        maxWorkload={event.cargaHoraria ? Number(event.cargaHoraria) : undefined}
+        eventLocation={event.localizacao || ''}
+        onSubmit={handleCreateActivity}
         onClose={() => setIsActivityDrawerOpen(false)}
-        slotProps={{
-          paper: {
-            sx: {
-              width: isMobile ? '100%' : 480,
-              maxWidth: '100vw',
-              height: isMobile ? '92dvh' : '100dvh',
-              borderTopLeftRadius: isMobile ? 20 : 0,
-              borderTopRightRadius: isMobile ? 20 : 0,
-              background: '#FFFFFF',
-              display: 'flex',
-              flexDirection: 'column',
-            },
-          },
-        }}
-      >
-        <Box sx={{ flex: 1, overflowY: 'auto' }}>
-          <ActivityForm
-            mode="create"
-            variant="embedded"
-            eventInfo={{
-              title: event.nome,
-              date: formatActivityDate(event.dataInicio, event.dataFim),
-              location: event.localizacao || 'Localização',
-            }}
-            eventDateRange={
-              event.dataInicio && event.dataFim
-                ? {
-                    start: event.dataInicio,
-                    end: event.dataFim,
-                  }
-                : undefined
-            }
-            maxWorkload={event.cargaHoraria ? Number(event.cargaHoraria) : undefined}
-            onSubmit={handleCreateActivity}
-            onCancel={() => setIsActivityDrawerOpen(false)}
-          />
-        </Box>
-      </Drawer>
+      />
 
       <Toast
         open={toast.open}
@@ -1064,39 +1045,6 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         isLoading={isDeletingEvent}
         type="error"
       />
-
-      <Accordion
-        disableGutters
-        elevation={0}
-        sx={{
-          border: '1px solid rgba(15, 29, 53, 0.08)',
-          borderRadius: '12px !important',
-          bgcolor: '#F8FAFC',
-          '&:before': { display: 'none' },
-        }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#253B68' }}>
-            <InfoOutlinedIcon fontSize="small" />
-            <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-              Sobre o funcionamento do evento
-            </Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, color: '#475467' }}>
-          <Typography component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, lineHeight: 1.7 }}>
-            <li>
-              Inscrições e presenças seguem o período e as regras definidas em cada atividade.
-            </li>
-            <li>Monitores e organizadores registram as presenças durante a atividade.</li>
-            <li>
-              Ao finalizar, o evento e todas as suas atividades são encerrados, e as informações do
-              evento e seus participantes não podem ser alteradas.
-            </li>
-            <li>Após a finalização, o organizador pode consultar os relatórios e certificados.</li>
-          </Typography>
-        </AccordionDetails>
-      </Accordion>
-    </AppPageContainer>
+    </Box>
   );
 }

@@ -40,7 +40,11 @@ export default function CertificatesPage() {
       setError(null);
       try {
         const { items } = await certificateService.getMyCertificates();
-        if (active) setCertificates(items);
+        // Certificado ainda não assinado não vale para o participante: some da
+        // lista até o organizador assinar. O back já filtra, isto é a garantia
+        // no front caso a API devolva algum pendente.
+        const signedItems = items.filter((item) => item.status === 'Assinado');
+        if (active) setCertificates(signedItems);
       } catch (err) {
         console.error("Erro ao buscar certificados:", err);
         if (active) setError("Não foi possível carregar seus certificados.");
