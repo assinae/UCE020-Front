@@ -288,7 +288,7 @@ function MobileState() {
           }}
         >
           <AddRoundedIcon sx={{ fontSize: 18 }} />
-          Criar novo evento
+          Criar evento
         </Box>
       </Box>
     </Box>

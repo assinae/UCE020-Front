@@ -8,7 +8,9 @@ export type CertificateRoleTab =
   | 'Ouvintes'
   | 'Monitores'
   | 'Organizadores'
-  | 'Palestrantes';
+  | 'Palestrantes'
+  | 'Ministrantes'
+  | 'Moderadores';
 export type SortOrder = 'asc' | 'desc';
 
 export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
@@ -17,6 +19,8 @@ export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
   'Monitores',
   'Organizadores',
   'Palestrantes',
+  'Ministrantes',
+  'Moderadores',
 ];
 
 const TAB_TO_ROLE: Partial<Record<CertificateRoleTab, CertificateManagementRole>> = {
@@ -24,6 +28,8 @@ const TAB_TO_ROLE: Partial<Record<CertificateRoleTab, CertificateManagementRole>
   Monitores: 'Monitor',
   Organizadores: 'Organizador',
   Palestrantes: 'Palestrante',
+  Ministrantes: 'Ministrante',
+  Moderadores: 'Moderador',
 };
 
 export const ACTIVITY_FILTER_OPTIONS = [
@@ -62,7 +68,8 @@ export function filterCertificates({
     const matchesSearch =
       !normalizedSearch ||
       certificate.participantName.toLowerCase().includes(normalizedSearch) ||
-      certificate.participantEmail.toLowerCase().includes(normalizedSearch);
+      certificate.participantEmail.toLowerCase().includes(normalizedSearch) ||
+      certificate.title.toLowerCase().includes(normalizedSearch);
 
     const matchesActivity =
       activityFilter === 'Todas' ||

@@ -939,32 +939,6 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           />
         )}
 
-        <Accordion
-          disableGutters
-          elevation={0}
-          sx={{
-            border: '1px solid rgba(15, 29, 53, 0.08)',
-            borderRadius: '12px !important',
-            bgcolor: '#F8FAFC',
-            '&:before': { display: 'none' },
-          }}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#253B68' }}>
-              <InfoOutlinedIcon fontSize="small" />
-              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Sobre o funcionamento do evento</Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0, color: '#475467' }}>
-            <Typography component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, lineHeight: 1.7 }}>
-              <li>Inscrições e presenças seguem o período e as regras de cada atividade.</li>
-              <li>Monitores e organizadores registram presenças durante a atividade.</li>
-              <li>Ao finalizar, o evento e todas as atividades em aberto são encerrados; inscrições, participantes e presenças deixam de poder ser alterados.</li>
-              <li>Depois do encerramento, o organizador pode consultar os relatórios e certificados disponíveis.</li>
-            </Typography>
-          </AccordionDetails>
-        </Accordion>
-
         {isOrganizer && (
           <OrganizerEventActions
             eventId={Number(event.id)}
@@ -1090,6 +1064,39 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         isLoading={isDeletingEvent}
         type="error"
       />
+
+      <Accordion
+        disableGutters
+        elevation={0}
+        sx={{
+          border: '1px solid rgba(15, 29, 53, 0.08)',
+          borderRadius: '12px !important',
+          bgcolor: '#F8FAFC',
+          '&:before': { display: 'none' },
+        }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#253B68' }}>
+            <InfoOutlinedIcon fontSize="small" />
+            <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+              Sobre o funcionamento do evento
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0, color: '#475467' }}>
+          <Typography component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, lineHeight: 1.7 }}>
+            <li>
+              Inscrições e presenças seguem o período e as regras definidas em cada atividade.
+            </li>
+            <li>Monitores e organizadores registram as presenças durante a atividade.</li>
+            <li>
+              Ao finalizar, o evento e todas as suas atividades são encerrados, e as informações do
+              evento e seus participantes não podem ser alteradas.
+            </li>
+            <li>Após a finalização, o organizador pode consultar os relatórios e certificados.</li>
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
     </AppPageContainer>
   );
 }

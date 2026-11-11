@@ -2,26 +2,28 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, Box, Typography, alpha } from '@mui/material';
+import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import { Searchbar } from '@/components/ui/Searchbar';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import { ListPageHeader } from '@/components/data-list';
+import { ContentCard } from '@/components/layout/ContentCard';
 import { Button } from '@/components/ui/Button';
-import { BackButton } from '@/components/ui/BackButton';
+import { SkeletonBone } from '@/components/ui/SkeletonBone';
 import { Toast } from '@/components/ui/Toast';
 import { ConfirmModal } from '@/components/modals';
-import { ContentCard } from '@/components/layout/ContentCard';
 import { CertificateManagementCard } from '@/components/certificate/CertificateManagementCard';
 import type { CertificateManagementItem } from '@/types/certificate-management';
 import { ToastSeverity } from '@/types/toast';
 import { certificateService } from '@/services/certificate.service';
+import { eventService } from '@/services/eventService';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import { colorTokens } from '@/lib/colors';
 import { useCertificatesGenerated } from '../hooks/useCertificatesGenerated';
 import { baixarCertificadoPdf } from '../utils/certificatePdf';
 import { CertificateStatsRow } from './CertificateStatsRow';
 import { CertificateSummaryCard } from './CertificateSummaryCard';
-import { CertificateBatchActions } from './CertificateBatchActions';
-import { CertificateFilterTabs } from './CertificateFilterTabs';
 import { CertificateFilters } from './CertificateFilters';
 import { CertificateListHeader } from './CertificateListHeader';
 
@@ -29,7 +31,25 @@ interface CertificatesGeneratedViewProps {
   eventoId: number;
 }
 
-export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewProps) {
+function CertificateListSkeleton() {
+  return (
+    <Box role="status" aria-label="Carregando certificados" sx={{ display: 'grid', gap: 1.5 }}>
+      {Array.from({ length: 4 }, (_, index) => (
+        <ContentCard key={index} sx={{ flexDirection: 'row', alignItems: 'center', gap: 1.75, p: 2 }}>
+          <SkeletonBone sx={{ width: 48, height: 48, borderRadius: '16px', flexShrink: 0 }} />
+          <Box sx={{ flex: 1, display: 'grid', gap: 1 }}>
+            <SkeletonBone sx={{ width: '42%', height: 15 }} />
+            <SkeletonBone sx={{ width: '68%', height: 12 }} />
+            <SkeletonBone sx={{ width: '34%', height: 11 }} />
+          </Box>
+          <SkeletonBone sx={{ width: 72, height: 34, display: { xs: 'none', sm: 'block' } }} />
+        </ContentCard>
+      ))}
+    </Box>
+  );
+}
+
+export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedViewProps) {
   const router = useRouter();
   const {
     filteredCertificates,
@@ -53,8 +73,15 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     isError,
     loadMore,
     hasMore,
+    refresh,
     markAsSigned,
   } = useCertificatesGenerated(eventoId);
+
+  const { data: event } = useQuery({
+    queryKey: ['event', eventoId],
+    queryFn: () => eventService.findOne(eventoId),
+    enabled: Number.isFinite(eventoId) && eventoId > 0,
+  });
 
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
@@ -66,8 +93,7 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
 
   const handleView = (certificate: CertificateManagementItem) =>
     router.push(`/certificate/${certificate.id}`);
-  // O PDF é gerado sob demanda numa rota autenticada, então não dá para abrir
-  // a URL direto: o conteúdo vem pelo axios e vira download no navegador.
+
   const handleDownload = async (certificate: CertificateManagementItem) => {
     try {
       await baixarCertificadoPdf(certificate);
@@ -80,14 +106,12 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     }
   };
 
-  const handleSignBatch = () => setIsSignModalOpen(true);
-
   const confirmSignBatch = async () => {
     setIsSigning(true);
     try {
       const result = await certificateService.signCertificatesBatch(eventoId);
       markAsSigned(
-        result.certificados.map(certificate => certificate.certificadoId),
+        result.certificados.map((certificate) => certificate.certificadoId),
         result.assinante,
       );
       setToast({
@@ -98,7 +122,8 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
             : 'Nenhum certificado pendente para assinar.',
         severity: result.assinados > 0 ? ToastSeverity.Success : ToastSeverity.Info,
       });
-      window.location.reload();
+      setIsSignModalOpen(false);
+      refresh();
     } catch (error) {
       setToast({
         open: true,
@@ -110,89 +135,37 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
     }
   };
 
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <Typography sx={{ color: '#64748B', fontSize: 14 }}>
-          Carregando certificados...
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <Typography sx={{ color: '#EF4444', fontSize: 14 }}>
-          Não foi possível carregar os certificados. Tente novamente.
-        </Typography>
-      </Box>
-    );
-  }
+  const totalRoleCount = roleStats.reduce((total, stat) => total + stat.value, 0);
 
   return (
-    <>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-        {/* LADO ESQUERDO: Botão de voltar, Linha e Textos */}
-        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: { xs: 1.5, sm: 2 } }}>
-          <BackButton
-            fallbackHref="/event/list"
-            size="small"
-            sx={{
-              color: "text.secondary",
-              "&:hover": { bgcolor: "background.default" },
-            }}
-          />
-          {/* Bloco de Textos */}
-          <Box sx={{ display: "flex", flexDirection: "column" }}>
-            
-            {/* LINHA SUPERIOR: Apenas Linha Verde e Título */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Box sx={{ width: 4, height: 26, borderRadius: 4, bgcolor: "#2EC4A0" }} />
-              <Typography
-                sx={{ fontWeight: 700, fontSize: { xs: '1.3rem', sm: '1.5rem' }, color: '#0F1D35', lineHeight: 1.2 }}
-              >
-                Certificados{' '}
-                <Box component="span" sx={{ color: '#2EC4A0' }}>Gerados</Box>
-              </Typography>
-            </Box>
-          
-
-          </Box>
-        </Box>
-      
-      </Box>
-
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1.5fr 1fr' },
-          gap: 2,
-          alignItems: 'stretch',
-        }}
-      >
-        <CertificateStatsRow stats={roleStats} />
-        <CertificateSummaryCard totalIssued={totalIssued} statusTotals={statusTotals} />
-      </Box>
-
-      <CertificateBatchActions
-        onSignBatch={handleSignBatch}
-        isSigning={isSigning}
-        signDisabled={isSigning}
+    <Box sx={{ minHeight: '100dvh', bgcolor: colorTokens.surface.app }}>
+      <Box sx={{
+        maxWidth: 1180, mx: 'auto', px: { xs: 2, md: 3 },
+        pt: { xs: 2.5, md: 4 }, pb: { xs: 4, md: 8 },
+        display: 'flex', flexDirection: 'column', gap: { xs: 2.25, md: 3 },
+      }}>
+      <ListPageHeader
+        title="Certificados gerados"
+        subtitle={event?.nome ?? `Evento ${eventoId}`}
+        stats={[]}
+        backHref={`/event/${eventoId}`}
       />
 
-      {/* Painel de filtros e busca */}
-      <ContentCard sx={{ gap: 1.5 }}>
-        <CertificateFilterTabs activeTab={roleTab} onChange={setRoleTab} />
-        <Searchbar
-          value={search}
-          onChange={setSearch}
-          placeholder="Buscar participante"
-          sx={{ mt: 0 }}
-        />
+      <CertificateSummaryCard
+        totalIssued={totalRoleCount || totalIssued}
+        statusTotals={statusTotals}
+        action={{
+          label: isSigning ? 'Assinando...' : 'Assinar em lote',
+          icon: <DrawOutlinedIcon />,
+          onClick: () => setIsSignModalOpen(true),
+          disabled: isSigning || isLoading || totalIssued === 0,
+        }}
+      />
+
+      <ContentCard sx={{ gap: 1.75, p: { xs: 1.5, sm: 2.25 }, borderRadius: '24px', boxShadow: `0 8px 24px ${alpha(colorTokens.shadow.ink, 0.045)}` }}>
         <CertificateFilters
+          search={search}
+          onSearchChange={setSearch}
           activityDraft={activityDraft}
           statusDraft={statusDraft}
           activityOptions={activityOptions}
@@ -203,56 +176,91 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
         />
       </ContentCard>
 
+      <CertificateStatsRow
+        stats={roleStats}
+        total={totalRoleCount || totalIssued}
+        activeTab={roleTab}
+        onSelect={setRoleTab}
+      />
+
       <CertificateListHeader
         count={filteredCertificates.length}
         sortOrder={sortOrder}
         onToggleSort={toggleSortOrder}
       />
 
-      {filteredCertificates.length === 0 ? (
-        <ContentCard sx={{ py: 4 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 1.5 }}>
-            <Box
-              sx={{
-                width: 72, height: 72, borderRadius: '20px', bgcolor: '#F1F5F9',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <ArticleOutlinedIcon sx={{ fontSize: 34, color: '#94A3B8' }} />
-            </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, color: '#0F1D35' }}>
-              Nenhum certificado gerado ainda
-            </Typography>
-            <Typography sx={{ fontSize: 13, color: '#64748B', textAlign: 'center', maxWidth: 280 }}>
-              Os certificados aparecerão aqui após serem gerados para os participantes do evento.
-            </Typography>
+      {isError ? (
+        <Alert
+          severity="error"
+          action={
+            <Button variant="outlined" leftIcon={<RefreshRoundedIcon />} onClick={refresh}>
+              Tentar novamente
+            </Button>
+          }
+          sx={{ borderRadius: '18px', alignItems: 'center' }}
+        >
+          Não foi possível carregar os certificados.
+        </Alert>
+      ) : isLoading ? (
+        <CertificateListSkeleton />
+      ) : filteredCertificates.length === 0 ? (
+        <ContentCard sx={{ alignItems: 'center', textAlign: 'center', py: { xs: 5, sm: 7 }, gap: 1.25 }}>
+          <Box
+            sx={{
+              width: 66,
+              height: 66,
+              borderRadius: '22px',
+              bgcolor: colorTokens.surface.mintSubtle,
+              color: colorTokens.brand.secondary,
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <ArticleOutlinedIcon sx={{ fontSize: 30 }} />
           </Box>
+          <Typography sx={{ fontSize: 16, fontWeight: 800, color: colorTokens.text.heading }}>
+            Nenhum certificado encontrado
+          </Typography>
+          <Typography sx={{ maxWidth: 360, fontSize: 13.5, color: colorTokens.text.muted }}>
+            Os certificados emitidos para este evento aparecerão aqui. Ajuste os filtros ou tente outra busca.
+          </Typography>
         </ContentCard>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          {filteredCertificates.map((certificate) => (
-            <CertificateManagementCard
+        <Box sx={{ display: 'grid', gap: 1.5 }}>
+          {filteredCertificates.map((certificate, index) => (
+            <Box
               key={certificate.id}
-              certificate={certificate}
-              onView={handleView}
-              onDownload={handleDownload}
-            />
+              className="animate-fade-up motion-reduce:animate-none"
+              style={{ animationDelay: `${Math.min(index, 6) * 0.04}s` }}
+            >
+              <CertificateManagementCard
+                certificate={certificate}
+                onView={handleView}
+                onDownload={handleDownload}
+              />
+            </Box>
           ))}
         </Box>
       )}
 
-      {hasMore && (
+      {hasMore && !isLoading && (
         <Button
           variant="outlined"
           fullWidth
-          leftIcon={<RefreshIcon sx={{ fontSize: 18 }} />}
+          leftIcon={<RefreshRoundedIcon sx={{ fontSize: 18 }} />}
           onClick={loadMore}
           sx={{
-            borderColor: '#E2E8F0', color: '#2EC4A0',
-            '&:hover': { borderColor: '#2EC4A0', bgcolor: 'transparent' },
+            minHeight: 48,
+            borderRadius: '999px',
+            borderColor: colorTokens.neutral.border,
+            color: colorTokens.brand.secondary,
+            '&:hover': {
+              borderColor: colorTokens.brand.secondary,
+              bgcolor: colorTokens.surface.mintSubtle,
+            },
           }}
         >
-          Carregar mais
+          Carregar mais certificados
         </Button>
       )}
 
@@ -274,6 +282,7 @@ export function CertificatesGeneratedView({eventoId}: CertificatesGeneratedViewP
         severity={toast.severity}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
-    </>
+      </Box>
+    </Box>
   );
 }

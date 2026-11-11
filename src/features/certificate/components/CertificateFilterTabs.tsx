@@ -1,5 +1,6 @@
-import { Box } from '@mui/material';
+import { Box, ButtonBase, alpha } from '@mui/material';
 import { ROLE_TAB_OPTIONS, type CertificateRoleTab } from '../utils/certificateFilters';
+import { colorTokens } from '@/lib/colors';
 
 interface CertificateFilterTabsProps {
   activeTab: CertificateRoleTab;
@@ -9,41 +10,46 @@ interface CertificateFilterTabsProps {
 export function CertificateFilterTabs({ activeTab, onChange }: CertificateFilterTabsProps) {
   return (
     <Box
+      role="tablist"
+      aria-label="Filtrar certificados por perfil"
       sx={{
         display: 'flex',
-        gap: 0.5,
+        gap: 0.75,
         overflowX: 'auto',
-        p: 0.5,
-        bgcolor: '#F1F5F9',
-        borderRadius: '14px',
+        p: 0.65,
+        bgcolor: colorTokens.surface.muted,
+        borderRadius: '999px',
+        border: `1px solid ${alpha(colorTokens.navigation.default, 0.06)}`,
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
       {ROLE_TAB_OPTIONS.map((tab) => (
-        <Box
+        <ButtonBase
           key={tab}
+          role="tab"
+          aria-selected={activeTab === tab}
           onClick={() => onChange(tab)}
           sx={{
             flex: { xs: '0 0 auto', lg: 1 },
             textAlign: 'center',
-            px: { xs: 1.75, lg: 2 },
-            py: 0.85,
-            borderRadius: '10px',
-            cursor: 'pointer',
+            justifyContent: 'center',
+            px: { xs: 1.8, lg: 1.25 },
+            py: 1,
+            borderRadius: '999px',
             whiteSpace: 'nowrap',
-            fontSize: 12,
-            fontWeight: activeTab === tab ? 700 : 500,
-            bgcolor: activeTab === tab ? '#FFFFFF' : 'transparent',
-            color: activeTab === tab ? '#0F1D35' : '#64748B',
-            boxShadow: activeTab === tab ? '0 1px 3px rgba(15, 29, 53, 0.10)' : 'none',
-            transition: 'all 0.15s ease',
+            fontSize: 12.5,
+            fontWeight: activeTab === tab ? 800 : 600,
+            bgcolor: activeTab === tab ? colorTokens.neutral.white : 'transparent',
+            color: activeTab === tab ? colorTokens.text.heading : colorTokens.text.muted,
+            boxShadow: activeTab === tab ? `0 3px 10px ${alpha(colorTokens.shadow.ink, 0.08)}` : 'none',
+            transition: 'background-color .18s ease, color .18s ease, box-shadow .18s ease',
             '&:hover': {
-              color: activeTab === tab ? '#0F1D35' : '#0F1D35',
+              color: colorTokens.text.heading,
             },
           }}
         >
           {tab}
-        </Box>
+        </ButtonBase>
       ))}
     </Box>
   );

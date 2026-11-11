@@ -1,9 +1,13 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, alpha } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SelectInput from '@/components/ui/inputs/SelectInput';
 import { Button } from '@/components/ui/Button';
+import { Searchbar } from '@/components/ui/Searchbar';
+import { colorTokens } from '@/lib/colors';
 
 interface CertificateFiltersProps {
+  search: string;
+  onSearchChange: (value: string) => void;
   activityDraft: string;
   statusDraft: string;
   activityOptions: { value: string; label: string }[];
@@ -14,6 +18,8 @@ interface CertificateFiltersProps {
 }
 
 export function CertificateFilters({
+  search,
+  onSearchChange,
   activityDraft,
   statusDraft,
   activityOptions,
@@ -23,29 +29,59 @@ export function CertificateFilters({
   onApply,
 }: CertificateFiltersProps) {
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-      <Box sx={{ flex: 1 }}>
-        <Typography sx={{ fontSize: 11, color: '#64748B', mb: 0.5 }}>Atividade</Typography>
-        <SelectInput value={activityDraft} onChange={onActivityChange} options={activityOptions} />
+    <Box
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: 12, color: colorTokens.text.heading, mb: 0.75, fontWeight: 800 }}>
+          Buscar certificados
+        </Typography>
+        <Searchbar
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Nome, e-mail ou atividade"
+          sx={{
+            mt: 0,
+            minHeight: 44,
+            px: 1.75,
+            py: 0.75,
+            boxShadow: 'none',
+            bgcolor: colorTokens.surface.muted,
+            borderColor: alpha(colorTokens.navigation.default, 0.08),
+            '&:focus-within': {
+              bgcolor: colorTokens.neutral.white,
+              borderColor: colorTokens.brand.secondary,
+            },
+          }}
+        />
       </Box>
-      <Box sx={{ flex: 1 }}>
-        <Typography sx={{ fontSize: 11, color: '#64748B', mb: 0.5 }}>Status</Typography>
-        <SelectInput value={statusDraft} onChange={onStatusChange} options={statusOptions} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr auto' }, gap: 1.25, alignItems: 'end' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 11, color: colorTokens.text.label, mb: 0.65, fontWeight: 700 }}>Atividade</Typography>
+          <SelectInput value={activityDraft} onChange={onActivityChange} options={activityOptions} sx={{ '& .MuiInputBase-root': { minHeight: 44, borderRadius: '14px', bgcolor: colorTokens.surface.muted }, '& .MuiSelect-select': { py: 1 } }} />
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 11, color: colorTokens.text.label, mb: 0.65, fontWeight: 700 }}>Status</Typography>
+          <SelectInput value={statusDraft} onChange={onStatusChange} options={statusOptions} sx={{ '& .MuiInputBase-root': { minHeight: 44, borderRadius: '14px', bgcolor: colorTokens.surface.muted }, '& .MuiSelect-select': { py: 1 } }} />
+        </Box>
+        <Button
+          variant="outlined"
+          onClick={onApply}
+          leftIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
+          sx={{
+            minHeight: 44,
+            flexShrink: 0,
+            borderColor: alpha(colorTokens.navigation.default, 0.12),
+            borderRadius: '14px',
+            color: colorTokens.text.heading,
+            minWidth: { xs: '100%', sm: 130 },
+            px: 2,
+            '&:hover': { borderColor: colorTokens.brand.secondary, bgcolor: colorTokens.surface.mintSubtle },
+          }}
+        >
+          Aplicar filtros
+        </Button>
       </Box>
-      <Button
-        variant="outlined"
-        onClick={onApply}
-        leftIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
-        sx={{
-          flexShrink: 0,
-          borderColor: '#E2E8F0',
-          color: '#0F1D35',
-          height: 40,
-          minWidth: 'auto',
-        }}
-      >
-        Filtrar
-      </Button>
     </Box>
   );
 }

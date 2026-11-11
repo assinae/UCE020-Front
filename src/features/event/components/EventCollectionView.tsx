@@ -16,7 +16,7 @@ const COLLECTIONS = {
   },
   monitor: {
     queryKey: 'events-monitoring',
-    title: 'Monitoria de Eventos',
+    title: 'Minhas Monitorias',
     error: 'Não foi possível carregar os eventos monitorados.',
   },
 } as const;

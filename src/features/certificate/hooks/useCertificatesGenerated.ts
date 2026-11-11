@@ -22,6 +22,15 @@ const ROLE_LABEL: Record<CertificateManagementRole, string> = {
   Moderador:   'Moderadores',
 };
 
+const CERTIFICATE_ROLES: CertificateManagementRole[] = [
+  'Ouvinte',
+  'Monitor',
+  'Organizador',
+  'Palestrante',
+  'Ministrante',
+  'Moderador',
+];
+
 export function useCertificatesGenerated(eventoId: number) {
   const [certificates, setCertificates] = useState<CertificateManagementItem[]>([]);
   const [isLoading, setIsLoading]       = useState(false);
@@ -32,9 +41,7 @@ export function useCertificatesGenerated(eventoId: number) {
   const [roleStats, setRoleStats] = useState<
     { role: CertificateManagementRole; label: string; value: number }[]
   >(() =>
-    (['Ouvinte', 'Monitor', 'Organizador', 'Palestrante'] as CertificateManagementRole[]).map(
-      role => ({ role, label: ROLE_LABEL[role], value: 0 }),
-    ),
+    CERTIFICATE_ROLES.map((role) => ({ role, label: ROLE_LABEL[role], value: 0 })),
   );
 
   const [roleTab, setRoleTab]                     = useState<CertificateRoleTab>('Todos');
@@ -108,11 +115,12 @@ export function useCertificatesGenerated(eventoId: number) {
     certificateService
       .getCertificateStatsByEvent(eventoId)
       .then(stats => {
+        const counts = new Map(stats.map((stat) => [stat.role, stat.count]));
         setRoleStats(
-          stats.map(stat => ({
-            role:  stat.role,
-            label: ROLE_LABEL[stat.role],
-            value: stat.count,
+          CERTIFICATE_ROLES.map((role) => ({
+            role,
+            label: ROLE_LABEL[role],
+            value: counts.get(role) ?? 0,
           })),
         );
       })
