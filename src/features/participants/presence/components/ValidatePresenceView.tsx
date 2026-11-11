@@ -108,6 +108,7 @@ export function ValidatePresenceView() {
   const [context, setContext] = useState<PresenceValidationContext | null>(() =>
     requirePresenceContext(eventIdParam, activityIdParam),
   );
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [state, setState] = useState<ScanState>(INITIAL_STATE);
   const [scanKey, setScanKey] = useState(0);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: ToastSeverity }>({
@@ -131,6 +132,11 @@ export function ValidatePresenceView() {
       isMounted = false;
     };
   }, [eventIdParam, activityIdParam]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function handleScan(qrCode: string) {
     if (!context || state.modalOpen) return;
@@ -186,7 +192,21 @@ export function ValidatePresenceView() {
 
   const { eventId: contextEventId, activityId: contextActivityId, eventName, activityTitle } = context;
   const isActivityFinalized = context.activityStatus?.trim().toLowerCase() === 'finalizada';
-  const canValidatePresence = context.activityStatus !== undefined && !isActivityFinalized;
+  const activityStartsAt = context.activityStartsAt
+    ? new Date(context.activityStartsAt).getTime()
+    : null;
+  const attendanceOpensAt = activityStartsAt === null
+    ? null
+    : activityStartsAt - 60 * 60 * 1000;
+  const isTooEarly = attendanceOpensAt !== null && currentTime < attendanceOpensAt;
+  const canValidatePresence = context.activityStatus !== undefined && !isActivityFinalized && !isTooEarly;
+  const attendanceOpensLabel = attendanceOpensAt === null
+    ? ''
+    : new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: 'America/Bahia',
+      }).format(attendanceOpensAt);
 
   return (
     <AppPageContainer>
@@ -204,6 +224,8 @@ export function ValidatePresenceView() {
           <Alert severity="info">
             {isActivityFinalized
               ? 'Esta atividade foi finalizada. As presenças registradas podem ser consultadas, mas não podem ser alteradas'
+              : isTooEarly && attendanceOpensAt !== null
+                ? `A validação de presença será liberada uma hora antes do início da atividade (${attendanceOpensLabel}).`
               : 'Verificando status da atividade antes de permitir alterações'}
           </Alert>
         ) : (

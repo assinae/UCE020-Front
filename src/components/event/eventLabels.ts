@@ -13,15 +13,10 @@ const STATUS_STYLES: Record<string, EventStatusStyle> = {
     color: colorTokens.presence.pendingText,
     label: 'Pendente',
   },
-  iniciada: {
-    bg: colorTokens.presence.confirmedBg,
-    color: colorTokens.text.mint,
-    label: 'Iniciado',
-  },
   andamento: {
     bg: colorTokens.role.organizerBg,
     color: colorTokens.role.organizerText,
-    label: 'Andamento',
+    label: 'Em andamento',
   },
   finalizada: { bg: '#EAF7EE', color: '#35A384', label: 'Finalizado' },
 };

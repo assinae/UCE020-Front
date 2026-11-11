@@ -261,7 +261,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
       const next = { ...cur, [field]: value };
       if (!isEdit && field === 'startDate' && typeof value === 'string') {
         const today = getTodayString();
-        next.status = value === today ? 'iniciada' : 'pendente';
+        next.status = value === today ? 'andamento' : 'pendente';
       }
       return next;
     });
@@ -402,6 +402,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
   }
 
   async function handleSubmit() {
+    if (eventoFinalizado) return;
     const allTouched = Object.fromEntries(Object.keys(form).map((k) => [k, true])) as TouchedState;
     setTouched(allTouched);
 
@@ -482,11 +483,13 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
   // ── Handlers do drawer de atividade ──
 
   function handleOpenNewActivity() {
+    if (eventoFinalizado) return;
     setEditingActivity(null);
     setDrawerOpen(true);
   }
 
   function handleOpenEditActivity(activity: ActivityItem) {
+    if (eventoFinalizado) return;
     setEditingActivity(activity);
     setDrawerOpen(true);
   }
@@ -497,6 +500,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
   }
 
   function handleActivitySubmit(data: ActivityFormState) {
+    if (eventoFinalizado) return;
     if (editingActivity) {
       setActivities((cur) =>
         cur.map((a) => (a.id === editingActivity.id ? { ...data, id: a.id } : a))
@@ -516,6 +520,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
   }
 
   function handleRemoveActivity(id: string) {
+    if (eventoFinalizado) return;
     const item = activities.find((a) => a.id === id);
     // Atividade que só existe no formulário sai da lista sem servidor e sem confirmação.
     if (!item || backendIdOf(item) === undefined) {
@@ -526,6 +531,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
   }
 
   async function handleConfirmDeleteActivity() {
+    if (eventoFinalizado) return;
     if (!activityToDelete) return;
     const backendId = backendIdOf(activityToDelete);
     const { id, name } = activityToDelete;

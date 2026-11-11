@@ -32,7 +32,7 @@ export interface CreateEventPayload {
   cargaHoraria: number;
   dataInicio: string;
   dataFim: string;
-  status: 'pendente' | 'iniciada' | 'andamento' | 'finalizada';
+  status: 'pendente' | 'andamento' | 'finalizada';
   foto?: string | null;
   templateUrl?: string | null;
   certificadoTemplate?: string | null;

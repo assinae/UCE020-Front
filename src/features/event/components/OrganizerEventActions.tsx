@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Button } from '@/components/ui';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { eventService } from '@/services/eventService';
 import { certificateService } from '@/services/certificate.service';
+import type { Activity } from '@/types/activity';
 
 const actionButtonSx = {
   height: 36,
@@ -19,6 +20,7 @@ const actionButtonSx = {
 
 interface OrganizerEventActionsProps {
   eventId: number;
+  activities?: Activity[];
   isFinalized?: boolean;
   onAddActivity?: () => void;
   onFinalized?: () => void;
@@ -47,6 +49,7 @@ function logSettledFailures(labels: string[], results: PromiseSettledResult<unkn
 
 export function OrganizerEventActions({
   eventId,
+  activities = [],
   isFinalized = false,
   onAddActivity,
   onFinalized,
@@ -55,6 +58,9 @@ export function OrganizerEventActions({
   const router = useRouter();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const unfinishedActivities = activities.filter(
+    (activity) => activity.status?.trim().toLowerCase() !== 'finalizada',
+  );
 
   function onManageMembers() {
     router.push(`/event/${eventId}/manage-users`);
@@ -104,7 +110,9 @@ export function OrganizerEventActions({
       logSettledFailures(certificateLabels, certificateResults);
 
       onFinalized?.();
-      router.push(`/certificate/generated/${eventId}`);
+      // Retorna ao painel do evento para oferecer relatórios, certificados e
+      // os dados finais no mesmo lugar. A seção já oculta ações de edição.
+      router.push(`/event/${eventId}`);
     } catch (error) {
       onFinalizeError?.(extractErrorMessage(error, 'Não foi possível finalizar o evento'));
     } finally {
@@ -203,8 +211,28 @@ export function OrganizerEventActions({
       <ConfirmModal
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
-        message="Tem certeza que deseja finalizar este evento?"
+        message="Ao finalizar, inscrições, alterações de participantes e presenças serão bloqueadas."
         emphasisEndText="Essa ação não pode ser desfeita."
+        details={unfinishedActivities.length > 0 ? (
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: '#FFF7E6', textAlign: 'left' }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 0.75 }}>
+              {unfinishedActivities.length === 1
+                ? 'A atividade abaixo será finalizada junto com o evento:'
+                : `As ${unfinishedActivities.length} atividades abaixo serão finalizadas junto com o evento:`}
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.5, maxHeight: 150, overflowY: 'auto' }}>
+              {unfinishedActivities.map((activity) => (
+                <Typography component="li" key={activity.id} sx={{ fontSize: 13, py: 0.2 }}>
+                  {activity.name}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <Typography sx={{ color: 'text.secondary', fontSize: 12, textAlign: 'center', mb: 2 }}>
+            Não há atividades pendentes de finalização.
+          </Typography>
+        )}
         confirmText="Finalizar"
         cancelText="Cancelar"
         isLoading={isFinalizing}
