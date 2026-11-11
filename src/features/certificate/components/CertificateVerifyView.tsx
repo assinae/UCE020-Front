@@ -16,6 +16,7 @@ import GppMaybeRoundedIcon from '@mui/icons-material/GppMaybeRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined';
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
@@ -287,6 +288,13 @@ export function CertificateVerifyView({ codigo }: CertificateVerifyViewProps) {
                   icon={<DrawOutlinedIcon sx={{ fontSize: 20 }} />}
                   label="Assinado digitalmente"
                   value={`${assinadoEm} · por ${cert.assinadoPor.trim()}`}
+                />
+              )}
+              {cert.assinadoPorEmail?.trim() && (
+                <DetailRow
+                  icon={<MailOutlineRoundedIcon sx={{ fontSize: 20 }} />}
+                  label="Email do assinador"
+                  value={cert.assinadoPorEmail.trim()}
                 />
               )}
 

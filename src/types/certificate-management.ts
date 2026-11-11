@@ -60,6 +60,7 @@ export interface CertificateVerification {
   emitidoEm: string;
   assinadoEm: string | null;
   assinadoPor: string;
+  assinadoPorEmail?: string | null;
   hash: string;
 }
 
