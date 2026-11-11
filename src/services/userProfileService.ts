@@ -1,5 +1,10 @@
 import { api } from './api';
-import { UserProfile, UserProfileResponse, UpdateProfilePayload } from '../types/userProfile';
+import {
+  UserActivity,
+  UserProfile,
+  UserProfileResponse,
+  UpdateProfilePayload,
+} from '../types/userProfile';
 
 // Formato bruto retornado pelo backend. O campo do nome pode vir como
 // `name` (inglês) ou `nome` (português), e o usuário pode estar no nível
@@ -71,6 +76,11 @@ class UserProfileService {
       data: toUserProfile(extractUser(data.data)),
       statusCode: data.statusCode,
     };
+  }
+
+  async getActivity(): Promise<UserActivity> {
+    const { data } = await api.get<{ data: UserActivity }>('/me/atividade');
+    return data.data;
   }
 
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {

@@ -17,8 +17,24 @@ export function Toast({
       autoHideDuration={duration}
       onClose={onClose}
       anchorOrigin={anchorOrigin}
+      // Nas telas logadas a barra inferior do celular cobriria o aviso; a variável vale 0 fora delas.
+      sx={
+        anchorOrigin.vertical === 'bottom'
+          ? {
+              bottom: {
+                xs: 'calc(var(--app-bottom-nav-height, 0px) + 8px)',
+                sm: 'calc(var(--app-bottom-nav-height, 0px) + 24px)',
+              },
+            }
+          : undefined
+      }
     >
-      <Alert onClose={onClose} severity={severity} variant="filled" sx={{ width: '100%', borderRadius: 3 }}>
+      <Alert
+        onClose={onClose}
+        severity={severity}
+        variant="filled"
+        sx={{ width: '100%', borderRadius: 3 }}
+      >
         {message}
       </Alert>
     </Snackbar>

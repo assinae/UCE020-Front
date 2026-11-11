@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventService, UpdateEventPayload } from '@/services/eventService';
 import { activityService } from '@/services/activityService';
 import { extractApiErrorMessage } from '@/utils/apiError';
+import {
+  describeActivityFailures,
+  forgetCreatedActivity,
+  saveEventActivities,
+} from '../utils/saveEventActivities';
 
 export function useEditEvent(eventId: number | null) {
   const router = useRouter();
@@ -25,26 +30,19 @@ export function useEditEvent(eventId: number | null) {
 
   const [error, setError] = useState<string | null>(null);
 
+  // Atividade nova criada num envio que falhou em outra continua sem id no
+  // formulário; este mapa faz o próximo envio atualizá-la em vez de duplicar.
+  const createdActivityIds = useRef(new Map<string, number>());
+
   const mutation = useMutation({
     mutationFn: async (payload: UpdateEventPayload) => {
       // Excluir atividade não passa por aqui: é ação própria, disparada pela
       // lixeira e confirmada no modal. Salvar só grava evento e atividades.
       const { atividades = [], ...eventPayload } = payload;
-      const updatedEvent = await eventService.update(eventId!, eventPayload);
+      await eventService.update(eventId!, eventPayload);
 
-      await Promise.all(
-        atividades.map(({ id, ...activity }) => {
-          const activityPayload = {
-            ...activity,
-            eventId: eventId!,
-          };
-          return id != null
-            ? activityService.update(id, activityPayload)
-            : activityService.create(activityPayload);
-        })
-      );
-
-      return updatedEvent;
+      const failures = await saveEventActivities(eventId!, atividades, createdActivityIds.current);
+      if (failures.length > 0) throw new Error(describeActivityFailures(failures));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
@@ -84,14 +82,21 @@ export function useEditEvent(eventId: number | null) {
     setError(null);
     try {
       await removal.mutateAsync(activityId);
+      forgetCreatedActivity(createdActivityIds.current, activityId);
       return true;
     } catch {
       return false;
     }
   }
 
+  /** Id da atividade nova do formulário que já foi gravada num envio anterior. */
+  function savedActivityId(clientKey: string) {
+    return createdActivityIds.current.get(clientKey);
+  }
+
   return {
     event,
+    savedActivityId,
     loadingEvent,
     loadError,
     handleUpdate,

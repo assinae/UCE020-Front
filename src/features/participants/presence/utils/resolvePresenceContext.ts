@@ -10,7 +10,7 @@ interface PresenceContextApiResponse {
     eventName?: string;
     activityTitle?: string;
     activityStatus?: string;
-    activityStartsAt?: string | Date;
+    activityStartsAt?: string;
   };
 }
 

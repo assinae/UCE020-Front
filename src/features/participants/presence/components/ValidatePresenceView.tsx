@@ -200,6 +200,13 @@ export function ValidatePresenceView() {
     : activityStartsAt - 60 * 60 * 1000;
   const isTooEarly = attendanceOpensAt !== null && currentTime < attendanceOpensAt;
   const canValidatePresence = context.activityStatus !== undefined && !isActivityFinalized && !isTooEarly;
+  const attendanceOpensLabel = attendanceOpensAt === null
+    ? ''
+    : new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: 'America/Bahia',
+      }).format(attendanceOpensAt);
 
   return (
     <AppPageContainer>
@@ -218,7 +225,7 @@ export function ValidatePresenceView() {
             {isActivityFinalized
               ? 'Esta atividade foi finalizada. As presenças registradas podem ser consultadas, mas não podem ser alteradas'
               : isTooEarly && attendanceOpensAt !== null
-                ? `A validação de presença será liberada uma hora antes do início da atividade (${new Date(attendanceOpensAt).toLocaleString('pt-BR')}).`
+                ? `A validação de presença será liberada uma hora antes do início da atividade (${attendanceOpensLabel}).`
               : 'Verificando status da atividade antes de permitir alterações'}
           </Alert>
         ) : (

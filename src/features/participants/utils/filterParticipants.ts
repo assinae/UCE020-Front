@@ -10,17 +10,18 @@ export function sortByPendingFirst(participants: Participant[]): Participant[] {
 export function filterParticipants(
   participants: unknown,
   search: string,
-  presenceFilter: PresenceFilter,
+  presenceFilter: PresenceFilter
 ): Participant[] {
   const safeParticipants = Array.isArray(participants) ? participants : [];
   const query = search.trim().toLowerCase();
 
   const filtered = safeParticipants.filter((participant) => {
     const matchesSearch =
-      !query || participant.name.toLowerCase().includes(query);
+      !query ||
+      participant.name.toLowerCase().includes(query) ||
+      (participant.email ?? '').toLowerCase().includes(query);
 
-    const matchesFilter =
-      presenceFilter === 'all' || participant.presenceStatus === presenceFilter;
+    const matchesFilter = presenceFilter === 'all' || participant.presenceStatus === presenceFilter;
 
     return matchesSearch && matchesFilter;
   });
@@ -34,7 +35,9 @@ export function countByPresenceStatus(participants: unknown): {
   total: number;
 } {
   const safeParticipants = Array.isArray(participants) ? (participants as Participant[]) : [];
-  const confirmed = safeParticipants.filter((participant) => participant.presenceStatus === 'confirmed').length;
+  const confirmed = safeParticipants.filter(
+    (participant) => participant.presenceStatus === 'confirmed'
+  ).length;
   const total = safeParticipants.length;
 
   return { confirmed, pending: total - confirmed, total };
@@ -42,7 +45,7 @@ export function countByPresenceStatus(participants: unknown): {
 
 export function togglePresenceFilter(
   currentFilter: PresenceFilter,
-  nextFilter: Exclude<PresenceFilter, 'all'>,
+  nextFilter: Exclude<PresenceFilter, 'all'>
 ): PresenceFilter {
   return currentFilter === nextFilter ? 'all' : nextFilter;
 }

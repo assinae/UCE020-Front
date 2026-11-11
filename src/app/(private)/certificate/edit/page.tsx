@@ -106,7 +106,7 @@ export default function EditCertificatePage() {
             gridTemplateColumns: '1fr 1fr',
             gap: 2,
             position: 'sticky',
-            bottom: 0,
+            bottom: 'var(--app-bottom-nav-height, 0px)',
             bgcolor: 'background.default',
             py: 2,
             borderTop: '1px solid',

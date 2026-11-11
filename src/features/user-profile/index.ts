@@ -1,2 +1,1 @@
-export { ProfileHeader } from './components/ProfileHeader';
-export { ProfileForm } from './components/ProfileForm';
+export { UserProfileView } from './components/UserProfileView';

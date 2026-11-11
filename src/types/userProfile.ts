@@ -14,7 +14,28 @@ export type UpdateProfilePayload = Partial<{
   avatarUrl?: string;
 }>;
 
+export type ParticipationRole = 'participante' | 'organizador' | 'monitor';
+
+export type UserEventHistoryItem = {
+  participacaoId: number;
+  eventoId: number;
+  nome: string;
+  dataInicio: string;
+  dataFim: string;
+  status: string;
+  cargaHoraria: number;
+  papel: ParticipationRole;
+  possuiCertificado: boolean;
+};
+
+export type UserActivity = {
+  eventosOrganizados: number;
+  certificadosRecebidos: number;
+  cargaHorariaTotal: number;
+  historico: UserEventHistoryItem[];
+};
+
 export type UserProfileResponse = {
   data: UserProfile;
   statusCode: number;
-};
+};

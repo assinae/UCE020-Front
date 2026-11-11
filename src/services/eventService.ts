@@ -4,6 +4,8 @@ import { Event } from '../types/event';
 
 export interface CreateActivityPayload {
   id?: number;
+  /** Chave da atividade no formulário, para reenvio sem duplicar. Não vai para a API. */
+  clientKey?: string;
   name: string;
   category: string;
   location: string;

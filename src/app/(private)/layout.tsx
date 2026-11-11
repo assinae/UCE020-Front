@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/ui/Header';
-import { Sidebar, type NavLink } from '@/components/ui/Sidebar';
-import { Home, Article, Event, PostAdd, DocumentScanner } from '@mui/icons-material';
+import { Box } from '@mui/material';
+import {
+  AppShellSkeleton,
+  AppTopBar,
+  MobileBottomNav,
+  MOBILE_NAV_HEIGHT,
+} from '@/components/navigation';
 import { useAuth } from '@/providers/auth-provider';
-
-const NAV_LINKS: NavLink[] = [
-  { icon: <Home />, label: 'Início', href: '/home' },
-  { icon: <PostAdd />, label: 'Criar evento', href: '/event/register' },
-  { icon: <Event />, label: 'Eventos Criados', href: '/event/list' },
-  { icon: <DocumentScanner />, label: 'Monitoria', href: '/monitoring/list' },
-  { icon: <Article />, label: 'Certificados', href: '/certificate/list' },
-];
 
 const PUBLIC_HOME_PATH = '/landing-page';
 
 export default function PrivateLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
 
@@ -33,25 +28,31 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     }
   }, [isLoading, router, user]);
 
-  if (isLoading || !user) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-white px-4 text-sm font-medium text-[#0F1D35]">
-        Carregando...
-      </main>
-    );
+  if (isLoading) {
+    return <AppShellSkeleton />;
+  }
+
+  // Sem usuário o efeito acima já está redirecionando (ex.: logo após "Sair");
+  // o esqueleto aqui daria a impressão de que algo vai carregar.
+  if (!user) {
+    return null;
   }
 
   return (
     <>
-      <Header user={user} onMenuClick={() => setSidebarOpen(true)} />
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        navLinks={NAV_LINKS}
-        user={user}
-        onLogout={handleLogout}
-      />
-      <main className="pt-16">{children}</main>
+      <AppTopBar userName={user.name} onLogout={handleLogout} />
+      {/* Rodapés sticky (ex.: certificado) usam a variável para não ficarem atrás da barra inferior. */}
+      <Box
+        component="main"
+        sx={(theme) => ({
+          '--app-bottom-nav-height': MOBILE_NAV_HEIGHT,
+          pb: 'var(--app-bottom-nav-height)',
+          [theme.breakpoints.up('md')]: { '--app-bottom-nav-height': '0px' },
+        })}
+      >
+        {children}
+      </Box>
+      <MobileBottomNav userName={user.name} onLogout={handleLogout} />
     </>
   );
 }
