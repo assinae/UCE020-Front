@@ -4,12 +4,13 @@ import { CERTIFICATE_STATUS_META } from '@/mocks/certificate-management';
 import { colorTokens } from '@/lib/colors';
 
 interface CertificateSummaryCardProps {
+  groupLabel: string;
   totalIssued: number;
   statusTotals: { pendente: number; assinado: number };
   action: { label: string; icon: ReactNode; onClick: () => void; disabled?: boolean };
 }
 
-export function CertificateSummaryCard({ totalIssued, statusTotals, action }: CertificateSummaryCardProps) {
+export function CertificateSummaryCard({ groupLabel, totalIssued, statusTotals, action }: CertificateSummaryCardProps) {
   const badges = [
     { key: 'Pendentes', value: statusTotals.pendente, ...CERTIFICATE_STATUS_META.Pendente },
     { key: 'Assinados', value: statusTotals.assinado, ...CERTIFICATE_STATUS_META.Assinado },
@@ -47,7 +48,7 @@ export function CertificateSummaryCard({ totalIssued, statusTotals, action }: Ce
           </Typography>
           <Box>
             <Typography sx={{ fontSize: 15, color: colorTokens.neutral.white, fontWeight: 800 }}>
-              Certificados gerados
+              {groupLabel}
             </Typography>
             <Typography sx={{ mt: 0.25, fontSize: 12.5, color: alpha(colorTokens.neutral.white, 0.68), fontWeight: 600 }}>
               Total emitido

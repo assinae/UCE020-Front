@@ -56,16 +56,18 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
     roleStats,
     statusTotals,
     totalIssued,
+    totalCertificatesForEvent,
+    groupLabel,
     roleTab,
     setRoleTab,
     search,
     setSearch,
-    activityDraft,
-    setActivityDraft,
+    sourceDraft,
+    setSourceDraft,
     statusDraft,
     setStatusDraft,
     applyFilters,
-    activityOptions,
+    sourceOptions,
     statusOptions,
     sortOrder,
     toggleSortOrder,
@@ -135,8 +137,6 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
     }
   };
 
-  const totalRoleCount = roleStats.reduce((total, stat) => total + stat.value, 0);
-
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: colorTokens.surface.app }}>
       <Box sx={{
@@ -152,13 +152,14 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
       />
 
       <CertificateSummaryCard
-        totalIssued={totalRoleCount || totalIssued}
+        groupLabel={groupLabel}
+        totalIssued={totalIssued}
         statusTotals={statusTotals}
         action={{
-          label: isSigning ? 'Assinando...' : 'Assinar em lote',
+          label: isSigning ? 'Assinando...' : 'Assinar lote do evento',
           icon: <DrawOutlinedIcon />,
           onClick: () => setIsSignModalOpen(true),
-          disabled: isSigning || isLoading || totalIssued === 0,
+          disabled: isSigning || isLoading || totalCertificatesForEvent === 0,
         }}
       />
 
@@ -166,11 +167,11 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
         <CertificateFilters
           search={search}
           onSearchChange={setSearch}
-          activityDraft={activityDraft}
+          sourceDraft={sourceDraft}
           statusDraft={statusDraft}
-          activityOptions={activityOptions}
+          sourceOptions={sourceOptions}
           statusOptions={statusOptions}
-          onActivityChange={setActivityDraft}
+          onSourceChange={setSourceDraft}
           onStatusChange={setStatusDraft}
           onApply={applyFilters}
         />
@@ -178,12 +179,13 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
 
       <CertificateStatsRow
         stats={roleStats}
-        total={totalRoleCount || totalIssued}
+        total={totalIssued}
         activeTab={roleTab}
         onSelect={setRoleTab}
       />
 
       <CertificateListHeader
+        groupLabel={groupLabel}
         count={filteredCertificates.length}
         sortOrder={sortOrder}
         onToggleSort={toggleSortOrder}
@@ -222,7 +224,7 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
             Nenhum certificado encontrado
           </Typography>
           <Typography sx={{ maxWidth: 360, fontSize: 13.5, color: colorTokens.text.muted }}>
-            Os certificados emitidos para este evento aparecerão aqui. Ajuste os filtros ou tente outra busca.
+            Não há certificados neste grupo com os filtros atuais. Escolha outro evento ou atividade, ajuste os filtros ou tente outra busca.
           </Typography>
         </ContentCard>
       ) : (

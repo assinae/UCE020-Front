@@ -5,12 +5,14 @@ import type { SortOrder } from '../utils/certificateFilters';
 import { colorTokens } from '@/lib/colors';
 
 interface CertificateListHeaderProps {
+  groupLabel: string;
   count: number;
   sortOrder: SortOrder;
   onToggleSort: () => void;
 }
 
 export function CertificateListHeader({
+  groupLabel,
   count,
   sortOrder,
   onToggleSort,
@@ -23,7 +25,7 @@ export function CertificateListHeader({
         </Box>
         <Box>
           <Typography sx={{ fontSize: 14, fontWeight: 800, lineHeight: 1.2, color: colorTokens.text.heading }}>
-            Certificados
+            {groupLabel}
           </Typography>
           <Typography sx={{ mt: 0.2, fontSize: 11, color: colorTokens.text.muted, lineHeight: 1.2 }}>
             {count === 1 ? '1 resultado encontrado' : `${count} resultados encontrados`}

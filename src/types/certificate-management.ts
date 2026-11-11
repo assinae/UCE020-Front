@@ -9,6 +9,9 @@ export type CertificateManagementStatus = 'Pendente' | 'Assinado';
 
 export interface CertificateManagementItem {
   id: string;
+  source?: 'event' | 'activity';
+  activityId?: number;
+  activityName?: string;
   title: string;
   participantName: string;
   participantEmail: string;
@@ -31,9 +34,15 @@ export interface CertificatePageResponse {
   hasMore: boolean;
 }
 
-export interface CertificateRoleStat {
-  role:  CertificateManagementRole;
-  count: number;
+export interface CertificateGroupStat {
+  key: string;
+  source: 'event' | 'activity';
+  activityId: number | null;
+  label: string;
+  total: number;
+  pending: number;
+  signed: number;
+  roles: { role: CertificateManagementRole; count: number }[];
 }
 
 export type CertificateSignatureType = 'evento' | 'atividade' | 'convidado';

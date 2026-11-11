@@ -3,9 +3,9 @@ import { AxiosError } from 'axios';
 import { api } from './api';
 import type {
   CertificateBatchSignResult,
+  CertificateGroupStat,
   CertificateManagementItem,
   CertificatePageResponse,
-  CertificateRoleStat,
   CertificateVerification,
   CertificateVerificationResult,
   GenerateActivityCertificatesResult,
@@ -32,7 +32,7 @@ interface CertificateResponse {
 
 interface CertificateStatsResponse {
   message?: string;
-  data: CertificateRoleStat[];
+  data: CertificateGroupStat[];
 }
 
 const DEFAULT_STATUS = 'Pendente' as const;
@@ -147,7 +147,7 @@ class CertificateService {
     }
   }
 
-  async getCertificateStatsByEvent(eventoId: number): Promise<CertificateRoleStat[]> {
+  async getCertificateStatsByEvent(eventoId: number): Promise<CertificateGroupStat[]> {
     const { data } = await api.get<CertificateStatsResponse>(
       `/event/${eventoId}/certificate/stats`,
     );

@@ -8,11 +8,11 @@ import { colorTokens } from '@/lib/colors';
 interface CertificateFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  activityDraft: string;
+  sourceDraft: string;
   statusDraft: string;
-  activityOptions: { value: string; label: string }[];
+  sourceOptions: { value: string; label: string }[];
   statusOptions: { value: string; label: string }[];
-  onActivityChange: (value: string) => void;
+  onSourceChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onApply: () => void;
 }
@@ -20,11 +20,11 @@ interface CertificateFiltersProps {
 export function CertificateFilters({
   search,
   onSearchChange,
-  activityDraft,
+  sourceDraft,
   statusDraft,
-  activityOptions,
+  sourceOptions,
   statusOptions,
-  onActivityChange,
+  onSourceChange,
   onStatusChange,
   onApply,
 }: CertificateFiltersProps) {
@@ -57,8 +57,8 @@ export function CertificateFilters({
       </Box>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr auto' }, gap: 1.25, alignItems: 'end' }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 11, color: colorTokens.text.label, mb: 0.65, fontWeight: 700 }}>Atividade</Typography>
-          <SelectInput value={activityDraft} onChange={onActivityChange} options={activityOptions} sx={{ '& .MuiInputBase-root': { minHeight: 44, borderRadius: '14px', bgcolor: colorTokens.surface.muted }, '& .MuiSelect-select': { py: 1 } }} />
+          <Typography sx={{ fontSize: 11, color: colorTokens.text.label, mb: 0.65, fontWeight: 700 }}>Certificados de</Typography>
+          <SelectInput value={sourceDraft} onChange={onSourceChange} options={sourceOptions} sx={{ '& .MuiInputBase-root': { minHeight: 44, borderRadius: '14px', bgcolor: colorTokens.surface.muted }, '& .MuiSelect-select': { py: 1 } }} />
         </Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: 11, color: colorTokens.text.label, mb: 0.65, fontWeight: 700 }}>Status</Typography>
