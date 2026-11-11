@@ -156,7 +156,7 @@ export function CertificatesGeneratedView({ eventoId }: CertificatesGeneratedVie
         totalIssued={totalIssued}
         statusTotals={statusTotals}
         action={{
-          label: isSigning ? 'Assinando...' : 'Assinar lote do evento',
+          label: isSigning ? 'Assinando...' : 'Assinar todos os certificados',
           icon: <DrawOutlinedIcon />,
           onClick: () => setIsSignModalOpen(true),
           disabled: isSigning || isLoading || totalCertificatesForEvent === 0,

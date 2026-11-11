@@ -731,12 +731,18 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             pt: { xs: 3, md: 4.5 },
             pb: { xs: 4, md: 5 },
             display: 'grid',
-            gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) 320px', lg: 'minmax(0, 1fr) 340px' },
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              md: 'minmax(0, 1fr) 320px',
+              lg: 'minmax(0, 1fr) 340px',
+            },
             columnGap: { md: 4, lg: 5 },
             alignItems: 'start',
           }}
         >
-          <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 3.5 } }}>
+          <Box
+            sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 3.5 } }}
+          >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
               {participationChip && (
                 <Box
@@ -792,7 +798,8 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                     lineHeight: 1.5,
                   }}
                 >
-                  Como monitor, você valida as presenças abrindo uma atividade da programação abaixo.
+                  Como monitor, você valida as presenças abrindo uma atividade da programação
+                  abaixo.
                 </Typography>
               )}
             </Box>
@@ -870,7 +877,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
                       fontSize: 13,
                       fontWeight: 700,
                       cursor: 'pointer',
-                      '&:hover': { color: colorTokens.brand.secondaryDark, textDecoration: 'underline' },
+                      '&:hover': {
+                        color: colorTokens.brand.secondaryDark,
+                        textDecoration: 'underline',
+                      },
                     }}
                   >
                     {isDescriptionExpanded ? 'Ler menos' : 'Leia mais'}
@@ -879,61 +889,10 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
               </Box>
             ) : null}
 
-            <Accordion
-              disableGutters
-              elevation={0}
-              sx={{
-                borderRadius: '20px !important',
-                bgcolor: colorTokens.surface.panel,
-                border: '1px solid rgba(13, 30, 59, 0.05)',
-                overflow: 'hidden',
-                '&:before': { display: 'none' },
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreRoundedIcon sx={{ color: colorTokens.text.heading }} />}
-                sx={{ px: 2, minHeight: 52 }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      flexShrink: 0,
-                      borderRadius: '10px',
-                      display: 'grid',
-                      placeItems: 'center',
-                      bgcolor: colorTokens.surface.mint,
-                      color: colorTokens.brand.secondary,
-                    }}
-                  >
-                    <InfoOutlinedIcon sx={{ fontSize: 18 }} />
-                  </Box>
-                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: colorTokens.text.heading }}>
-                    Sobre o funcionamento do evento
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
-                <Typography
-                  component="ul"
-                  sx={{ m: 0, pl: 2.5, fontSize: 13.5, lineHeight: 1.7, color: colorTokens.text.muted }}
-                >
-                  <li>Inscrições e presenças seguem o período e as regras de cada atividade.</li>
-                  <li>Monitores e organizadores registram presenças durante a atividade.</li>
-                  <li>
-                    Ao finalizar, o evento e todas as atividades em aberto são encerrados; inscrições,
-                    participantes e presenças deixam de poder ser alterados.
-                  </li>
-                  <li>
-                    Depois do encerramento, o organizador pode consultar os relatórios e certificados
-                    disponíveis.
-                  </li>
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <EventActivitiesSection activities={activities} onSelectActivity={handleSelectActivity} />
+            <EventActivitiesSection
+              activities={activities}
+              onSelectActivity={handleSelectActivity}
+            />
 
             {/* Mobile: inscrição no fim do conteúdo do evento, sem acompanhar a rolagem. */}
             {primaryAction && !isOrganizer ? (
@@ -955,7 +914,6 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
             {primaryAction ? <Box sx={{ mt: 1 }}>{primaryAction}</Box> : null}
           </Box>
         </Box>
-
       </Box>
 
       <ActivityModal
@@ -1045,6 +1003,46 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         isLoading={isDeletingEvent}
         type="error"
       />
+
+      <Accordion
+        disableGutters
+        elevation={0}
+        sx={{
+          border: '1px solid rgba(15, 29, 53, 0.08)',
+          borderRadius: '12px !important',
+          bgcolor: '#F8FAFC',
+          '&:before': { display: 'none' },
+        }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#253B68' }}>
+            <InfoOutlinedIcon fontSize="small" />
+            <Typography sx={{ fontSize: 10, fontWeight: 500 }}>
+              Sobre o funcionamento do evento
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0, color: '#475467' }}>
+          <Typography component="ul" sx={{ m: 0, pl: 2.5, fontSize: 13, lineHeight: 1.7 }}>
+            <li>
+              As inscrições e o registro de presença seguem o período estabelecido em cada
+              atividade.
+            </li>
+            <li>
+              Durante a realização das atividades, os monitores são responsáveis por validar a
+              presença dos participantes.
+            </li>
+            <li>
+              Ao encerrar o evento, todas as atividades vinculadas a ele também serão
+              automaticamente finalizadas.
+            </li>
+            <li>
+              Após a finalização, o organizador terá acesso aos relatórios e certificados gerados,
+              podendo realizar a assinatura em lote, de forma prática e centralizada.
+            </li>
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
     </Box>
   );
 }
