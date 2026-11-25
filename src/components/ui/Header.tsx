@@ -6,8 +6,13 @@ import { usePathname } from 'next/navigation';
 import { AppBar, Box, Toolbar } from '@mui/material';
 import { Button } from '@/components/ui';
 
-export function Header() {
+interface HeaderProps {
+  hideOnMobile?: boolean;
+}
+
+export function Header({ hideOnMobile = false }: HeaderProps) {
   const pathname = usePathname();
+  const display = hideOnMobile ? { xs: 'none', md: 'flex' } : 'flex';
   const isSimpleHeaderPage =
     pathname.includes('/landing-page/learn-more') || pathname.includes('/landing-page/tutorial');
 
@@ -17,6 +22,7 @@ export function Header() {
         position="fixed"
         elevation={0}
         sx={{
+          display,
           backgroundColor: 'white',
           color: '#111',
           borderBottom: '1px solid #e5e7eb',
@@ -67,6 +73,7 @@ export function Header() {
       position="fixed"
       elevation={0}
       sx={{
+        display,
         backgroundColor: 'white',
         color: '#111',
         borderBottom: '1px solid #e5e7eb',
