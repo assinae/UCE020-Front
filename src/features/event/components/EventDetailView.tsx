@@ -13,6 +13,7 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { ActivityModal, ConfirmModal } from '@/components/modals';
 import { AppPageContainer } from '@/components/layout/AppPageContainer';
@@ -28,6 +29,7 @@ import { OrganizerEventActions } from './OrganizerEventActions';
 import { EventHero } from './EventHero';
 import { EventInfoRow } from './EventInfoRow';
 import { EventCodeCard } from './EventCodeCard';
+import { EventPublicPageCard } from './EventPublicPageCard';
 import { EventAttendeesSummary } from './EventAttendeesSummary';
 import type { Activity, ActivityGuest } from '@/types/activity';
 import type { Event } from '@/types/event';
@@ -201,7 +203,11 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
 
   const isSignupProcessingRef = useRef(false);
   const openedActivityFromLinkRef = useRef(false);
-  const activityIdFromLink = useSearchParams().get('atividade');
+  const searchParams = useSearchParams();
+  const activityIdFromLink = searchParams.get('atividade');
+  const [isCreatedNoticeOpen, setIsCreatedNoticeOpen] = useState(
+    () => searchParams.get('criado') === '1'
+  );
   const pendingEnrollmentChecksRef = useRef<Set<string>>(new Set());
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -641,6 +647,12 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const statusStyle = STATUS_STYLES[statusKey];
   const isFinalized = statusKey === 'finalizada';
   const totalInscritos = event.totalInscritos ?? 0;
+  const publicPageHref = event.codigo ? `/e/${encodeURIComponent(event.codigo)}` : undefined;
+
+  const closeCreatedNotice = () => {
+    setIsCreatedNoticeOpen(false);
+    router.replace(`/event/${eventId}`, { scroll: false });
+  };
 
   // Mesma ação principal no rodapé fixo (mobile) e na coluna lateral (desktop).
   const renderOrganizerActions = (trigger: 'button' | 'icon') => (
@@ -649,6 +661,7 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
       activities={activities}
       isFinalized={isFinalized}
       canDelete={statusKey === 'pendente'}
+      publicPageHref={publicPageHref}
       onAddActivity={() => {
         setActivitySheetSession((prev) => prev + 1);
         setIsActivityDrawerOpen(true);
@@ -677,6 +690,9 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
   const summaryBlocks = (
     <>
       <EventCodeCard code={event.codigo} copied={isCodeCopied} onCopy={handleCopyEventCode} />
+      {publicPageHref && isOrganizer && !isCheckingSubscription ? (
+        <EventPublicPageCard href={publicPageHref} eventName={event.nome} />
+      ) : null}
       <EventAttendeesSummary total={totalInscritos} />
     </>
   );
@@ -697,21 +713,55 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
           image={event.foto}
           title={event.nome}
           action={
-            <Box
-              component="span"
-              sx={{
-                px: 1.75,
-                py: 0.75,
-                borderRadius: 99,
-                bgcolor: statusStyle?.bg ?? '#F1F2F6',
-                color: statusStyle?.color ?? '#667085',
-                fontSize: 12,
-                fontWeight: 800,
-                boxShadow: '0 6px 18px rgba(13, 30, 59, 0.18)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {statusStyle?.label ?? event.status}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {publicPageHref ? (
+                <Box
+                  component="a"
+                  href={publicPageHref}
+                  target="_blank"
+                  rel="noopener"
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.75,
+                    py: 0.75,
+                    borderRadius: 99,
+                    bgcolor: 'rgba(255, 255, 255, 0.92)',
+                    backdropFilter: 'blur(6px)',
+                    color: colorTokens.text.heading,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                    transition: 'transform .18s ease, background-color .18s ease',
+                    '&:hover': {
+                      bgcolor: '#FFFFFF',
+                      color: colorTokens.text.heading,
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+                >
+                  <OpenInNewRoundedIcon sx={{ fontSize: 15 }} />
+                  Página do evento
+                </Box>
+              ) : null}
+              <Box
+                component="span"
+                sx={{
+                  px: 1.75,
+                  py: 0.75,
+                  borderRadius: 99,
+                  bgcolor: statusStyle?.bg ?? '#F1F2F6',
+                  color: statusStyle?.color ?? '#667085',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  boxShadow: '0 6px 18px rgba(13, 30, 59, 0.18)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {statusStyle?.label ?? event.status}
+              </Box>
             </Box>
           }
         />
@@ -990,6 +1040,19 @@ export function EventDetailView({ eventId }: EventDetailViewProps) {
         message={toast.message}
         severity={toast.severity}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+
+      <ConfirmModal
+        open={isCreatedNoticeOpen && Boolean(publicPageHref)}
+        onClose={closeCreatedNotice}
+        message="A página pública do evento já está no ar. Divulgue o link para quem quiser participar."
+        emphasisEndText="Evento criado!"
+        confirmText="Ver página"
+        cancelText="Agora não"
+        onConfirm={() => {
+          if (publicPageHref) window.open(publicPageHref, '_blank', 'noopener');
+        }}
+        type="success"
       />
 
       <ConfirmModal

@@ -92,7 +92,7 @@ export function HeroSection() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: { xs: 1, sm: 3, md: 6 },
-          pt: { xs: 12, md: 0 },
+          pt: { xs: 5, md: 0 },
           pb: { xs: 4, md: 0 },
           position: 'relative',
           zIndex: 1,

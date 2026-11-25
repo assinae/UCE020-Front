@@ -37,6 +37,13 @@ export const STATUS_OPTIONS: { value: FormState['status']; label: string }[] = [
   { value: 'finalizada', label: 'Finalizado' },
 ];
 
+export function toFormStatus(status: string | null | undefined): FormState['status'] {
+  if (status === 'iniciada') return 'andamento';
+  return STATUS_OPTIONS.some((option) => option.value === status)
+    ? (status as FormState['status'])
+    : 'pendente';
+}
+
 export const DEFAULT_FORM: FormState = {
   nome: '',
   localizacao: '',
