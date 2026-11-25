@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { authService } from '@/services/authService';
+import { SESSION_EXPIRED_EVENT } from '@/services/api';
 
 interface User {
   id: number;
@@ -19,6 +20,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+const PUBLIC_PATH_PREFIXES = [
+  '/landing-page',
+  '/e/',
+  '/certificate/verify',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/redefine-password',
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -93,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isAxiosError(error) && !error.response) {
           console.warn(
             '[AuthProvider] Não foi possível conectar à API. Verifique se o backend está rodando em ' +
-              (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'),
+              (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1')
           );
         } else {
           console.error('[AuthProvider] erro inesperado no getMe', error);
@@ -122,6 +133,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (changes: Partial<Pick<User, 'name' | 'email'>>) => {
     setUser((current) => (current ? { ...current, ...changes } : current));
   };
+
+  const redirectingRef = useRef(false);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      setIsLoading(false);
+
+      const { pathname } = window.location;
+      const isPublicPage = PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+      if (redirectingRef.current || isPublicPage) return;
+
+      redirectingRef.current = true;
+      window.location.replace('/login?sessao=expirada');
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   const logout = () => {
     localStorage.removeItem('token');
