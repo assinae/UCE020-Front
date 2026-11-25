@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 import { api } from './api';
-import { Event } from '../types/event';
+import { Event, PublicEvent } from '../types/event';
 
 export interface CreateActivityPayload {
   id?: number;
@@ -459,6 +459,13 @@ class EventService {
 
   async findByCodigo(codigo: string): Promise<Event> {
     const { data } = await api.get<EventResponse>(`/event/codigo/${codigo}`);
+    return data.data;
+  }
+
+  async findPublicByCodigo(codigo: string): Promise<PublicEvent> {
+    const { data } = await api.get<{ data: PublicEvent }>(
+      `/event/codigo/${encodeURIComponent(codigo)}`
+    );
     return data.data;
   }
 

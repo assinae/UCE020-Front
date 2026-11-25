@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -120,9 +120,16 @@ function LeftPanel() {
 }
 
 // ── Componente principal ─────────────────────────────────
+const subscribeNoop = () => () => {};
+
 export function LoginForm() {
   const router = useRouter();
   const { handleLogin, loading, error } = useLogin();
+  const sessionExpired = useSyncExternalStore(
+    subscribeNoop,
+    () => new URLSearchParams(window.location.search).get("sessao") === "expirada",
+    () => false
+  );
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -199,6 +206,12 @@ export function LoginForm() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: "12px" }}>{error}</Alert>
+          )}
+
+          {!error && sessionExpired && (
+            <Alert severity="info" sx={{ mb: 3, borderRadius: "12px" }}>
+              Sua sessão expirou. Entre novamente para continuar.
+            </Alert>
           )}
 
           <Box component="form" onSubmit={onSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
