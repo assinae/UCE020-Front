@@ -5,7 +5,7 @@ import type {
 
 export type CertificateRoleTab =
   | 'Todos'
-  | 'Ouvintes'
+  | 'Participantes'
   | 'Monitores'
   | 'Organizadores'
   | 'Palestrantes'
@@ -15,7 +15,7 @@ export type SortOrder = 'asc' | 'desc';
 
 export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
   'Todos',
-  'Ouvintes',
+  'Participantes',
   'Monitores',
   'Organizadores',
   'Palestrantes',
@@ -24,7 +24,7 @@ export const ROLE_TAB_OPTIONS: CertificateRoleTab[] = [
 ];
 
 const TAB_TO_ROLE: Partial<Record<CertificateRoleTab, CertificateManagementRole>> = {
-  Ouvintes: 'Ouvinte',
+  Participantes: 'Participante',
   Monitores: 'Monitor',
   Organizadores: 'Organizador',
   Palestrantes: 'Palestrante',

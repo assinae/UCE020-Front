@@ -17,7 +17,7 @@ export const GUEST_ROLES: GuestRole[] = ['Palestrante', 'Ministrante', 'Moderado
 const USER_ROLE_DESCRIPTIONS: Record<StaffRole, string> = {
   Organizador: 'Coordena o evento, define a estrutura e gerencia a operação geral.',
   Monitor: 'Acompanha a dinâmica do evento, apoia participantes e valida presenças.',
-  Participante: 'Participante/Ouvinte — acompanha o evento, assiste às atividades e recebe acesso ao conteúdo e certificados quando aplicável.',
+  Participante: 'Acompanha o evento, assiste às atividades e recebe acesso ao conteúdo e certificados quando aplicável.',
 };
 
 const GUEST_ROLE_DESCRIPTIONS: Record<GuestRole, string> = {

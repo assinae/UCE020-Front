@@ -1,20 +1,105 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { Box, Container, Typography, CircularProgress } from '@mui/material';
-import { CalendarToday, AccessTime, Draw, Download, PictureAsPdf } from '@mui/icons-material';
+import type { ReactNode } from 'react';
+import { use, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import DrawRoundedIcon from '@mui/icons-material/DrawRounded';
+import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { BackButton } from '@/components/ui/BackButton';
-import { certificateService } from '@/services/certificate.service';
-import { useMockUser } from '@/mocks/useMockUser';
-import type { CertificateManagementItem } from '@/types/certificate-management';
 import { Toast } from '@/components/ui/Toast';
-import { ToastSeverity } from '@/types/toast';
+import { CertificatePreviewPane } from '@/features/certificate/components/CertificatePreviewPane';
 import { useCertificatePdfPreview } from '@/features/certificate/hooks/useCertificatePdfPreview';
-import { baixarCertificadoPdf } from '@/features/certificate/utils/certificatePdf';
+import {
+  baixarCertificadoPdf,
+  nomeArquivoCertificado,
+} from '@/features/certificate/utils/certificatePdf';
+// Linha com ícone em quadrado menta — a mesma da tela de evento, de propósito.
+import { EventInfoRow } from '@/features/event/components/EventInfoRow';
+import { colorTokens } from '@/lib/colors';
+import { useMockUser } from '@/mocks/useMockUser';
+import { certificateService } from '@/services/certificate.service';
+import type { CertificateManagementItem } from '@/types/certificate-management';
+import { ToastSeverity } from '@/types/toast';
 import { extractApiErrorMessage } from '@/utils/apiError';
 import { formatBahiaDate } from '@/utils/date';
+
+/**
+ * Compartilhar arquivo só existe no Web Share nível 2 (celular, em geral).
+ * O resultado é fixo na sessão, então fica em cache: `useSyncExternalStore`
+ * chama o snapshot a cada render e montar um File toda vez seria desperdício.
+ */
+let fileShareSupport: boolean | undefined;
+
+function supportsFileShare(): boolean {
+  if (fileShareSupport !== undefined) return fileShareSupport;
+
+  try {
+    const probe = new File([], 'certificado.pdf', { type: 'application/pdf' });
+    fileShareSupport = Boolean(navigator.canShare?.({ files: [probe] }));
+  } catch {
+    fileShareSupport = false;
+  }
+
+  return fileShareSupport;
+}
+
+const subscribeToNothing = () => () => {};
+
+function StatusPill({ isSigned }: { isSigned: boolean }) {
+  const icon = isSigned ? (
+    <VerifiedRoundedIcon sx={{ fontSize: 15 }} />
+  ) : (
+    <DrawRoundedIcon sx={{ fontSize: 15 }} />
+  );
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.5,
+        px: 1.5,
+        py: 0.65,
+        borderRadius: 99,
+        bgcolor: isSigned ? colorTokens.presence.confirmedBg : colorTokens.progress.liveBg,
+        color: isSigned ? colorTokens.text.mint : colorTokens.progress.liveText,
+        fontSize: 12,
+        fontWeight: 800,
+        whiteSpace: 'nowrap',
+        boxShadow: '0 6px 18px rgba(13, 30, 59, 0.18)',
+      }}
+    >
+      {icon}
+      {isSigned ? 'Assinado' : 'Pendente'}
+    </Box>
+  );
+}
+
+function CenteredState({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        px: 3,
+        textAlign: 'center',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
 
 export default function CertificateViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,7 +110,10 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; severity: ToastSeverity } | null>(null);
+
+  const canShareFile = useSyncExternalStore(subscribeToNothing, supportsFileShare, () => false);
 
   // O PDF é buscado em paralelo com os dados do certificado: o id já veio
   // da rota, então não precisa esperar o GET do certificado terminar.
@@ -51,210 +139,235 @@ export default function CertificateViewPage({ params }: { params: Promise<{ id: 
     };
   }, [id]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!cert) return;
+
     setIsDownloading(true);
     try {
       await baixarCertificadoPdf({ ...cert, id });
     } catch (error) {
-      setToastMessage(extractApiErrorMessage(error, 'Não foi possível baixar o certificado.'));
+      setToast({
+        message: extractApiErrorMessage(error, 'Não foi possível baixar o certificado.'),
+        severity: ToastSeverity.Error,
+      });
     } finally {
       setIsDownloading(false);
     }
-  };
+  }, [cert, id]);
+
+  const handleShare = useCallback(async () => {
+    if (!cert) return;
+
+    setIsSharing(true);
+    try {
+      const blob = await certificateService.getCertificatePdf(id);
+      const file = new File([blob], nomeArquivoCertificado(cert), { type: 'application/pdf' });
+
+      await navigator.share({ files: [file], title: cert.title });
+    } catch (error) {
+      // Fechar a folha de compartilhamento não é erro: o navegador rejeita com AbortError.
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+
+      setToast({
+        message: extractApiErrorMessage(error, 'Não foi possível compartilhar o certificado.'),
+        severity: ToastSeverity.Error,
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  }, [cert, id]);
 
   if (isLoading) {
     return (
-      <Box sx={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <CenteredState>
         <CircularProgress size={28} />
-      </Box>
+      </CenteredState>
     );
   }
 
   if (isError || !cert) {
     return (
-      <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, px: 3, textAlign: 'center' }}>
-        <Typography sx={{ fontWeight: 700, color: '#0f172a' }}>Certificado não encontrado</Typography>
-        <Button variant="outlined" onClick={() => router.back()}>Voltar</Button>
-      </Box>
+      <CenteredState>
+        <Typography sx={{ fontWeight: 700, color: colorTokens.text.heading }}>
+          Certificado não encontrado
+        </Typography>
+        <Button variant="outlined" onClick={() => router.back()}>
+          Voltar
+        </Button>
+      </CenteredState>
     );
   }
 
-  const isOrganizer = mockUser.role === 'organizer';
+  const isSigned = cert.status === 'Assinado';
+  const canSign = mockUser.role === 'organizer' && !isSigned;
+
+  const actions = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      {canSign && (
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          size="large"
+          sx={{ borderRadius: '50px', fontWeight: 700, py: 1.1 }}
+          leftIcon={<DrawRoundedIcon sx={{ fontSize: 18 }} />}
+          onClick={() => router.push(`/certificate/${cert.id}/sign`)}
+        >
+          Assinar certificado
+        </Button>
+      )}
+
+      <Button
+        variant={canSign ? 'outlined' : 'contained'}
+        color={canSign ? 'secondary' : 'primary'}
+        fullWidth
+        size="large"
+        sx={{ borderRadius: '50px', fontWeight: 700, py: 1.1 }}
+        leftIcon={<DownloadRoundedIcon sx={{ fontSize: 18 }} />}
+        isLoading={isDownloading}
+        onClick={handleDownload}
+      >
+        Baixar PDF
+      </Button>
+
+      {canShareFile && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          size="large"
+          sx={{ borderRadius: '50px', fontWeight: 700, py: 1.1 }}
+          leftIcon={<IosShareRoundedIcon sx={{ fontSize: 18 }} />}
+          isLoading={isSharing}
+          onClick={handleShare}
+        >
+          Compartilhar
+        </Button>
+      )}
+    </Box>
+  );
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 3, md: 4 }, py: { xs: 2, md: 4 }, pb: 6 }}>
-        {/* Cabeçalho padronizado (h5 + subtítulo), igual às telas de assinar/editar */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 3, md: 4 } }}>
-          <BackButton
-            fallbackHref="/certificate/list"
-            size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          />
-          <Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontFamily: "'Poppins', sans-serif",
-                fontWeight: 700,
-                color: 'text.primary',
-                lineHeight: 1.2,
-              }}
-            >
-              Visualizar Certificado
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontFamily: "'Poppins', sans-serif" }}
-            >
-              {cert.title}
-            </Typography>
-          </Box>
-        </Box>
+    // No mobile o fundo é branco igual à folha de conteúdo, para não sobrar
+    // faixa cinza embaixo quando a página é curta.
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        bgcolor: { xs: colorTokens.neutral.white, md: colorTokens.surface.app },
+      }}
+    >
+      <Box
+        sx={{
+          maxWidth: 1180,
+          mx: 'auto',
+          px: { xs: 0, md: 3 },
+          pt: { xs: 0, md: 3 },
+          pb: { xs: 0, md: 7 },
+        }}
+      >
+        {/* Mesmo molde da tela de evento nos dois tamanhos: capa em cima e a
+            folha branca de conteúdo subindo por cima dela. */}
+        <CertificatePreviewPane
+          url={pdf.url}
+          blob={pdf.blob}
+          isLoading={pdf.isLoading}
+          error={pdf.error}
+          action={<StatusPill isSigned={isSigned} />}
+        />
 
-        {/* Layout responsivo: coluna única no mobile, duas colunas no desktop */}
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'stretch', md: 'flex-start' },
-            gap: { xs: 3, md: 4 },
+            position: 'relative',
+            mt: { xs: '-28px', md: '-72px' },
+            bgcolor: colorTokens.neutral.white,
+            borderRadius: { xs: '28px 28px 0 0', md: '28px' },
+            border: { xs: 'none', md: '1px solid rgba(13, 30, 59, 0.06)' },
+            boxShadow: {
+              xs: '0 -10px 30px rgba(13, 30, 59, 0.08)',
+              md: '0 18px 45px rgba(15, 29, 53, 0.08)',
+            },
+            px: { xs: 2.5, sm: 3.5, md: 4, lg: 5 },
+            pt: { xs: 4, md: 4.5 },
+            pb: { xs: 4, md: 5 },
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              md: 'minmax(0, 1fr) 320px',
+              lg: 'minmax(0, 1fr) 340px',
+            },
+            columnGap: { md: 4, lg: 5 },
+            alignItems: 'start',
           }}
         >
-          {/* Pré-visualização do certificado */}
-          <Box
-            sx={{
-              flex: { md: '1 1 60%' },
-              width: '100%',
-              minWidth: 0,
-              aspectRatio: '16/10',
-              borderRadius: '14px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
-              bgcolor: '#F5F5F5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
-            {pdf.isLoading ? (
-              <CircularProgress size={28} />
-            ) : pdf.url ? (
-              <Box
-                component="iframe"
-                src={pdf.url}
-                title={`Certificado - ${cert.title}`}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  border: 0,
-                  position: 'relative',
-                  zIndex: 1,
-                  backgroundColor: 'rgba(255,255,255,0.7)',
-                }}
-              />
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: '#94a3b8' }}>
-                <PictureAsPdf sx={{ fontSize: 40 }} />
-                <Typography sx={{ fontSize: '0.85rem' }}>
-                  {pdf.error ?? 'PDF indisponível'}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          {/* Detalhes e ações */}
-          <Box
-            sx={{
-              flex: { md: '1 1 40%' },
-              width: '100%',
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              position: { md: 'sticky' },
-              top: { md: 32 },
-            }}
-          >
+          <Box sx={{ minWidth: 0 }}>
             <Typography
+              component="h1"
               sx={{
-                fontFamily: "'Poppins', sans-serif",
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                color: '#0f172a',
-                mb: 0.5,
+                color: colorTokens.text.heading,
+                fontSize: { xs: 24, sm: 27, md: 32 },
+                fontWeight: 800,
+                lineHeight: 1.25,
+                mb: { xs: 2.5, md: 3 },
+                overflowWrap: 'anywhere',
               }}
             >
               {cert.title}
             </Typography>
 
-            <Typography sx={{ fontSize: '0.9rem', color: '#64748b', mb: 2 }}>
-              {cert.participantName} · {cert.role}
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CalendarToday sx={{ fontSize: 16, color: '#64748b' }} />
-                <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                  Data de emissão: {formatBahiaDate(cert.issueDate)}
-                </Typography>
-              </Box>
-
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'minmax(0, 1fr)',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                },
+                gap: { xs: 2, sm: 2.5 },
+                p: { xs: 0, md: 2.25 },
+                borderRadius: { md: '20px' },
+                bgcolor: { md: colorTokens.surface.panel },
+                border: { md: '1px solid rgba(13, 30, 59, 0.05)' },
+              }}
+            >
+              <EventInfoRow
+                icon={<PersonOutlineRoundedIcon sx={{ fontSize: 21 }} />}
+                title={cert.participantName}
+                subtitle={cert.role}
+              />
+              <EventInfoRow
+                icon={<CalendarTodayRoundedIcon sx={{ fontSize: 20 }} />}
+                title={formatBahiaDate(cert.issueDate)}
+                subtitle="Data de emissão"
+              />
               {typeof cert.hours === 'number' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AccessTime sx={{ fontSize: 16, color: '#64748b' }} />
-                  <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: '#0f172a' }}>
-                    Carga Horária: {cert.hours} horas
-                  </Typography>
-                </Box>
+                <EventInfoRow
+                  icon={<AccessTimeRoundedIcon sx={{ fontSize: 21 }} />}
+                  title={`${cert.hours} horas`}
+                  subtitle="Carga horária"
+                />
               )}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Draw sx={{ fontSize: 16, color: cert.status === 'Assinado' ? '#059669' : '#64748b' }} />
-                <Typography sx={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.875rem', color: cert.status === 'Assinado' ? '#059669' : '#64748b' }}>
-                  {cert.status === 'Assinado'
-                    ? `Assinado digitalmente${cert.assinadoPor ? ` por ${cert.assinadoPor}` : ''}`
-                    : 'Pendente de assinatura'}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: { xs: 4, md: 0 } }}>
-              {isOrganizer && cert.status !== 'Assinado' && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  sx={{ px: 6, borderRadius: '50px', fontWeight: 700 }}
-                  leftIcon={<Draw />}
-                  onClick={() => router.push(`/certificate/${cert.id}/sign`)}
-                >
-                  Assinar Certificado
-                </Button>
+              {isSigned && cert.assinadoPor && (
+                <EventInfoRow
+                  icon={<DrawRoundedIcon sx={{ fontSize: 21 }} />}
+                  title={cert.assinadoPor}
+                  subtitle={
+                    cert.assinadoEm
+                      ? `Assinado digitalmente em ${formatBahiaDate(cert.assinadoEm)}`
+                      : 'Assinado digitalmente'
+                  }
+                />
               )}
-              <Button
-                variant="outlined"
-                color="secondary"
-                sx={{ px: 6, borderRadius: '50px', fontWeight: 700 }}
-                leftIcon={<Download />}
-                disabled={isDownloading}
-                onClick={handleDownload}
-              >
-                Baixar
-              </Button>
             </Box>
           </Box>
+
+          <Box sx={{ mt: { xs: 3.5, md: 0 }, minWidth: 0 }}>{actions}</Box>
         </Box>
-      </Container>
+      </Box>
 
       <Toast
-        open={Boolean(toastMessage)}
-        message={toastMessage}
-        severity={ToastSeverity.Error}
-        onClose={() => setToastMessage('')}
+        open={Boolean(toast)}
+        message={toast?.message ?? ''}
+        severity={toast?.severity ?? ToastSeverity.Error}
+        onClose={() => setToast(null)}
       />
     </Box>
   );

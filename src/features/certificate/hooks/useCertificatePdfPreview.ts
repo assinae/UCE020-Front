@@ -6,7 +6,10 @@ import { certificateService } from '@/services/certificate.service';
 import { extractApiErrorMessage } from '@/utils/apiError';
 
 interface CertificatePdfPreview {
+  /** Object URL, usado para abrir o PDF em nova aba / no leitor do celular. */
   url?: string;
+  /** Mesmo arquivo em memória, para o pdf.js desenhar a página no canvas. */
+  blob?: Blob;
   isLoading: boolean;
   error?: string;
 }
@@ -50,6 +53,7 @@ export function useCertificatePdfPreview(id?: string): CertificatePdfPreview {
 
   return {
     url,
+    blob,
     isLoading,
     error: error
       ? extractApiErrorMessage(error, 'Não foi possível carregar o certificado.')

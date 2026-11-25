@@ -13,7 +13,7 @@ import {
 } from '../utils/certificateFilters';
 
 const ROLE_LABEL: Record<CertificateManagementRole, string> = {
-  Ouvinte:     'Ouvintes',
+  Participante: 'Participantes',
   Monitor:     'Monitores',
   Organizador: 'Organizadores',
   Palestrante: 'Palestrantes',
@@ -22,7 +22,7 @@ const ROLE_LABEL: Record<CertificateManagementRole, string> = {
 };
 
 const CERTIFICATE_ROLES: CertificateManagementRole[] = [
-  'Ouvinte',
+  'Participante',
   'Monitor',
   'Organizador',
   'Palestrante',

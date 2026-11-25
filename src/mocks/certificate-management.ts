@@ -10,7 +10,7 @@ export const MOCK_CERTIFICATE_MANAGEMENT_ITEMS: CertificateManagementItem[] = [
     title: 'Palestra: Inteligência Artificial no Dia a Dia',
     participantName: 'João Ferreira',
     participantEmail: 'joao.ferreira@email.com',
-    role: 'Ouvinte',
+    role: 'Participante',
     status: 'Pendente',
     hours: 2,
     issueDate: '2026-05-16',
@@ -49,7 +49,7 @@ export const MOCK_CERTIFICATE_MANAGEMENT_ITEMS: CertificateManagementItem[] = [
     title: 'Palestra: Inteligência Artificial no Dia a Dia',
     participantName: 'Lucas Martins',
     participantEmail: 'lucas.martins@email.com',
-    role: 'Ouvinte',
+    role: 'Participante',
     status: 'Assinado',
     hours: 2,
     issueDate: '2026-05-16',
@@ -61,14 +61,14 @@ export const MOCK_CERTIFICATE_MANAGEMENT_ITEMS: CertificateManagementItem[] = [
  * endpoint de estatísticas do evento, não de uma contagem local da lista.
  */
 export const CERTIFICATE_ROLE_STATS: { role: CertificateManagementRole; label: string; value: number }[] = [
-  { role: 'Ouvinte', label: 'Ouvintes', value: 376 },
+  { role: 'Participante', label: 'Participantes', value: 376 },
   { role: 'Monitor', label: 'Monitores', value: 98 },
   { role: 'Organizador', label: 'Organizadores', value: 52 },
   { role: 'Palestrante', label: 'Palestrantes', value: 16 },
 ];
 
 export const CERTIFICATE_ROLE_COLORS: Record<CertificateManagementRole, { bg: string; color: string }> = {
-  Ouvinte: { bg: '#E8F5F2', color: '#1a6e5a' },
+  Participante: { bg: '#E8F5F2', color: '#1a6e5a' },
   Monitor: { bg: '#EEF2FF', color: '#3730A3' },
   Organizador: { bg: '#F3E8FF', color: '#6D28D9' },
   Palestrante: { bg: '#FFF7ED', color: '#B45309' },

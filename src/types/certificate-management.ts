@@ -1,5 +1,5 @@
 export type CertificateManagementRole =
-  | 'Ouvinte'
+  | 'Participante'
   | 'Monitor'
   | 'Organizador'
   | 'Palestrante'

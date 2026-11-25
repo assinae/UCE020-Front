@@ -12,7 +12,7 @@ interface CertificateStatsRowProps {
 }
 
 const ROLE_TABS: Record<CertificateManagementRole, CertificateRoleTab> = {
-  Ouvinte: 'Ouvintes',
+  Participante: 'Participantes',
   Monitor: 'Monitores',
   Organizador: 'Organizadores',
   Palestrante: 'Palestrantes',
