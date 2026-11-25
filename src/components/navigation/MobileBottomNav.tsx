@@ -8,6 +8,7 @@ import { Box, ButtonBase, alpha } from '@mui/material';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { colorTokens } from '@/lib/colors';
 import { QuickActionCard } from './QuickActionCard';
@@ -20,12 +21,27 @@ const OVERLAY = colorTokens.shadow.overlay;
 
 export const MOBILE_NAV_HEIGHT = 'calc(68px + env(safe-area-inset-bottom))';
 
-interface MobileBottomNavProps {
-  userName: string;
-  onLogout: () => void;
+export interface MobileNavLink {
+  label: string;
+  href: string;
 }
 
-export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
+interface MobileBottomNavProps {
+  variant?: 'user' | 'guest';
+  userName?: string;
+  onLogout?: () => void;
+  homeHref?: string;
+  guestLinks?: MobileNavLink[];
+}
+
+export function MobileBottomNav({
+  variant = 'user',
+  userName,
+  onLogout,
+  homeHref = '/home',
+  guestLinks = [],
+}: MobileBottomNavProps) {
+  const isGuest = variant === 'guest';
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -103,80 +119,92 @@ export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
               }}
             />
 
-            <Box
-              component={Link}
-              href="/user-profile"
-              onClick={close}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.75,
-                p: '14px 16px',
-                borderRadius: '22px',
-                border: `1px solid ${alpha(INK, 0.07)}`,
-                bgcolor: colorTokens.surface.muted,
-                textDecoration: 'none',
-                transition: 'background .18s ease, border-color .18s ease',
-                '&:hover': {
-                  bgcolor: colorTokens.surface.mintSubtle,
-                  borderColor: colorTokens.brand.secondary,
-                },
-              }}
-            >
-              <UserAvatar name={userName} size={46} />
-              <Box
-                sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
-              >
+            {isGuest ? (
+              <GuestSheetContent links={guestLinks} onNavigate={close} />
+            ) : (
+              <>
                 <Box
-                  component="span"
+                  component={Link}
+                  href="/user-profile"
+                  onClick={close}
                   sx={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: colorTokens.text.heading,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.75,
+                    p: '14px 16px',
+                    borderRadius: '22px',
+                    border: `1px solid ${alpha(INK, 0.07)}`,
+                    bgcolor: colorTokens.surface.muted,
+                    textDecoration: 'none',
+                    transition: 'background .18s ease, border-color .18s ease',
+                    '&:hover': {
+                      bgcolor: colorTokens.surface.mintSubtle,
+                      borderColor: colorTokens.brand.secondary,
+                    },
                   }}
                 >
-                  {userName}
+                  <UserAvatar name={userName ?? ''} size={46} />
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: colorTokens.text.heading,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {userName}
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{ fontSize: 12.5, fontWeight: 500, color: colorTokens.text.muted }}
+                    >
+                      Ver meu perfil
+                    </Box>
+                  </Box>
+                  <ChevronRightRoundedIcon sx={{ fontSize: 20, color: colorTokens.text.muted }} />
                 </Box>
-                <Box
-                  component="span"
-                  sx={{ fontSize: 12.5, fontWeight: 500, color: colorTokens.text.muted }}
+
+                <SectionHeading title="Ações rápidas" size="sm" />
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  {QUICK_ACTIONS.map((action) => (
+                    <QuickActionCard key={action.href} action={action} size="sm" onClick={close} />
+                  ))}
+                </Box>
+
+                <ButtonBase
+                  onClick={() => {
+                    close();
+                    onLogout?.();
+                  }}
+                  sx={{
+                    gap: 1,
+                    minHeight: 48,
+                    borderRadius: '999px',
+                    border: `1.5px solid ${alpha(INK, 0.12)}`,
+                    color: colorTokens.text.heading,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: colorTokens.surface.muted },
+                  }}
                 >
-                  Ver meu perfil
-                </Box>
-              </Box>
-              <ChevronRightRoundedIcon sx={{ fontSize: 20, color: colorTokens.text.muted }} />
-            </Box>
-
-            <SectionHeading title="Ações rápidas" size="sm" />
-
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-              {QUICK_ACTIONS.map((action) => (
-                <QuickActionCard key={action.href} action={action} size="sm" onClick={close} />
-              ))}
-            </Box>
-
-            <ButtonBase
-              onClick={() => {
-                close();
-                onLogout();
-              }}
-              sx={{
-                gap: 1,
-                minHeight: 48,
-                borderRadius: '999px',
-                border: `1.5px solid ${alpha(INK, 0.12)}`,
-                color: colorTokens.text.heading,
-                fontSize: 14,
-                fontWeight: 700,
-                '&:hover': { bgcolor: colorTokens.surface.muted },
-              }}
-            >
-              <LogoutRoundedIcon sx={{ fontSize: 19 }} />
-              Sair
-            </ButtonBase>
+                  <LogoutRoundedIcon sx={{ fontSize: 19 }} />
+                  Sair
+                </ButtonBase>
+              </>
+            )}
           </Box>
         )}
 
@@ -199,9 +227,9 @@ export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
         >
           <Box
             component={Link}
-            href="/home"
+            href={homeHref}
             onClick={close}
-            aria-current={pathname === '/home' ? 'page' : undefined}
+            aria-current={pathname === homeHref ? 'page' : undefined}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -212,7 +240,7 @@ export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
               pr: 2,
               borderRadius: '999px',
               textDecoration: 'none',
-              bgcolor: pathname === '/home' ? alpha(colorTokens.brand.mint, 0.2) : 'transparent',
+              bgcolor: pathname === homeHref ? alpha(colorTokens.brand.mint, 0.2) : 'transparent',
               transition: 'background .18s ease',
             }}
           >
@@ -242,7 +270,25 @@ export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
               transition: 'background .18s ease',
             }}
           >
-            <UserAvatar name={userName} size={36} />
+            {isGuest ? (
+              <Box
+                component="span"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  pl: 1,
+                  color: WHITE,
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                <MenuRoundedIcon sx={{ fontSize: 22 }} />
+                Menu
+              </Box>
+            ) : (
+              <UserAvatar name={userName ?? ''} size={36} />
+            )}
             <ExpandMoreRoundedIcon
               sx={{
                 fontSize: 20,
@@ -255,5 +301,96 @@ export function MobileBottomNav({ userName, onLogout }: MobileBottomNavProps) {
         </Box>
       </Box>
     </Box>
+  );
+}
+
+function PageLinks({ links, onNavigate }: { links: MobileNavLink[]; onNavigate: () => void }) {
+  return (
+    <Box component="ul" sx={{ m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      {links.map((link) => (
+        <Box component="li" key={link.href} sx={{ listStyle: 'none' }}>
+          <Box
+            component={Link}
+            href={link.href}
+            onClick={onNavigate}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              minHeight: 48,
+              px: 2,
+              borderRadius: '16px',
+              color: colorTokens.text.heading,
+              fontSize: 15,
+              fontWeight: 700,
+              textDecoration: 'none',
+              transition: 'background .18s ease',
+              '&:hover': { bgcolor: colorTokens.surface.muted },
+            }}
+          >
+            {link.label}
+            <ChevronRightRoundedIcon sx={{ fontSize: 20, color: colorTokens.text.muted }} />
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function GuestSheetContent({
+  links,
+  onNavigate,
+}: {
+  links: MobileNavLink[];
+  onNavigate: () => void;
+}) {
+  return (
+    <>
+      {links.length > 0 && <PageLinks links={links} onNavigate={onNavigate} />}
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box
+          component={Link}
+          href="/login"
+          onClick={onNavigate}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 48,
+            borderRadius: '999px',
+            bgcolor: INK,
+            color: WHITE,
+            fontSize: 14,
+            fontWeight: 700,
+            textDecoration: 'none',
+            transition: 'background .18s ease',
+            '&:hover': { bgcolor: colorTokens.navigation.hover, color: WHITE },
+          }}
+        >
+          Entrar
+        </Box>
+        <Box
+          component={Link}
+          href="/register"
+          onClick={onNavigate}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 48,
+            borderRadius: '999px',
+            border: `1.5px solid ${alpha(INK, 0.12)}`,
+            color: colorTokens.text.heading,
+            fontSize: 14,
+            fontWeight: 700,
+            textDecoration: 'none',
+            '&:hover': { bgcolor: colorTokens.surface.muted },
+          }}
+        >
+          Criar conta
+        </Box>
+      </Box>
+    </>
   );
 }

@@ -1,0 +1,45 @@
+import { colorTokens } from '@/lib/colors';
+
+export const primaryCtaSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 1,
+  px: 3,
+  py: 1.5,
+  borderRadius: 999,
+  backgroundColor: colorTokens.brand.secondary,
+  color: colorTokens.text.inverse,
+  fontSize: 15,
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+  textDecoration: 'none',
+  transition: 'transform .18s ease, background-color .18s ease',
+  '&:hover': {
+    backgroundColor: colorTokens.brand.secondaryDark,
+    color: colorTokens.text.inverse,
+    transform: 'translateY(-2px)',
+  },
+  '&:focus-visible': { outline: `2px solid ${colorTokens.brand.mint}`, outlineOffset: 2 },
+  '@media (prefers-reduced-motion: reduce)': { '&:hover': { transform: 'none' } },
+} as const;
+
+export const ghostOnDarkSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 1,
+  px: 2.5,
+  py: 1.5,
+  borderRadius: 999,
+  border: '1.5px solid rgba(255,255,255,0.3)',
+  backgroundColor: 'rgba(255,255,255,0.06)',
+  color: colorTokens.text.inverse,
+  fontFamily: 'inherit',
+  fontSize: 15,
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+  transition: 'background-color .18s ease, border-color .18s ease',
+  '&:hover': { backgroundColor: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.5)' },
+  '&:focus-visible': { outline: `2px solid ${colorTokens.brand.mint}`, outlineOffset: 2 },
+} as const;

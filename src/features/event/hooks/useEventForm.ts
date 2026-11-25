@@ -19,6 +19,7 @@ import {
   formatDateBR,
   getErrors,
   getTodayString,
+  toFormStatus,
   toISODateTime,
   type ActivityItem,
   type CertificateCustomizationState,
@@ -122,7 +123,7 @@ export function useEventForm(mode: EventFormMode, eventId?: number) {
         startTime: toTime(startDT),
         endTime: toTime(endDT),
         cargaHoraria: String(existingEvent.cargaHoraria ?? ''),
-        status: (existingEvent.status as FormState['status']) ?? 'pendente',
+        status: toFormStatus(existingEvent.status),
         foto: existingEvent.foto ?? null,
         certificadoTemplate: templateUrl,
       });

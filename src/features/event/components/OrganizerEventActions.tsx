@@ -22,6 +22,7 @@ import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import WorkspacePremiumRoundedIcon from '@mui/icons-material/WorkspacePremiumRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import { ConfirmModal } from '@/components/modals/confirm-modal';
 import { eventService } from '@/services/eventService';
 import { certificateService } from '@/services/certificate.service';
@@ -35,6 +36,7 @@ interface OrganizerEventActionsProps {
   isFinalized?: boolean;
   /** Exclusão só é permitida enquanto o evento está pendente. */
   canDelete?: boolean;
+  publicPageHref?: string;
   onAddActivity?: () => void;
   onDelete?: () => void;
   onFinalized?: () => void;
@@ -104,6 +106,7 @@ export function OrganizerEventActions({
   activities = [],
   isFinalized = false,
   canDelete = false,
+  publicPageHref,
   onAddActivity,
   onDelete,
   onFinalized,
@@ -186,6 +189,17 @@ export function OrganizerEventActions({
             icon: <EditRoundedIcon sx={iconSx} />,
             tone: 'default' as const,
             onClick: () => router.push(`/event/${eventId}/edit`),
+          },
+        ]
+      : []),
+    ...(publicPageHref
+      ? [
+          {
+            key: 'public-page',
+            label: 'Ver página pública',
+            icon: <PublicRoundedIcon sx={iconSx} />,
+            tone: 'default' as const,
+            onClick: () => window.open(publicPageHref, '_blank', 'noopener'),
           },
         ]
       : []),

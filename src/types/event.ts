@@ -37,6 +37,28 @@ export interface Event {
   tipoParticipacao?: 'participante' | 'monitor' | 'organizador';
 }
 
+export interface PublicEventGuest {
+  name: string;
+  role: string;
+}
+
+export interface PublicEventActivity {
+  id: number;
+  name: string;
+  description: string | null;
+  location: string | null;
+  category: string;
+  workload: number | null;
+  startDate: string;
+  endDate: string;
+  status: string;
+  guests: PublicEventGuest[];
+}
+
+export type PublicEvent = Omit<Event, 'atividades'> & {
+  atividades: PublicEventActivity[];
+};
+
 export function resolveCertificateTemplateUrl(
   event?: Partial<Pick<Event, 'templateUrl' | 'certificadoTemplate' | 'template'>> & {
     template_url?: string | null;

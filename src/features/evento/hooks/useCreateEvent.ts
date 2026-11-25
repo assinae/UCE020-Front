@@ -47,7 +47,7 @@ export function useCreateEvent() {
         return;
       }
 
-      router.push(`/event/${createdEventId.current}`);
+      router.push(`/event/${createdEventId.current}?criado=1`);
     } catch (err: unknown) {
       setError(extractApiErrorMessage(err, 'Erro ao criar evento. Tente novamente.'));
     } finally {
